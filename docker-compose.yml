@@ -1,0 +1,324 @@
+# Configuration taken from https://github.com/meltwater/docker-mesos
+# https://github.com/containous/traefik/blob/master/examples/compose-marathon.yml
+
+version: '3'
+services:
+  zookeeper:
+    image: zookeeper:3.4.11
+    hostname: zookeeper
+    ports:
+      - '2181:2181'
+      - '2888:2888'
+      - '3888:3888'
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zookeeper:2888:3888
+    networks:
+      - mip-backend-bridge
+    restart: always
+
+  wait_zookeeper:
+    image: "waisbrot/wait"
+    restart: "no"
+    environment:
+      TARGETS: "zookeeper:2181"
+      TIMEOUT: 60
+    networks:
+      - mip-backend-bridge
+    depends_on:
+      - zookeeper
+
+  mesos_master:
+    image: mesosphere/mesos-master:1.3.0
+    hostname: mesosmaster
+    volumes:
+      - ./log/mesos/master:/var/log/mesos/master:rw
+      - ./tmp/mesos/master:/var/tmp/mesos:rw
+    networks:
+      - mip-backend-bridge
+    environment:
+      MESOS_PORT: 5050
+      MESOS_ZK: 'zk://zookeeper:2181/mesos'
+      MESOS_QUORUM: '1'
+      MESOS_REGISTRY: 'in_memory'
+      MESOS_CLUSTER: 'local'
+      MESOS_HOSTNAME: 'mesosmaster.docker'
+      MESOS_LOG_DIR: '/var/log/mesos/master'
+      MESOS_WORK_DIR: '/var/lib/mesos'
+    depends_on:
+      - zookeeper
+
+  wait_mesos_master:
+    image: "waisbrot/wait"
+    restart: "no"
+    environment:
+      TARGETS: "mesos_master:5050"
+      TIMEOUT: 60
+    networks:
+      - mip-backend-bridge
+    depends_on:
+      - mesos_master
+
+  mesos_slave:
+    image: mesosphere/mesos-slave:1.3.0
+    hostname: mesosslave
+    privileged: true
+    volumes:
+      - ./log/mesos/slave:/var/log/mesos/slave:rw
+      - ./tmp/mesos/slave:/var/tmp/mesos:rw
+      - /sys:/sys
+      #- /cgroup:/cgroup is it really needed for the demo? Not compatible with docker machine on MacOSX, try /sys/fs/cgroups...
+      # /usr/bin/docker is needed if you're running an older docker version
+      #- /usr/bin/docker:/usr/bin/docker:r
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    networks:
+      - mip-backend-bridge
+    environment:
+      MESOS_MASTER: 'zk://zookeeper:2181/mesos'
+      MESOS_PORT: '5051'
+      MESOS_LOG_DIR: '/var/log/mesos/slave'
+      MESOS_WORK_DIR: '/var/tmp/mesos'
+      MESOS_CONTAINERIZERS: 'docker,mesos'
+      MESOS_EXECUTOR_REGISTRATION_TIMEOUT: '5mins'
+      MESOS_EXECUTOR_SHUTDOWN_GRACE_PERIOD: '90secs'
+      MESOS_DOCKER_STOP_TIMEOUT: '60secs'
+      # If your workstation doesn't have a resolvable hostname/FQDN then $MESOS_HOSTNAME needs to be set to its IP-address
+      MESOS_HOSTNAME: 'mesosslave.docker'
+      MESOS_SWITCH_USER: 0
+      # see bug resolution for "Failed to determine the hierarchy where the subsystem freezer is attached" at https://github.com/eBayClassifiedsGroup/PanteraS/issues/142
+      MESOS_LAUNCHER: "posix"
+    depends_on:
+      - zookeeper
+      - mesos_master
+
+  chronos:
+    image: mesosphere/chronos:v3.0.2
+    command: '--zk_hosts zookeeper:2181 --master zk://zookeeper:2181/mesos --zk_timeout 30000'
+    restart: "always"
+    hostname: chronos
+    networks:
+      - mip-backend-bridge
+    ports:
+      - "4400:4400"
+      - "4401:4401"
+    environment:
+      PORT0: 4400
+      PORT1: 4401
+    depends_on:
+      - zookeeper
+      - mesos_slave
+
+  wait_chronos:
+    image: "waisbrot/wait"
+    restart: "no"
+    environment:
+      TARGETS: "chronos:4400"
+      TIMEOUT: 60
+    networks:
+      - mip-backend-bridge
+    depends_on:
+      - chronos
+
+  # Expose the database to the host
+  db:
+    image: postgres:9.6.5-alpine
+    ports:
+      - "5432:5432"
+    hostname: db
+    networks:
+      - mip-backend-bridge
+    environment:
+      POSTGRES_PASSWORD: test
+
+  wait_dbs:
+    image: "waisbrot/wait"
+    restart: "no"
+    networks:
+      - mip-backend-bridge
+    environment:
+      TARGETS: "db:5432"
+      TIMEOUT: 60
+    depends_on:
+      - db
+
+  create_dbs:
+    image: "hbpmip/create-databases:1.0.0"
+    restart: "no"
+    networks:
+      - mip-backend-bridge
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_ADMIN_USER: postgres
+      DB_ADMIN_PASSWORD: test
+      DB1: meta
+      USER1: meta
+      PASSWORD1: metapwd
+      DB2: features
+      USER2: features
+      PASSWORD2: featurespwd
+      DB3: woken
+      USER3: woken
+      PASSWORD3: wokenpwd
+      DB4: portal
+      USER4: portal
+      PASSWORD4: portalpwd
+    depends_on:
+      - db
+
+  meta_db_setup:
+    image: "hbpmip/sample-meta-db-setup:0.4.0"
+    container_name: "meta-db-setup"
+    restart: "no"
+    networks:
+      - mip-backend-bridge
+    environment:
+      FLYWAY_HOST: db
+      FLYWAY_PORT: 5432
+      FLYWAY_DATABASE_NAME: meta
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: test
+    depends_on:
+      - db
+
+  sample_data_db_setup:
+    image: "hbpmip/sample-data-db-setup:0.5.0"
+    container_name: "sample-data-db-setup"
+    restart: "no"
+    networks:
+      - mip-backend-bridge
+    environment:
+      FLYWAY_HOST: db
+      FLYWAY_PORT: 5432
+      FLYWAY_DATABASE_NAME: features
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: test
+    depends_on:
+      - db
+
+  woken_db_setup:
+    image: "hbpmip/woken-db-setup:1.0.2"
+    container_name: "woken-db-setup"
+    restart: "no"
+    networks:
+      - mip-backend-bridge
+    environment:
+      FLYWAY_HOST: db
+      FLYWAY_PORT: 5432
+      FLYWAY_DATABASE_NAME: woken
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: test
+    depends_on:
+      - db
+
+  woken:
+    image: hbpmip/woken:2.1.4
+    volumes:
+      - ./woken/config:/opt/woken/config
+    ports:
+      - "8087:8087"
+      - "8088:8088"
+    hostname: woken
+    networks:
+      - mip-backend-bridge
+    depends_on:
+      - chronos
+      - db
+
+  woken_validation:
+    image: hbpmip/woken-validation:2.1.0
+    volumes:
+      - ./woken/config/validation/application.conf:/opt/woken-validation/config/application.conf
+    ports:
+      - "8082:8082"
+    hostname: woken-validation
+    networks:
+      - mip-backend-bridge
+    depends_on:
+      - woken
+
+  wait_woken:
+    image: "waisbrot/wait"
+    restart: "no"
+    networks:
+      - mip-backend-bridge
+    environment:
+      TARGETS: "woken:8087,chronos:4400"
+      TIMEOUT: 60
+    depends_on:
+      - woken
+      - chronos
+
+  backend:
+    image: "hbpmip/portal-backend:2.5.4"
+    depends_on:
+      - db
+      - woken
+    ports:
+      - "8080:8080"
+      - "8089:8089"
+    environment:
+      PORTAL_DB_URL: jdbc:postgresql://db:5432/portal
+      PORTAL_DB_SERVER: db:5432
+      PORTAL_DB_USER: portal
+      PORTAL_DB_PASSWORD: portalpwd
+      META_DB_URL: jdbc:postgresql://db:5432/meta
+      META_DB_SERVER: db:5432
+      META_DB_USER: meta
+      META_DB_PASSWORD: metapwd
+      FEATURES_DB_URL: jdbc:postgresql://db:5432/features
+      FEATURES_DB_SERVER: db:5432
+      FEATURES_DB_USER: features
+      FEATURES_DB_PASSWORD: featurespwd
+      FEATURES_DB_MAIN_TABLE: cde_features_a
+      CONTEXT_PATH: /services
+      AUTHENTICATION: 0
+      CLIENT_ID: none
+      CLIENT_SECRET: none
+      TOKEN_URI: https://services.humanbrainproject.eu/oidc/token
+      AUTH_URI: https://services.humanbrainproject.eu/oidc/authorize
+      USER_INFO_URI: https://services.humanbrainproject.eu/oidc/userinfo
+      FRONTEND_LOGIN_URL: ${FRONTEND_URL}/services/login/hbp
+      FRONTEND_AFTER_LOGIN_URL: ${FRONTEND_URL}/home
+      FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
+      WOKEN_HOST: woken
+      WOKEN_PORT: 8088
+      WOKEN_AKKA_PATH: "/user/entrypoint"
+      EXAREME_URL: http://prozac.madgik.di.uoa.gr:9090/mining/query
+      LOGGING_LEVEL_WEB: DEBUG
+      LOGGING_LEVEL_HIBERNATE: WARN
+      SESSION_TIMEOUT: 2592000
+      VIRTUAL_HOST: backend
+      VIRTUAL_PORT: 8080
+    networks:
+      - mip-backend-bridge
+
+  wait_portal_backend:
+    image: "waisbrot/wait"
+    restart: "no"
+    networks:
+      - mip-backend-bridge
+    environment:
+      - TARGETS=backend:8080
+    depends_on:
+      - backend
+
+  frontend:
+    image: hbpmip/portal-frontend:2.5.2
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    environment:
+      WORKER_PROCESSES: 1
+      ERROR_LOG_LEVEL: warn
+      PORTAL_VIRTUAL_HOST: frontend
+      PORTAL_BACKEND_SERVER: backend:8080
+      PORTAL_BACKEND_CONTEXT: services
+    networks:
+      - mip-backend-bridge
+
+networks:
+  mip-backend-bridge:
+    external:
+      name: mip-backend-bridge
