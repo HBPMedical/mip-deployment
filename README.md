@@ -33,4 +33,4 @@ be able to access the portal at http://frontend
 
 If you use the --no-frontend configuration, you'll have to run the frontend on
 `localhost:8000`. You'll find more information in the
-(portal-frontend README)[https://github.com/HBPMedical/portal-frontend/blob/master/README.md].
+[portal-frontend README](https://github.com/HBPMedical/portal-frontend/blob/master/README.md).
