@@ -81,7 +81,7 @@ for i in 1 2 3 4 5 ; do
   $DOCKER_COMPOSE stop chronos
 done
 
-$DOCKER_COMPOSE up -d woken woken_validation
+$DOCKER_COMPOSE up -d woken wokenvalidation
 
 $DOCKER_COMPOSE run wait_woken
 
