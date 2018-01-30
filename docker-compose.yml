@@ -167,7 +167,7 @@ services:
       - db
 
   meta_db_setup:
-    image: "hbpmip/sample-meta-db-setup:0.4.0"
+    image: "hbpmip/sample-meta-db-setup:0.4.1"
     container_name: "meta-db-setup"
     restart: "no"
     networks:
@@ -212,7 +212,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.1.4
+    image: hbpmip/woken:2.2.2
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -225,13 +225,17 @@ services:
       - chronos
       - db
 
-  woken_validation:
-    image: hbpmip/woken-validation:2.1.0
-    volumes:
-      - ./woken/config/validation/application.conf:/opt/woken-validation/config/application.conf
+  wokenvalidation:
+    image: hbpmip/woken-validation:2.1.8
     ports:
+      - "8081:8081"
       - "8082:8082"
-    hostname: woken-validation
+    environment:
+      CLUSTER_PORT: 8082
+      CLUSTER_IP: wokenvalidation
+      WOKEN_PORT_8088_TCP_ADDR: woken
+      LOG_LEVEL: DEBUG
+    hostname: wokenvalidation
     networks:
       - mip-backend-bridge
     depends_on:
@@ -243,14 +247,14 @@ services:
     networks:
       - mip-backend-bridge
     environment:
-      TARGETS: "woken:8087,chronos:4400"
+      TARGETS: "woken:8087,chronos:4400,wokenvalidation:8081"
       TIMEOUT: 60
     depends_on:
       - woken
       - chronos
 
   backend:
-    image: "hbpmip/portal-backend:2.5.4"
+    image: "hbpmip/portal-backend:2.5.6"
     depends_on:
       - db
       - woken
@@ -283,6 +287,7 @@ services:
       FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
       WOKEN_HOST: woken
       WOKEN_PORT: 8088
+      WOKEN_PORT_8088_TCP_ADDR: woken
       WOKEN_AKKA_PATH: "/user/entrypoint"
       EXAREME_URL: http://prozac.madgik.di.uoa.gr:9090/mining/query
       LOGGING_LEVEL_WEB: DEBUG
