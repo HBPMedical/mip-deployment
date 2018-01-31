@@ -186,7 +186,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.2.2
+    image: hbpmip/woken:2.2.4
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -226,7 +226,7 @@ services:
       - chronos
 
   wokennode2:
-    image: hbpmip/woken:2.2.2
+    image: hbpmip/woken:2.2.3
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -266,7 +266,7 @@ services:
       - chronos
 
   woken:
-    image: hbpmip/woken:2.2.2
+    image: hbpmip/woken:2.2.3
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
