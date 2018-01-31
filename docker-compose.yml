@@ -219,6 +219,10 @@ services:
       - "8087:8087"
       - "8088:8088"
     hostname: woken
+    environment:
+      CLUSTER_PORT: 8088
+      CLUSTER_IP: woken
+      WOKEN_PORT_8088_TCP_ADDR: woken
     networks:
       - mip-backend-bridge
     depends_on:
