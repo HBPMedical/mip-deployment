@@ -23,13 +23,13 @@ fi
 
 if [ $NO_SUDO ]; then
   DOCKER="docker"
-  DOCKER_COMPOSE="docker-compose"
+  DOCKER_COMPOSE="docker-compose -f docker-compose-federation.yml"
 elif groups "$USER" | grep &>/dev/null '\bdocker\b'; then
   DOCKER="docker"
-  DOCKER_COMPOSE="docker-compose"
+  DOCKER_COMPOSE="docker-compose -f docker-compose-federation.yml"
 else
   DOCKER="sudo docker"
-  DOCKER_COMPOSE="sudo docker-compose"
+  DOCKER_COMPOSE="sudo docker-compose -f docker-compose-federation.yml"
 fi
 
 for param in "$@"
@@ -73,6 +73,10 @@ for i in 1 2 3 4 5 ; do
   echo "Chronos failed to start, restarting..."
   $DOCKER_COMPOSE stop chronos
 done
+
+$DOCKER_COMPOSE up -d wokennode1 wokennode2 wokenvalidationnode1 wokenvalidationnode2
+$DOCKER_COMPOSE run wait_wokennode1
+$DOCKER_COMPOSE run wait_wokennode2
 
 $DOCKER_COMPOSE up -d woken wokenvalidation
 
