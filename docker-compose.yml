@@ -219,6 +219,10 @@ services:
       - "8087:8087"
       - "8088:8088"
     hostname: woken
+    environment:
+      CLUSTER_PORT: 8088
+      CLUSTER_IP: woken
+      WOKEN_PORT_8088_TCP_ADDR: woken
     networks:
       - mip-backend-bridge
     depends_on:
@@ -254,7 +258,7 @@ services:
       - chronos
 
   backend:
-    image: "hbpmip/portal-backend:2.5.9"
+    image: "hbpmip/portal-backend:2.5.11"
     depends_on:
       - db
       - woken
@@ -285,6 +289,8 @@ services:
       FRONTEND_LOGIN_URL: ${FRONTEND_URL}/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: ${FRONTEND_URL}/home
       FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
+      CLUSTER_IP: backend
+      CLUSTER_PORT: 8089
       WOKEN_HOST: woken
       WOKEN_PORT: 8088
       WOKEN_PORT_8088_TCP_ADDR: woken
