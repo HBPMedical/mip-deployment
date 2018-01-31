@@ -45,13 +45,6 @@ echo "Remove old running containers (if any)..."
 $DOCKER_COMPOSE kill
 $DOCKER_COMPOSE rm -f
 
-if [ $($DOCKER network ls | grep -c 'mip-backend-bridge') -lt 1 ]; then
-  echo "Create mip-backend-bridge network..."
-  $DOCKER network create mip-backend-bridge
-else
-  echo "Found mip-backend-bridge network !"
-fi
-
 echo "Deploy a Postgres server and wait for it to be ready..."
 $DOCKER_COMPOSE up -d db zookeeper
 $DOCKER_COMPOSE run wait_zookeeper

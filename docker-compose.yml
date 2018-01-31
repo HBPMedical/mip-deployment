@@ -1,7 +1,7 @@
 # Configuration taken from https://github.com/meltwater/docker-mesos
 # https://github.com/containous/traefik/blob/master/examples/compose-marathon.yml
 
-version: '3'
+version: '3.0'
 services:
   zookeeper:
     image: zookeeper:3.4.11
@@ -13,8 +13,6 @@ services:
     environment:
       ZOO_MY_ID: 1
       ZOO_SERVERS: server.1=zookeeper:2888:3888
-    networks:
-      - mip-backend-bridge
     restart: always
 
   wait_zookeeper:
@@ -23,8 +21,6 @@ services:
     environment:
       TARGETS: "zookeeper:2181"
       TIMEOUT: 60
-    networks:
-      - mip-backend-bridge
     depends_on:
       - zookeeper
 
@@ -34,8 +30,6 @@ services:
     volumes:
       - ./log/mesos/master:/var/log/mesos/master:rw
       - ./tmp/mesos/master:/var/tmp/mesos:rw
-    networks:
-      - mip-backend-bridge
     environment:
       MESOS_PORT: 5050
       MESOS_ZK: 'zk://zookeeper:2181/mesos'
@@ -54,8 +48,6 @@ services:
     environment:
       TARGETS: "mesos_master:5050"
       TIMEOUT: 60
-    networks:
-      - mip-backend-bridge
     depends_on:
       - mesos_master
 
@@ -71,8 +63,6 @@ services:
       # /usr/bin/docker is needed if you're running an older docker version
       #- /usr/bin/docker:/usr/bin/docker:r
       - /var/run/docker.sock:/var/run/docker.sock:rw
-    networks:
-      - mip-backend-bridge
     environment:
       MESOS_MASTER: 'zk://zookeeper:2181/mesos'
       MESOS_PORT: '5051'
@@ -96,8 +86,6 @@ services:
     command: '--zk_hosts zookeeper:2181 --master zk://zookeeper:2181/mesos --zk_timeout 30000'
     restart: "always"
     hostname: chronos
-    networks:
-      - mip-backend-bridge
     ports:
       - "4400:4400"
       - "4401:4401"
@@ -114,8 +102,6 @@ services:
     environment:
       TARGETS: "chronos:4400"
       TIMEOUT: 60
-    networks:
-      - mip-backend-bridge
     depends_on:
       - chronos
 
@@ -125,16 +111,12 @@ services:
     ports:
       - "5432:5432"
     hostname: db
-    networks:
-      - mip-backend-bridge
     environment:
       POSTGRES_PASSWORD: test
 
   wait_dbs:
     image: "waisbrot/wait"
     restart: "no"
-    networks:
-      - mip-backend-bridge
     environment:
       TARGETS: "db:5432"
       TIMEOUT: 60
@@ -144,8 +126,6 @@ services:
   create_dbs:
     image: "hbpmip/create-databases:1.0.0"
     restart: "no"
-    networks:
-      - mip-backend-bridge
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -170,8 +150,6 @@ services:
     image: "hbpmip/sample-meta-db-setup:0.4.1"
     container_name: "meta-db-setup"
     restart: "no"
-    networks:
-      - mip-backend-bridge
     environment:
       FLYWAY_HOST: db
       FLYWAY_PORT: 5432
@@ -185,8 +163,6 @@ services:
     image: "hbpmip/sample-data-db-setup:0.5.0"
     container_name: "sample-data-db-setup"
     restart: "no"
-    networks:
-      - mip-backend-bridge
     environment:
       FLYWAY_HOST: db
       FLYWAY_PORT: 5432
@@ -200,8 +176,6 @@ services:
     image: "hbpmip/woken-db-setup:1.0.2"
     container_name: "woken-db-setup"
     restart: "no"
-    networks:
-      - mip-backend-bridge
     environment:
       FLYWAY_HOST: db
       FLYWAY_PORT: 5432
@@ -218,13 +192,10 @@ services:
     ports:
       - "8087:8087"
       - "8088:8088"
-    hostname: woken
     environment:
       CLUSTER_PORT: 8088
       CLUSTER_IP: woken
       WOKEN_PORT_8088_TCP_ADDR: woken
-    networks:
-      - mip-backend-bridge
     depends_on:
       - chronos
       - db
@@ -239,17 +210,12 @@ services:
       CLUSTER_IP: wokenvalidation
       WOKEN_PORT_8088_TCP_ADDR: woken
       LOG_LEVEL: DEBUG
-    hostname: wokenvalidation
-    networks:
-      - mip-backend-bridge
     depends_on:
       - woken
 
   wait_woken:
     image: "waisbrot/wait"
     restart: "no"
-    networks:
-      - mip-backend-bridge
     environment:
       TARGETS: "woken:8087,chronos:4400,wokenvalidation:8081"
       TIMEOUT: 60
@@ -281,11 +247,6 @@ services:
       FEATURES_DB_MAIN_TABLE: cde_features_a
       CONTEXT_PATH: /services
       AUTHENTICATION: 0
-      CLIENT_ID: none
-      CLIENT_SECRET: none
-      TOKEN_URI: https://services.humanbrainproject.eu/oidc/token
-      AUTH_URI: https://services.humanbrainproject.eu/oidc/authorize
-      USER_INFO_URI: https://services.humanbrainproject.eu/oidc/userinfo
       FRONTEND_LOGIN_URL: ${FRONTEND_URL}/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: ${FRONTEND_URL}/home
       FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
@@ -301,14 +262,10 @@ services:
       SESSION_TIMEOUT: 2592000
       VIRTUAL_HOST: backend
       VIRTUAL_PORT: 8080
-    networks:
-      - mip-backend-bridge
 
   wait_portal_backend:
     image: "waisbrot/wait"
     restart: "no"
-    networks:
-      - mip-backend-bridge
     environment:
       - TARGETS=backend:8080
     depends_on:
@@ -326,10 +283,10 @@ services:
       PORTAL_VIRTUAL_HOST: frontend
       PORTAL_BACKEND_SERVER: backend:8080
       PORTAL_BACKEND_CONTEXT: services
-    networks:
-      - mip-backend-bridge
 
 networks:
-  mip-backend-bridge:
-    external:
-      name: mip-backend-bridge
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
