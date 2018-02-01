@@ -352,7 +352,7 @@ services:
       - backend
 
   frontend:
-    image: hbpmip/portal-frontend:2.6.0
+    image: hbpmip/portal-frontend:2.6.3
     depends_on:
       - backend
     ports:
