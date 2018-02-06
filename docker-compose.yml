@@ -186,7 +186,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.2.3
+    image: hbpmip/woken:2.2.5
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -272,7 +272,7 @@ services:
       - backend
 
   frontend:
-    image: hbpmip/portal-frontend:2.6.1
+    image: hbpmip/portal-frontend:2.6.3
     depends_on:
       - backend
     ports:
