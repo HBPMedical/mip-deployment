@@ -268,7 +268,7 @@ services:
   woken:
     image: hbpmip/woken:2.2.5
     volumes:
-      - ./woken/config:/opt/woken/config
+      - ./woken-fed/config:/opt/woken/config
     ports:
       - "8087:8087"
       - "8088:8088"
