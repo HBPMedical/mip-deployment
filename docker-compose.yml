@@ -273,7 +273,7 @@ services:
       - backend
 
   frontend:
-    image: hbpmip/portal-frontend:2.6.5
+    image: hbpmip/portal-frontend:2.7.0
     depends_on:
       - backend
     ports:
@@ -284,6 +284,9 @@ services:
       PORTAL_VIRTUAL_HOST: frontend
       PORTAL_BACKEND_SERVER: backend:8080
       PORTAL_BACKEND_CONTEXT: services
+      MODE: local
+      INSTANCE_NAME: DEV
+      VERSION: 2.7.0    
 
 networks:
   default:
