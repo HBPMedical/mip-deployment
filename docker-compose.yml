@@ -262,7 +262,7 @@ services:
       SESSION_TIMEOUT: 2592000
       VIRTUAL_HOST: backend
       VIRTUAL_PORT: 8080
-      DATASETS: adni,ppmi,edsd  
+      DATASETS: adni,ppmi,edsd
 
   wait_portal_backend:
     image: "waisbrot/wait"
@@ -273,7 +273,7 @@ services:
       - backend
 
   frontend:
-    image: hbpmip/portal-frontend:2.7.0
+    image: hbpmip/portal-frontend:5822b949
     depends_on:
       - backend
     ports:
@@ -286,7 +286,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: DEV
-      VERSION: 2.7.0    
+      VERSION: 2.7.0
 
 networks:
   default:
