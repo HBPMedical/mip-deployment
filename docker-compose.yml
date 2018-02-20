@@ -186,7 +186,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.2.5
+    image: hbpmip/woken:2.3.0
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -201,7 +201,7 @@ services:
       - db
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.1.8
+    image: hbpmip/woken-validation:2.2.6
     ports:
       - "8081:8081"
       - "8082:8082"
@@ -224,7 +224,7 @@ services:
       - chronos
 
   backend:
-    image: "hbpmip/portal-backend:2.5.11"
+    image: "hbpmip/portal-backend:2.6.0"
     depends_on:
       - db
       - woken
@@ -262,6 +262,7 @@ services:
       SESSION_TIMEOUT: 2592000
       VIRTUAL_HOST: backend
       VIRTUAL_PORT: 8080
+      DATASETS: adni,ppmi,edsd  
 
   wait_portal_backend:
     image: "waisbrot/wait"
@@ -272,7 +273,7 @@ services:
       - backend
 
   frontend:
-    image: hbpmip/portal-frontend:2.6.3
+    image: hbpmip/portal-frontend:2.7.0
     depends_on:
       - backend
     ports:
@@ -283,6 +284,9 @@ services:
       PORTAL_VIRTUAL_HOST: frontend
       PORTAL_BACKEND_SERVER: backend:8080
       PORTAL_BACKEND_CONTEXT: services
+      MODE: local
+      INSTANCE_NAME: DEV
+      VERSION: 2.7.0    
 
 networks:
   default:
