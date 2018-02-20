@@ -343,6 +343,7 @@ services:
       VIRTUAL_HOST: backend
       VIRTUAL_PORT: 8080
       DATASETS: adni,ppmi,edsd
+  
   wait_portal_backend:
     image: "waisbrot/wait"
     restart: "no"
