@@ -304,7 +304,7 @@ services:
       - chronos
 
   backend:
-    image: "hbpmip/portal-backend:2.6.0
+    image: "hbpmip/portal-backend:2.6.0"
     depends_on:
       - db
       - woken
@@ -353,7 +353,7 @@ services:
       - backend
 
   frontend:
-    image: hbpmip/portal-frontend:2.6.5
+    image: hbpmip/portal-frontend:2.7.0
     depends_on:
       - backend
     ports:
