@@ -342,7 +342,7 @@ services:
       SESSION_TIMEOUT: 2592000
       VIRTUAL_HOST: backend
       VIRTUAL_PORT: 8080
-      DATASETS: adni,ppmi,edsd
+      DATASETS: chuv_adni,ppmi,epfl_adni,adni
   
   wait_portal_backend:
     image: "waisbrot/wait"
