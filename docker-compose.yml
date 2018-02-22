@@ -186,7 +186,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.3.0
+    image: hbpmip/woken:2.3.1
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
