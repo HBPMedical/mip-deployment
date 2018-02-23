@@ -224,7 +224,7 @@ services:
       - chronos
 
   backend:
-    image: "hbpmip/portal-backend:2.6.0"
+    image: "hbpmip/portal-backend:2.6.1"
     depends_on:
       - db
       - woken
