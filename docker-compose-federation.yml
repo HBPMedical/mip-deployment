@@ -147,7 +147,7 @@ services:
       - db
 
   meta_db_setup:
-    image: "hbpmip/sample-meta-db-setup:0.4.1"
+    image: "hbpmip/sample-meta-db-setup:0.4.3"
     container_name: "meta-db-setup"
     restart: "no"
     environment:
