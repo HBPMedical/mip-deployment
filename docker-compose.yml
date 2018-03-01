@@ -187,7 +187,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.3.4
+    image: hbpmip/woken:2.3.5
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -202,7 +202,7 @@ services:
       - db
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.2.7
+    image: hbpmip/woken-validation:2.2.8
     ports:
       - "8081:8081"
       - "8082:8082"
