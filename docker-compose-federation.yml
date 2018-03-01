@@ -2,6 +2,7 @@
 # https://github.com/containous/traefik/blob/master/examples/compose-marathon.yml
 
 version: '3.0'
+
 services:
   zookeeper:
     image: zookeeper:3.4.11
@@ -146,9 +147,9 @@ services:
     depends_on:
       - db
 
-  meta_db_setup:
+  sample_meta_db_setup:
     image: "hbpmip/sample-meta-db-setup:0.4.3"
-    container_name: "meta-db-setup"
+    container_name: "sample-meta-db-setup"
     restart: "no"
     environment:
       FLYWAY_HOST: db
@@ -186,7 +187,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.3.2
+    image: hbpmip/woken:2.3.4
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -226,7 +227,7 @@ services:
       - chronos
 
   wokennode2:
-    image: hbpmip/woken:2.3.2
+    image: hbpmip/woken:2.3.4
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -266,7 +267,7 @@ services:
       - chronos
 
   woken:
-    image: hbpmip/woken:2.3.2
+    image: hbpmip/woken:2.3.4
     volumes:
       - ./woken-fed/config:/opt/woken/config
     ports:
@@ -303,11 +304,8 @@ services:
       - woken
       - chronos
 
-  backend:
+  portalbackend:
     image: "hbpmip/portal-backend:2.6.1"
-    depends_on:
-      - db
-      - woken
     ports:
       - "8080:8080"
       - "8089:8089"
@@ -330,7 +328,7 @@ services:
       FRONTEND_LOGIN_URL: ${FRONTEND_URL}/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: ${FRONTEND_URL}/home
       FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
-      CLUSTER_IP: backend
+      CLUSTER_IP: portalbackend
       CLUSTER_PORT: 8089
       WOKEN_HOST: woken
       WOKEN_PORT: 8088
@@ -340,30 +338,34 @@ services:
       LOGGING_LEVEL_WEB: DEBUG
       LOGGING_LEVEL_HIBERNATE: WARN
       SESSION_TIMEOUT: 2592000
-      VIRTUAL_HOST: backend
-      VIRTUAL_PORT: 8080
       DATASETS: chuv_adni,ppmi,epfl_adni,adni
+    depends_on:
+      - db
+      - woken
 
   wait_portal_backend:
     image: "waisbrot/wait"
     restart: "no"
     environment:
-      - TARGETS=backend:8080
+      - TARGETS=portalbackend:8080
     depends_on:
       - backend
 
   frontend:
     image: hbpmip/portal-frontend:2.7.0
     depends_on:
-      - backend
+      - portalbackend
     ports:
       - "80:80"
     environment:
       WORKER_PROCESSES: 1
       ERROR_LOG_LEVEL: warn
       PORTAL_VIRTUAL_HOST: frontend
-      PORTAL_BACKEND_SERVER: backend:8080
+      PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
+      MODE: federation
+      INSTANCE_NAME: DEV
+      VERSION: 2.7.0
 
 networks:
   default:
