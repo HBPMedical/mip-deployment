@@ -187,7 +187,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.3.5
+    image: hbpmip/woken:2.3.7
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -225,7 +225,7 @@ services:
       - chronos
 
   portalbackend:
-    image: "hbpmip/portal-backend:2.6.1"
+    image: "hbpmip/portal-backend:2.6.2"
     restart: "no"
     ports:
       - "8080:8080"
