@@ -187,22 +187,30 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.3.7
+    image: hbpmip/woken:2.3.9
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
       - "8087:8087"
       - "8088:8088"
+      - "9095:9095"
     environment:
       CLUSTER_PORT: 8088
       CLUSTER_IP: woken
       WOKEN_PORT_8088_TCP_ADDR: woken
+      DOCKER_BRIDGE_NETWORK: "tests_default"
+      LOG_LEVEL: DEBUG
+      KAMON_ENABLED: "yes"
+      ZIPKIN_ENABLED: "yes"
+      PROMETHEUS_ENABLED: "yes"
+      SIGAR_SYSTEM_METRICS: "no"
+      JVM_SYSTEM_METRICS: "yes"
     depends_on:
       - chronos
       - db
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.2.8
+    image: hbpmip/woken-validation:2.2.15
     ports:
       - "8081:8081"
       - "8082:8082"
