@@ -281,7 +281,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5822b94
+    image: hbpmip/portal-frontend:d30dab7
     depends_on:
       - portalbackend
     ports:
