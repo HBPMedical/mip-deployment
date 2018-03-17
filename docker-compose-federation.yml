@@ -357,10 +357,10 @@ services:
     environment:
       - TARGETS=portalbackend:8080
     depends_on:
-      - backend
+      - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:2.8.4
+    image: hbpmip/portal-frontend:2.8.5
     depends_on:
       - portalbackend
     ports:
