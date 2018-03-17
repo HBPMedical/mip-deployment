@@ -314,7 +314,7 @@ services:
       - chronos
 
   portalbackend:
-    image: "hbpmip/portal-backend:2.6.4"
+    image: "hbpmip/portal-backend:2.6.6"
     ports:
       - "8080:8080"
       - "8089:8089"
@@ -347,7 +347,6 @@ services:
       LOGGING_LEVEL_WEB: DEBUG
       LOGGING_LEVEL_HIBERNATE: WARN
       SESSION_TIMEOUT: 2592000
-      DATASETS: chuv_adni,ppmi,epfl_adni,adni
     depends_on:
       - db
       - woken
