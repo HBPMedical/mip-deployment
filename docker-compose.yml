@@ -209,6 +209,16 @@ services:
       - chronos
       - db
 
+  wait_woken:
+    image: "waisbrot/wait"
+    restart: "no"
+    environment:
+      TARGETS: "woken:8087,chronos:4400"
+      TIMEOUT: 60
+    depends_on:
+      - woken
+      - chronos
+
   wokenvalidation:
     image: hbpmip/woken-validation:2.3.1
     ports:
@@ -222,15 +232,14 @@ services:
     depends_on:
       - woken
 
-  wait_woken:
+  wait_wokenvalidation:
     image: "waisbrot/wait"
     restart: "no"
     environment:
-      TARGETS: "woken:8087,chronos:4400,wokenvalidation:8081"
+      TARGETS: "wokenvalidation:8081"
       TIMEOUT: 60
     depends_on:
-      - woken
-      - chronos
+      - wokenvalidation
 
   portalbackend:
     image: "hbpmip/portal-backend:2.6.6"
