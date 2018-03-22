@@ -205,6 +205,7 @@ services:
       PROMETHEUS_ENABLED: "yes"
       SIGAR_SYSTEM_METRICS: "no"
       JVM_SYSTEM_METRICS: "yes"
+      PYTHON_SUMMARY_STATISTICS_IMAGE: "hbpmip/python-summary-statistics:0.3.0"
     depends_on:
       - chronos
       - db
