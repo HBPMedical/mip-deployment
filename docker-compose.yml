@@ -302,7 +302,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "DEV"
-      VERSION: "2.6.0-dev (Woken 2.4.8, Validation 2.4.2, Backend 2.6.7, Frontend 2.9.2)"
+      VERSION: "2.6.0-dev (Woken 2.4.9, Validation 2.4.2, Backend 2.6.7, Frontend 2.9.2)"
 
 networks:
   default:
