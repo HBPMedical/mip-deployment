@@ -187,7 +187,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.4.10
+    image: hbpmip/woken:2.4.11
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -216,7 +216,7 @@ services:
       - chronos
 
   wokenvalidationnode1:
-    image: hbpmip/woken-validation:2.3.2
+    image: hbpmip/woken-validation:2.4.4
     ports:
       - "18081:8081"
       - "18082:8082"
@@ -239,7 +239,7 @@ services:
       - wokenvalidationnode1
 
   wokennode2:
-    image: hbpmip/woken:2.4.10
+    image: hbpmip/woken:2.4.11
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -268,7 +268,7 @@ services:
       - chronos
 
   wokenvalidationnode2:
-    image: hbpmip/woken-validation:2.3.2
+    image: hbpmip/woken-validation:2.4.4
     ports:
       - "28081:8081"
       - "28082:8082"
@@ -291,7 +291,7 @@ services:
       - wokenvalidationnode2
 
   woken:
-    image: hbpmip/woken:2.4.10
+    image: hbpmip/woken:2.4.11
     volumes:
       - ./woken-fed/config:/opt/woken/config
     ports:
@@ -329,7 +329,8 @@ services:
       - chronos
 
   portalbackend:
-    image: "hbpmip/portal-backend:2.6.7"
+    image: "hbpmip/portal-backend:2.6.9"
+    restart: "no"
     ports:
       - "8080:8080"
       - "8089:8089"
@@ -370,7 +371,8 @@ services:
     image: "waisbrot/wait"
     restart: "no"
     environment:
-      - TARGETS=portalbackend:8080
+      TARGETS: "portalbackend:8080"
+      TIMEOUT: 60
     depends_on:
       - portalbackend
 
@@ -388,7 +390,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: DEV
-      VERSION: "2.6.0-dev (Woken 2.4.10, Validation 2.3.1, Backend 2.6.7, Frontend 2.9.6)"
+      VERSION: "2.6.0-dev (Woken 2.4.11, Validation 2.4.4, Backend 2.6.9, Frontend 2.9.6)"
 
 networks:
   default:

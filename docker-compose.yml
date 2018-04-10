@@ -187,7 +187,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.4.10
+    image: hbpmip/woken:2.4.11
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -220,7 +220,7 @@ services:
       - chronos
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.4.3
+    image: hbpmip/woken-validation:2.4.4
     ports:
       - "8081:8081"
       - "8082:8082"
@@ -242,7 +242,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: "hbpmip/portal-backend:2.6.7"
+    image: "hbpmip/portal-backend:2.6.9"
     restart: "no"
     ports:
       - "8080:8080"
@@ -284,7 +284,8 @@ services:
     image: "waisbrot/wait"
     restart: "no"
     environment:
-      - TARGETS=portalbackend:8080
+      TARGETS: "portalbackend:8080"
+      TIMEOUT: 60
     depends_on:
       - portalbackend
 
@@ -302,7 +303,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "DEV"
-      VERSION: "2.6.0-dev (Woken 2.4.10, Validation 2.4.3, Backend 2.6.7, Frontend 2.9.6)"
+      VERSION: "2.6.0-dev (Woken 2.4.11, Validation 2.4.4, Backend 2.6.9, Frontend 2.9.6)"
 
 networks:
   default:
