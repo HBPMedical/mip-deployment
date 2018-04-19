@@ -148,7 +148,7 @@ services:
       - db
 
   sample_meta_db_setup:
-    image: "hbpmip/sample-meta-db-setup:0.5.1"
+    image: "hbpmip/sample-meta-db-setup:0.6.0"
     container_name: "sample-meta-db-setup"
     restart: "no"
     environment:
@@ -161,7 +161,7 @@ services:
       - db
 
   sample_data_db_setup:
-    image: "hbpmip/sample-data-db-setup:0.5.1"
+    image: "hbpmip/sample-data-db-setup:0.6.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -187,7 +187,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.4.11
+    image: hbpmip/woken:2.5.0
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -216,7 +216,7 @@ services:
       - chronos
 
   wokenvalidationnode1:
-    image: hbpmip/woken-validation:2.4.4
+    image: hbpmip/woken-validation:2.4.6
     ports:
       - "18081:8081"
       - "18082:8082"
@@ -239,7 +239,7 @@ services:
       - wokenvalidationnode1
 
   wokennode2:
-    image: hbpmip/woken:2.4.11
+    image: hbpmip/woken:2.5.0
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -268,7 +268,7 @@ services:
       - chronos
 
   wokenvalidationnode2:
-    image: hbpmip/woken-validation:2.4.4
+    image: hbpmip/woken-validation:2.4.6
     ports:
       - "28081:8081"
       - "28082:8082"
@@ -291,7 +291,7 @@ services:
       - wokenvalidationnode2
 
   woken:
-    image: hbpmip/woken:2.4.11
+    image: hbpmip/woken:2.5.0
     volumes:
       - ./woken-fed/config:/opt/woken/config
     ports:
@@ -329,7 +329,7 @@ services:
       - chronos
 
   portalbackend:
-    image: "hbpmip/portal-backend:2.6.10"
+    image: "hbpmip/portal-backend:2.7.0"
     restart: "no"
     ports:
       - "8080:8080"
@@ -377,7 +377,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:2.9.8
+    image: hbpmip/portal-frontend:2.9.9
     depends_on:
       - portalbackend
     ports:
@@ -390,7 +390,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: DEV
-      VERSION: "2.6.0-dev (Woken 2.4.11, Validation 2.4.4, Backend 2.6.10, Frontend 2.9.8)"
+      VERSION: "2.7.0-dev (Woken 2.5.0, Validation 2.4.6, Backend 2.7.0, Frontend 2.9.9)"
 
 networks:
   default:

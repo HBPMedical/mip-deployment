@@ -148,7 +148,7 @@ services:
       - db
 
   sample_meta_db_setup:
-    image: "hbpmip/sample-meta-db-setup:0.5.1"
+    image: "hbpmip/sample-meta-db-setup:0.6.0"
     container_name: "sample-meta-db-setup"
     restart: "no"
     environment:
@@ -161,7 +161,7 @@ services:
       - db
 
   sample_data_db_setup:
-    image: "hbpmip/sample-data-db-setup:0.5.1"
+    image: "hbpmip/sample-data-db-setup:0.6.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -187,7 +187,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.4.11
+    image: hbpmip/woken:2.5.0
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -220,7 +220,7 @@ services:
       - chronos
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.4.4
+    image: hbpmip/woken-validation:2.4.6
     ports:
       - "8081:8081"
       - "8082:8082"
@@ -242,7 +242,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: "hbpmip/portal-backend:2.6.10"
+    image: "hbpmip/portal-backend:2.7.0"
     restart: "no"
     ports:
       - "8080:8080"
@@ -290,7 +290,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:2.9.8
+    image: hbpmip/portal-frontend:2.9.9
     depends_on:
       - portalbackend
     ports:
@@ -302,8 +302,8 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
-      INSTANCE_NAME: "DEV"
-      VERSION: "2.6.0-dev (Woken 2.4.11, Validation 2.4.4, Backend 2.6.10, Frontend 2.9.8)"
+      INSTANCE_NAME: DEV
+      VERSION: "2.7.0-dev (Woken 2.5.0, Validation 2.4.6, Backend 2.7.0, Frontend 2.9.9)"
 
 networks:
   default:
