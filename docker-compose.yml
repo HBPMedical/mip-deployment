@@ -204,7 +204,7 @@ services:
       ZIPKIN_ENABLED: "yes"
       PROMETHEUS_ENABLED: "yes"
       SIGAR_SYSTEM_METRICS: "no"
-      JVM_SYSTEM_METRICS: "yes"
+      JVM_SYSTEM_METRICS: "no"
     depends_on:
       - chronos
       - db
@@ -268,9 +268,8 @@ services:
       FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
       CLUSTER_IP: portalbackend
       CLUSTER_PORT: 8089
-      WOKEN_HOST: woken
-      WOKEN_PORT: 8088
       WOKEN_PORT_8088_TCP_ADDR: woken
+      WOKEN_PORT_8088_TCP_PORT: 8088
       WOKEN_AKKA_PATH: "/user/entrypoint"
       EXAREME_URL: http://prozac.madgik.di.uoa.gr:9090/mining/query
       LOGGING_LEVEL_WEB: DEBUG
@@ -310,4 +309,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.18.0.0/16
+        - subnet: 172.18.50.0/24
