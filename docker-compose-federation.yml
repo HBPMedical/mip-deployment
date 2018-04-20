@@ -390,7 +390,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: DEV
-      VERSION: "2.7.0-dev (Woken 2.5.0, Validation 2.4.6, Backend 2.7.0, Frontend 2.9.10)"
+      VERSION: "2.7.0-dev (Woken 2.5.1, Validation 2.4.8, Backend 2.7.1, Frontend 2.9.10)"
 
 networks:
   default:
