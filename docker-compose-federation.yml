@@ -187,7 +187,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.5.1
+    image: hbpmip/woken:2.5.2
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -239,7 +239,7 @@ services:
       - wokenvalidationnode1
 
   wokennode2:
-    image: hbpmip/woken:2.5.1
+    image: hbpmip/woken:2.5.2
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -291,7 +291,7 @@ services:
       - wokenvalidationnode2
 
   woken:
-    image: hbpmip/woken:2.5.1
+    image: hbpmip/woken:2.5.2
     volumes:
       - ./woken-fed/config:/opt/woken/config
     ports:
@@ -329,7 +329,7 @@ services:
       - chronos
 
   portalbackend:
-    image: "hbpmip/portal-backend:2.7.4"
+    image: hbpmip/portal-backend:2.7.5
     restart: "no"
     ports:
       - "8080:8080"
