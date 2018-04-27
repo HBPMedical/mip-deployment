@@ -26,7 +26,7 @@ services:
       - zookeeper
 
   mesos_master:
-    image: mesosphere/mesos-master:1.3.0
+    image: axelspringer/mesos-master:1.4.1
     hostname: mesosmaster
     volumes:
       - ./log/mesos/master:/var/log/mesos/master:rw
@@ -53,7 +53,7 @@ services:
       - mesos_master
 
   mesos_slave:
-    image: mesosphere/mesos-slave:1.3.0
+    image: axelspringer/mesos-agent:1.4.1
     hostname: mesosslave
     privileged: true
     volumes:
@@ -83,7 +83,7 @@ services:
       - mesos_master
 
   chronos:
-    image: mesosphere/chronos:v3.0.2
+    image: hbpmip/chronos:3.0.2-3
     command: '--zk_hosts zookeeper:2181 --master zk://zookeeper:2181/mesos --zk_timeout 30000'
     restart: "always"
     hostname: chronos
@@ -187,7 +187,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.5.3
+    image: hbpmip/woken:2.5.7
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -216,7 +216,7 @@ services:
       - chronos
 
   wokenvalidationnode1:
-    image: hbpmip/woken-validation:2.4.8
+    image: hbpmip/woken-validation:2.4.10
     ports:
       - "18081:8081"
       - "18082:8082"
@@ -239,7 +239,7 @@ services:
       - wokenvalidationnode1
 
   wokennode2:
-    image: hbpmip/woken:2.5.3
+    image: hbpmip/woken:2.5.7
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -268,7 +268,7 @@ services:
       - chronos
 
   wokenvalidationnode2:
-    image: hbpmip/woken-validation:2.4.8
+    image: hbpmip/woken-validation:2.4.10
     ports:
       - "28081:8081"
       - "28082:8082"
@@ -291,7 +291,7 @@ services:
       - wokenvalidationnode2
 
   woken:
-    image: hbpmip/woken:2.5.3
+    image: hbpmip/woken:2.5.7
     volumes:
       - ./woken-fed/config:/opt/woken/config
     ports:
@@ -329,7 +329,7 @@ services:
       - chronos
 
   portalbackend:
-    image: hbpmip/portal-backend:2.7.5
+    image: hbpmip/portal-backend:2.7.10
     restart: "no"
     ports:
       - "8080:8080"
@@ -389,7 +389,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: DEV
-      VERSION: "2.7.0-dev (Woken 2.5.1, Validation 2.4.8, Backend 2.7.2, Frontend 2.10.0)"
+      VERSION: "2.7.0-dev (Woken 2.5.7, Validation 2.4.10, Backend 2.7.10, Frontend 2.10.0)"
 
 networks:
   default:
