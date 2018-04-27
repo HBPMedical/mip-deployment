@@ -329,7 +329,7 @@ services:
       - chronos
 
   portalbackend:
-    image: hbpmip/portal-backend:2.7.10
+    image: hbpmip/portal-backend:2.7.11
     restart: "no"
     ports:
       - "8080:8080"
@@ -389,7 +389,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: DEV
-      VERSION: "2.7.0-dev (Woken 2.5.7, Validation 2.4.10, Backend 2.7.10, Frontend 2.10.0)"
+      VERSION: "2.7.0-dev (Woken 2.5.7, Validation 2.4.10, Backend 2.7.11, Frontend 2.10.0)"
 
 networks:
   default:
