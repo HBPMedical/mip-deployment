@@ -242,7 +242,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: hbpmip/portal-backend:2.7.11
+    image: hbpmip/portal-backend:latest
     restart: "no"
     ports:
       - "8080:8080"
@@ -302,7 +302,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "DEV"
-      VERSION: "2.7.0-dev (Woken 2.5.7, Validation 2.4.10, Backend 2.7.11, Frontend 2.10.0)"
+      VERSION: "2.7.0-dev (Woken 2.5.7, Validation 2.4.10, Backend 2.7.12, Frontend 2.10.0)"
 
 networks:
   default:
