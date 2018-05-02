@@ -161,7 +161,7 @@ services:
       - db
 
   sample_data_db_setup:
-    image: "hbpmip/sample-data-db-setup:0.6.0"
+    image: "hbpmip/sample-data-db-setup:0.6.1"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -187,7 +187,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.6.0
+    image: hbpmip/woken:2.6.1
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -302,7 +302,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "DEV"
-      VERSION: "2.7.0-dev (Woken 2.6.0, Validation 2.4.11, Backend 2.7.12, Frontend 2.10.2)"
+      VERSION: "2.7.0-dev (Woken 2.6.1, Validation 2.4.11, Backend 2.7.12, Frontend 2.10.2)"
 
 networks:
   default:
