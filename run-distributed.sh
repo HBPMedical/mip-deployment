@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 
+#
+# Start Woken in a distributed mode with its full environment and two worker nodes using different datasets.
+#
+# Option:
+#   --no-tests: skip the test suite
+#   --all-tests: execute the full suite of tests, including slow tests such as Chaos testing
+#   --no-frontend: do not start the frontend
+#
+
 set -e
 
 get_script_dir () {
@@ -64,6 +73,8 @@ $DOCKER_COMPOSE run sample_meta_db_setup
 
 echo "Migrate features database..."
 $DOCKER_COMPOSE run sample_data_db_setup
+$DOCKER_COMPOSE run sample_data_db_setup1
+$DOCKER_COMPOSE run sample_data_db_setup2
 
 echo "Run containers..."
 for i in 1 2 3 4 5 ; do
@@ -81,8 +92,8 @@ $DOCKER_COMPOSE up -d wokenvalidationnode1 wokenvalidationnode2
 $DOCKER_COMPOSE run wait_wokenvalidationnode1
 $DOCKER_COMPOSE run wait_wokenvalidationnode2
 
-$DOCKER_COMPOSE up -d woken
-$DOCKER_COMPOSE run wait_woken
+$DOCKER_COMPOSE up -d wokencentral
+$DOCKER_COMPOSE run wait_wokencentral
 
 for i in 1 2 3 4 5 ; do
   $DOCKER_COMPOSE logs chronos | grep java.util.concurrent.TimeoutException || break
