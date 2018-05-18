@@ -289,7 +289,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:2.10.9
+    image: hbpmip/portal-frontend:2.11.0
     depends_on:
       - portalbackend
     ports:
@@ -302,7 +302,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "DEV"
-      VERSION: "2.7.0-dev (Woken 2.7.1, Validation 2.5.1, Backend 2.8.1, Frontend 2.10.9)"
+      VERSION: "2.7.0-dev (Woken 2.7.1, Validation 2.5.1, Backend 2.8.1, Frontend 2.11.0)"
 
 networks:
   default:
