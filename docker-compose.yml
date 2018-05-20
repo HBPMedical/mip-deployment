@@ -83,7 +83,7 @@ services:
       - mesos_master
 
   chronos:
-    image: hbpmip/chronos:3.0.2-4
+    image: hbpmip/chronos:3.0.2-5
     command: '--zk_hosts zookeeper:2181 --master zk://zookeeper:2181/mesos --zk_timeout 30000'
     restart: "always"
     hostname: chronos
@@ -187,7 +187,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.7.1
+    image: hbpmip/woken:2.7.4
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -220,7 +220,7 @@ services:
       - chronos
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.5.1
+    image: hbpmip/woken-validation:2.5.3
     ports:
       - "8081:8081"
       - "8082:8082"
@@ -242,7 +242,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: hbpmip/portal-backend:2.8.1
+    image: hbpmip/portal-backend:2.8.2
     restart: "no"
     ports:
       - "8080:8080"
@@ -302,7 +302,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "DEV"
-      VERSION: "2.7.0-dev (Woken 2.7.1, Validation 2.5.1, Backend 2.8.1, Frontend 2.11.0)"
+      VERSION: "2.8.0-dev (Woken 2.7.4, Validation 2.5.3, Backend 2.8.2, Frontend 2.11.0)"
 
 networks:
   default:
