@@ -219,7 +219,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.7.6
+    image: hbpmip/woken:2.7.9
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -271,7 +271,7 @@ services:
       - wokenvalidationnode1
 
   wokennode2:
-    image: hbpmip/woken:2.7.6
+    image: hbpmip/woken:2.7.9
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -323,7 +323,7 @@ services:
       - wokenvalidationnode2
 
   wokencentral:
-    image: hbpmip/woken:2.7.6
+    image: hbpmip/woken:2.7.9
     volumes:
       - ./woken-central/config:/opt/woken/config
     ports:
@@ -413,7 +413,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: DEV
-      VERSION: "2.8.0-dev (Woken 2.7.4, Validation 2.5.3, Backend 2.8.5, Frontend 2.11.3)"
+      VERSION: "2.8.0-dev (Woken 2.7.9, Validation 2.5.3, Backend 2.8.5, Frontend 2.11.3)"
 
 networks:
   default:
