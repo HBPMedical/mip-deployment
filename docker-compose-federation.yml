@@ -400,7 +400,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:2.12.4
+    image: hbpmip/portal-frontend:latest
     depends_on:
       - portalbackend
     ports:
@@ -413,6 +413,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: DEV
+      THEME: colaus
       VERSION: "2.8.5-dev (Woken 2.8.1, Validation 2.5.3, Backend 2.8.6, Frontend 2.12.4)"
 
 networks:
