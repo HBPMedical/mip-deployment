@@ -150,6 +150,9 @@ services:
       DB6: features2
       USER6: features2
       PASSWORD6: features2pwd
+      DB7: features3
+      USER7: features3
+      PASSWORD7: features3pwd
     depends_on:
       - db
 
@@ -200,6 +203,19 @@ services:
       FLYWAY_HOST: db
       FLYWAY_PORT: 5432
       FLYWAY_DATABASE_NAME: features2
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: test
+    depends_on:
+      - db
+
+  sample_data_db_setup3:
+    image: "hbpmip/sample-data-db-setup:0.6.1"
+    container_name: "sample-data-db-setup"
+    restart: "no"
+    environment:
+      FLYWAY_HOST: db
+      FLYWAY_PORT: 5432
+      FLYWAY_DATABASE_NAME: features3
       FLYWAY_USER: postgres
       FLYWAY_PASSWORD: test
     depends_on:
@@ -321,6 +337,59 @@ services:
       TIMEOUT: 60
     depends_on:
       - wokenvalidationnode2
+
+
+  wokennode3:
+    image: hbpmip/woken:2.8.1
+    volumes:
+      - ./woken-worker3/config:/opt/woken/config
+    ports:
+      - "38087:8087"
+      - "38088:8088"
+      - "39095:9095"
+    environment:
+      CLUSTER_PORT: 8088
+      CLUSTER_IP: wokennode3
+      CLUSTER_NAME: woken-node3
+      WOKEN_PORT_8088_TCP_ADDR: wokennode3
+      DOCKER_BRIDGE_NETWORK: "webanalyticsstarter_default"
+      LOG_LEVEL: DEBUG
+    depends_on:
+      - chronos
+      - db
+
+  wait_wokennode3:
+    image: "waisbrot/wait"
+    restart: "no"
+    environment:
+      TARGETS: "wokennode3:8087,chronos:4400"
+      TIMEOUT: 60
+    depends_on:
+      - wokennode3
+      - chronos
+
+  wokenvalidationnode3:
+    image: hbpmip/woken-validation:2.5.3
+    ports:
+      - "38081:8081"
+      - "38082:8082"
+    environment:
+      CLUSTER_PORT: 38082
+      CLUSTER_IP: wokenvalidationnode3
+      CLUSTER_NAME: woken-node3
+      WOKEN_PORT_8088_TCP_ADDR: wokennode3
+      LOG_LEVEL: DEBUG
+    depends_on:
+      - wokennode3
+
+  wait_wokenvalidationnode3:
+    image: "waisbrot/wait"
+    restart: "no"
+    environment:
+      TARGETS: "wokenvalidationnode3:8081"
+      TIMEOUT: 60
+    depends_on:
+      - wokenvalidationnode3
 
   wokencentral:
     image: hbpmip/woken:2.8.1

@@ -75,6 +75,8 @@ echo "Migrate features database..."
 $DOCKER_COMPOSE run sample_data_db_setup
 $DOCKER_COMPOSE run sample_data_db_setup1
 $DOCKER_COMPOSE run sample_data_db_setup2
+$DOCKER_COMPOSE run sample_data_db_setup3
+
 
 echo "Run containers..."
 for i in 1 2 3 4 5 ; do
@@ -85,12 +87,14 @@ for i in 1 2 3 4 5 ; do
   $DOCKER_COMPOSE stop chronos
 done
 
-$DOCKER_COMPOSE up -d wokennode1 wokennode2
+$DOCKER_COMPOSE up -d wokennode1 wokennode2 wokennode3
 $DOCKER_COMPOSE run wait_wokennode1
 $DOCKER_COMPOSE run wait_wokennode2
-$DOCKER_COMPOSE up -d wokenvalidationnode1 wokenvalidationnode2
+$DOCKER_COMPOSE run wait_wokennode3
+$DOCKER_COMPOSE up -d wokenvalidationnode1 wokenvalidationnode2 wokenvalidationnode3
 $DOCKER_COMPOSE run wait_wokenvalidationnode1
 $DOCKER_COMPOSE run wait_wokenvalidationnode2
+$DOCKER_COMPOSE run wait_wokenvalidationnode3
 
 $DOCKER_COMPOSE up -d wokencentral
 $DOCKER_COMPOSE run wait_wokencentral
