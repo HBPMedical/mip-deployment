@@ -90,9 +90,10 @@ done
 
 if [ $no_frontend ] ; then
   FRONTEND_URL=http://localhost:8000 \
-  $DOCKER_COMPOSE up -d portalbackend
+	  $DOCKER_COMPOSE up -d portalbackend
 else
-  $DOCKER_COMPOSE up -d portalbackend
+  FRONTEND_URL=http://frontend \
+	  $DOCKER_COMPOSE up -d portalbackend
   $DOCKER_COMPOSE run wait_portal_backend
   $DOCKER_COMPOSE up -d frontend
 fi
