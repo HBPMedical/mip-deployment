@@ -187,7 +187,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.8.3
+    image: hbpmip/woken:2.9.2
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -198,13 +198,16 @@ services:
       CLUSTER_PORT: 8088
       CLUSTER_IP: woken
       WOKEN_PORT_8088_TCP_ADDR: woken
-      DOCKER_BRIDGE_NETWORK: "webanalyticsstarter_default"
+      DOCKER_BRIDGE_NETWORK: "web-analytics-starter_default"
       LOG_LEVEL: DEBUG
       KAMON_ENABLED: "yes"
       ZIPKIN_ENABLED: "yes"
       PROMETHEUS_ENABLED: "yes"
       SIGAR_SYSTEM_METRICS: "no"
       JVM_SYSTEM_METRICS: "no"
+      RELEASE_STAGE: "testing"
+      DATACENTER_LOCATION: "$HOST"
+      CONTAINER_ORCHESTRATION: "docker-compose"
     depends_on:
       - chronos
       - db
@@ -220,7 +223,7 @@ services:
       - chronos
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.5.9
+    image: hbpmip/woken-validation:2.6.2
     ports:
       - "8081:8081"
       - "8082:8082"
@@ -229,6 +232,9 @@ services:
       CLUSTER_IP: wokenvalidation
       WOKEN_PORT_8088_TCP_ADDR: woken
       LOG_LEVEL: DEBUG
+      RELEASE_STAGE: "testing"
+      DATACENTER_LOCATION: "$HOST"
+      CONTAINER_ORCHESTRATION: "docker-compose"
     depends_on:
       - woken
 
@@ -242,7 +248,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: hbpmip/portal-backend #:2.8.9
+    image: hbpmip/portal-backend:2.9.1
     restart: "no"
     ports:
       - "8080:8080"
@@ -275,6 +281,9 @@ services:
       LOGGING_LEVEL_WEB: DEBUG
       LOGGING_LEVEL_HIBERNATE: WARN
       SESSION_TIMEOUT: 2592000
+      RELEASE_STAGE: "testing"
+      DATACENTER_LOCATION: "$HOST"
+      CONTAINER_ORCHESTRATION: "docker-compose"
     depends_on:
       - db
       - woken
@@ -302,7 +311,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "DEV"
-      VERSION: "2.8.5-dev (Woken 2.8.3, Validation 2.5.9, Backend 2.8.9, Frontend 2.14.1)"
+      VERSION: "2.9.0-dev (Woken 2.9.2, Validation 2.6.1, Backend 2.9.1, Frontend 2.14.1)"
       THEME: mip
 
 networks:
