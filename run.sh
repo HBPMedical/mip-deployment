@@ -23,13 +23,13 @@ fi
 
 if [ $NO_SUDO ]; then
   DOCKER="docker"
-  DOCKER_COMPOSE="docker-compose"
+  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter"
 elif groups "$USER" | grep &>/dev/null '\bdocker\b'; then
   DOCKER="docker"
-  DOCKER_COMPOSE="docker-compose"
+  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter"
 else
   DOCKER="sudo docker"
-  DOCKER_COMPOSE="sudo docker-compose"
+  DOCKER_COMPOSE="sudo docker-compose --project-name webanalyticsstarter"
 fi
 
 for param in "$@"

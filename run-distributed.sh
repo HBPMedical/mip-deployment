@@ -32,13 +32,13 @@ fi
 
 if [ $NO_SUDO ]; then
   DOCKER="docker"
-  DOCKER_COMPOSE="docker-compose -f docker-compose-federation.yml"
+  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter -f docker-compose-federation.yml"
 elif groups "$USER" | grep &>/dev/null '\bdocker\b'; then
   DOCKER="docker"
-  DOCKER_COMPOSE="docker-compose -f docker-compose-federation.yml"
+  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter -f docker-compose-federation.yml"
 else
   DOCKER="sudo docker"
-  DOCKER_COMPOSE="sudo docker-compose -f docker-compose-federation.yml"
+  DOCKER_COMPOSE="sudo docker-compose --project-name webanalyticsstarter -f docker-compose-federation.yml"
 fi
 
 for param in "$@"
