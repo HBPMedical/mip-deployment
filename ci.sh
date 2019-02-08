@@ -27,7 +27,6 @@ get_script_dir () {
 
 cd "$(get_script_dir)"
 
-test_args="testOnly -- -l org.scalatest.tags.Slow"
 for param in "$@"
 do
   if [ "--all" == "$param" ]; then
@@ -59,8 +58,6 @@ function _cleanup() {
 }
 trap _cleanup EXIT INT TERM
 
-export TEST_ARGS="${test_args}"
-
 echo "Remove old running containers (if any)..."
 $DOCKER_COMPOSE kill
 $DOCKER_COMPOSE rm -f
@@ -71,7 +68,6 @@ $DOCKER_COMPOSE run wait_zookeeper
 $DOCKER_COMPOSE up -d mesos_master
 $DOCKER_COMPOSE run wait_mesos_master
 $DOCKER_COMPOSE up -d mesos_slave
-$DOCKER_COMPOSE build wokentest
 $DOCKER_COMPOSE run wait_dbs
 
 echo "Create databases..."
