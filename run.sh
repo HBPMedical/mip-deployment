@@ -87,6 +87,7 @@ for i in 1 2 3 4 5 ; do
 done
 
 $DOCKER_COMPOSE up -d woken
+$DOCKER_COMPOSE logs -f woken &
 $DOCKER_COMPOSE run wait_woken
 
 $DOCKER_COMPOSE up -d wokenvalidation
