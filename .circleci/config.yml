@@ -33,4 +33,3 @@ jobs:
       - run:
           name: "Run the project"
           command: ./run.sh
-
