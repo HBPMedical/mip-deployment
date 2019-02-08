@@ -121,4 +121,3 @@ else
   echo "http://localhost:8080 : Swagger admin interface for backend"
   echo "http://localhost:8087 : Swagger admin interface for Woken"
 fi
-
