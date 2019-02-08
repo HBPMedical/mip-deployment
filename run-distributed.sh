@@ -4,12 +4,12 @@
 # Start Woken in a distributed mode with its full environment and two worker nodes using different datasets.
 #
 # Option:
-#   --no-tests: skip the test suite
-#   --all-tests: execute the full suite of tests, including slow tests such as Chaos testing
 #   --no-frontend: do not start the frontend
 #
 
-set -e
+set -o pipefail  # trace ERR through pipes
+set -o errtrace  # trace ERR through 'time command' and other functions
+set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
 get_script_dir () {
      SOURCE="${BASH_SOURCE[0]}"
@@ -25,30 +25,40 @@ get_script_dir () {
 
 cd "$(get_script_dir)"
 
+frontend=1
+for param in "$@"
+do
+  if [ "--no-frontend" == "$param" ]; then
+    frontend=0
+    echo "INFO: --no-frontend option detected !"
+  fi
+done
+
 if pgrep -lf sshuttle > /dev/null ; then
   echo "sshuttle detected. Please close this program as it messes with networking and prevents Docker links to work"
   exit 1
 fi
 
-if [ $NO_SUDO ]; then
-  DOCKER="docker"
+if [[ $NO_SUDO || -n "$CIRCLECI" ]]; then
   DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter -f docker-compose-federation.yml"
 elif groups "$USER" | grep &>/dev/null '\bdocker\b'; then
-  DOCKER="docker"
   DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter -f docker-compose-federation.yml"
 else
-  DOCKER="sudo docker"
   DOCKER_COMPOSE="sudo docker-compose --project-name webanalyticsstarter -f docker-compose-federation.yml"
 fi
 
-for param in "$@"
-do
-  if [ "--no-frontend" == "$param" ]; then
-    no_frontend=0
-    echo "INFO: --no-frontend option detected !"
-    break;
-  fi
-done
+function _cleanup() {
+  local error_code="$?"
+  echo "Stopping the containers..."
+  $DOCKER_COMPOSE stop | true
+  $DOCKER_COMPOSE down | true
+  $DOCKER_COMPOSE rm -f > /dev/null 2> /dev/null | true
+  exit $error_code
+}
+trap _cleanup SIGINT SIGQUIT
+
+export HOST=$(hostname)
+export TEST_ARGS="${test_args}"
 
 echo "Remove old running containers (if any)..."
 $DOCKER_COMPOSE kill
@@ -107,13 +117,32 @@ for i in 1 2 3 4 5 ; do
   $DOCKER_COMPOSE run wait_chronos
 done
 
-if [ $no_frontend ] ; then
-  FRONTEND_URL=http://localhost:8000 \
-  $DOCKER_COMPOSE up -d portalbackend
-else
-  $DOCKER_COMPOSE up -d portalbackend
+if [ $frontend == 1 ]; then
+  FRONTEND_URL=http://frontend \
+    $DOCKER_COMPOSE up -d portalbackend
   $DOCKER_COMPOSE run wait_portal_backend
   $DOCKER_COMPOSE up -d frontend
+
+  echo ""
+  echo "System up!"
+  echo "Useful URLs:"
+  echo "  http://frontend/ : the Web portal"
+  echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
+  echo "  http://localhost:8087 : Swagger admin interface for Woken Central"
+  echo "  http://localhost:18087 : Swagger admin interface for Woken Node 1"
+  echo "  http://localhost:28087 : Swagger admin interface for Woken Node 2"
+else
+  FRONTEND_URL=http://localhost:8000 \
+    $DOCKER_COMPOSE up -d portalbackend
+  $DOCKER_COMPOSE run wait_portal_backend
+
+  echo ""
+  echo "System up!"
+  echo "Useful URLs:"
+  echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
+  echo "  http://localhost:8087  : Swagger admin interface for Woken Central"
+  echo "  http://localhost:18087 : Swagger admin interface for Woken Node 1"
+  echo "  http://localhost:28087 : Swagger admin interface for Woken Node 2"
 fi
 
 echo "DONE"

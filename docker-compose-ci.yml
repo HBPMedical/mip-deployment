@@ -187,9 +187,9 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.9.3
-    volumes:
-      - ./woken/config:/opt/woken/config
+    build:
+      context: ./woken
+      dockerfile: Dockerfile
     ports:
       # Web API
       - "8087:8087"
@@ -204,15 +204,15 @@ services:
       CLUSTER_PORT: 8088
       CLUSTER_IP: woken
       WOKEN_PORT_8088_TCP_ADDR: woken
-      DOCKER_BRIDGE_NETWORK: "webanalyticsstarter_default"
+      DOCKER_BRIDGE_NETWORK: "tests_default"
       LOG_LEVEL: INFO
       KAMON_ENABLED: "yes"
       ZIPKIN_ENABLED: "yes"
       PROMETHEUS_ENABLED: "yes"
       SIGAR_SYSTEM_METRICS: "no"
       JVM_SYSTEM_METRICS: "no"
-      RELEASE_STAGE: "testing"
-      DATACENTER_LOCATION: "$HOST"
+      RELEASE_STAGE: "ci"
+      DATACENTER_LOCATION: "CircleCI"
       CONTAINER_ORCHESTRATION: "docker-compose"
       JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,address=*:8000,server=y,suspend=n -Dcom.sun.management.jmxremote.port=3333 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"
     depends_on:
@@ -244,8 +244,8 @@ services:
       PROMETHEUS_ENABLED: "yes"
       SIGAR_SYSTEM_METRICS: "no"
       JVM_SYSTEM_METRICS: "no"
-      RELEASE_STAGE: "testing"
-      DATACENTER_LOCATION: "$HOST"
+      RELEASE_STAGE: "ci"
+      DATACENTER_LOCATION: "CircleCI"
       CONTAINER_ORCHESTRATION: "docker-compose"
     depends_on:
       - woken
@@ -293,8 +293,8 @@ services:
       LOGGING_LEVEL_WEB: DEBUG
       LOGGING_LEVEL_HIBERNATE: WARN
       SESSION_TIMEOUT: 2592000
-      RELEASE_STAGE: "testing"
-      DATACENTER_LOCATION: "$HOST"
+      RELEASE_STAGE: "ci"
+      DATACENTER_LOCATION: "CircleCI"
       CONTAINER_ORCHESTRATION: "docker-compose"
     depends_on:
       - db
@@ -331,4 +331,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.18.50.0/24
+        - subnet: 172.18.15.0/24

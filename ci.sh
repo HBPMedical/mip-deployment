@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
 #
-# Start the Web portal and the analytics engine (Woken)
+# Execute the integration test suite in a Continuous Integration environment
 #
 # Option:
-#   --no-frontend: do not start the frontend
+#   --all: execute the full suite of tests, including slow tests such as Chaos testing
 #
 
 set -o pipefail  # trace ERR through pipes
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
+
+# This script is used for publish and continuous integration.
 
 get_script_dir () {
      SOURCE="${BASH_SOURCE[0]}"
@@ -25,12 +27,12 @@ get_script_dir () {
 
 cd "$(get_script_dir)"
 
-frontend=1
+test_args="testOnly -- -l org.scalatest.tags.Slow"
 for param in "$@"
 do
-  if [ "--no-frontend" == "$param" ]; then
-    frontend=0
-    echo "INFO: --no-frontend option detected !"
+  if [ "--all" == "$param" ]; then
+    test_args=""
+    echo "INFO: ---all option detected !"
   fi
 done
 
@@ -40,11 +42,11 @@ if pgrep -lf sshuttle > /dev/null ; then
 fi
 
 if [[ $NO_SUDO || -n "$CIRCLECI" ]]; then
-  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter"
+  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter -f docker-compose-ci.yml"
 elif groups "$USER" | grep &>/dev/null '\bdocker\b'; then
-  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter"
+  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter -f docker-compose-ci.yml"
 else
-  DOCKER_COMPOSE="sudo docker-compose --project-name webanalyticsstarter"
+  DOCKER_COMPOSE="sudo docker-compose --project-name webanalyticsstarter -f docker-compose-ci.yml"
 fi
 
 function _cleanup() {
@@ -55,9 +57,9 @@ function _cleanup() {
   $DOCKER_COMPOSE rm -f > /dev/null 2> /dev/null | true
   exit $error_code
 }
-trap _cleanup SIGINT SIGQUIT
+trap _cleanup EXIT INT TERM
 
-export HOST=$(hostname)
+export TEST_ARGS="${test_args}"
 
 echo "Remove old running containers (if any)..."
 $DOCKER_COMPOSE kill
@@ -69,6 +71,7 @@ $DOCKER_COMPOSE run wait_zookeeper
 $DOCKER_COMPOSE up -d mesos_master
 $DOCKER_COMPOSE run wait_mesos_master
 $DOCKER_COMPOSE up -d mesos_slave
+$DOCKER_COMPOSE build wokentest
 $DOCKER_COMPOSE run wait_dbs
 
 echo "Create databases..."
@@ -108,25 +111,13 @@ done
 
 echo "The Algorithm Factory is now running on your system"
 
-if [ $frontend == 1 ]; then
-  FRONTEND_URL=http://frontend \
-	  $DOCKER_COMPOSE up -d portalbackend
-  $DOCKER_COMPOSE run wait_portal_backend
-  $DOCKER_COMPOSE up -d frontend
+FRONTEND_URL=http://frontend \
+  $DOCKER_COMPOSE up -d portalbackend
+$DOCKER_COMPOSE run wait_portal_backend
+$DOCKER_COMPOSE up -d frontend
 
-  echo ""
-  echo "System up!"
-  echo "Useful URLs:"
-  echo "  http://frontend/ : the Web portal"
-  echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
-  echo "  http://localhost:8087 : Swagger admin interface for Woken"
-else
-  FRONTEND_URL=http://localhost:8000 \
-	$DOCKER_COMPOSE up -d portalbackend
-  $DOCKER_COMPOSE run wait_portal_backend
-  echo ""
-  echo "System up!"
-  echo "Useful URLs:"
-  echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
-  echo "  http://localhost:8087 : Swagger admin interface for Woken"
-fi
+echo "[OK] System startup success!"
+
+echo
+# Cleanup
+_cleanup

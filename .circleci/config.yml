@@ -32,4 +32,4 @@ jobs:
             - ~/.cache/pre-commit
       - run:
           name: "Run the project"
-          command: ./run.sh
+          command: ./ci.sh
