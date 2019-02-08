@@ -50,6 +50,9 @@ else
   DOCKER_COMPOSE="sudo docker-compose --project-name webanalyticsstarter"
 fi
 
+export HOST=$(hostname)
+
+
 echo "Remove old running containers (if any)..."
 $DOCKER_COMPOSE kill
 $DOCKER_COMPOSE rm -f
@@ -108,9 +111,9 @@ if [ $frontend == 1 ]; then
   echo ""
   echo "System up!"
   echo "Useful URLs:"
-  echo "http://frontend/ : the Web portal"
-  echo "http://localhost:8080 : Swagger admin interface for backend"
-  echo "http://localhost:8087 : Swagger admin interface for Woken"
+  echo "  http://frontend/ : the Web portal"
+  echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
+  echo "  http://localhost:8087 : Swagger admin interface for Woken"
 else
   FRONTEND_URL=http://localhost:8000 \
 	$DOCKER_COMPOSE up -d portalbackend
@@ -118,6 +121,6 @@ else
   echo ""
   echo "System up!"
   echo "Useful URLs:"
-  echo "http://localhost:8080 : Swagger admin interface for backend"
-  echo "http://localhost:8087 : Swagger admin interface for Woken"
+  echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
+  echo "  http://localhost:8087 : Swagger admin interface for Woken"
 fi
