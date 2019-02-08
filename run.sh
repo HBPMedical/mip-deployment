@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 
-set -e
+#
+# Start the Web portal and the analytics engine (Woken)
+#
+# Option:
+#   --no-frontend: do not start the frontend
+#
+
+set -o pipefail  # trace ERR through pipes
+set -o errtrace  # trace ERR through 'time command' and other functions
+set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
 get_script_dir () {
      SOURCE="${BASH_SOURCE[0]}"
@@ -16,12 +25,21 @@ get_script_dir () {
 
 cd "$(get_script_dir)"
 
+frontend=1
+for param in "$@"
+do
+  if [ "--no-frontend" == "$param" ]; then
+    frontend=0
+    echo "INFO: --no-frontend option detected !"
+  fi
+done
+
 if pgrep -lf sshuttle > /dev/null ; then
   echo "sshuttle detected. Please close this program as it messes with networking and prevents Docker links to work"
   exit 1
 fi
 
-if [ $NO_SUDO ]; then
+if [[ $NO_SUDO || -n "$CIRCLECI" ]]; then
   DOCKER="docker"
   DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter"
 elif groups "$USER" | grep &>/dev/null '\bdocker\b'; then
@@ -31,15 +49,6 @@ else
   DOCKER="sudo docker"
   DOCKER_COMPOSE="sudo docker-compose --project-name webanalyticsstarter"
 fi
-
-for param in "$@"
-do
-  if [ "--no-frontend" == "$param" ]; then
-    no_frontend=0
-    echo "INFO: --no-frontend option detected !"
-    break;
-  fi
-done
 
 echo "Remove old running containers (if any)..."
 $DOCKER_COMPOSE kill
@@ -88,14 +97,28 @@ for i in 1 2 3 4 5 ; do
   $DOCKER_COMPOSE run wait_chronos
 done
 
-if [ $no_frontend ] ; then
-  FRONTEND_URL=http://localhost:8000 \
-	  $DOCKER_COMPOSE up -d portalbackend
-else
+echo "The Algorithm Factory is now running on your system"
+
+if [ $frontend == 1 ]; then
   FRONTEND_URL=http://frontend \
 	  $DOCKER_COMPOSE up -d portalbackend
   $DOCKER_COMPOSE run wait_portal_backend
   $DOCKER_COMPOSE up -d frontend
+
+  echo ""
+  echo "System up!"
+  echo "Useful URLs:"
+  echo "http://frontend/ : the Web portal"
+  echo "http://localhost:8080 : Swagger admin interface for backend"
+  echo "http://localhost:8087 : Swagger admin interface for Woken"
+else
+  FRONTEND_URL=http://localhost:8000 \
+	$DOCKER_COMPOSE up -d portalbackend
+  $DOCKER_COMPOSE run wait_portal_backend
+  echo ""
+  echo "System up!"
+  echo "Useful URLs:"
+  echo "http://localhost:8080 : Swagger admin interface for backend"
+  echo "http://localhost:8087 : Swagger admin interface for Woken"
 fi
 
-echo "DONE"
