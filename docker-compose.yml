@@ -147,9 +147,9 @@ services:
     depends_on:
       - db
 
-  sample_meta_db_setup:
-    image: "hbpmip/sample-meta-db-setup:0.6.1"
-    container_name: "sample-meta-db-setup"
+  mip_cde_meta_db_setup:
+    image: "hbpmip/mip-cde-meta-db-setup:1.3.3"
+    container_name: "mip-cde-meta-db-setup"
     restart: "no"
     environment:
       FLYWAY_HOST: db
@@ -160,9 +160,35 @@ services:
     depends_on:
       - db
 
-  sample_data_db_setup:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
-    container_name: "sample-data-db-setup"
+  adni_data_db_setup:
+    image: "registry.gitlab.com/hbpmip_private/adni-merge-db-setup:1.6.0"
+    container_name: "adni-data-db-setup"
+    restart: "no"
+    environment:
+      FLYWAY_HOST: db
+      FLYWAY_PORT: 5432
+      FLYWAY_DATABASE_NAME: features
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: test
+    depends_on:
+      - db
+
+  edsd_data_db_setup:
+    image: "registry.gitlab.com/hbpmip_private/edsd-data-db-setup:1.5.0"
+    container_name: "adni-data-db-setup"
+    restart: "no"
+    environment:
+      FLYWAY_HOST: db
+      FLYWAY_PORT: 5432
+      FLYWAY_DATABASE_NAME: features
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: test
+    depends_on:
+      - db
+
+  ppmi_data_db_setup:
+    image: "registry.gitlab.com/hbpmip_private/ppmi-data-db-setup:1.2.0"
+    container_name: "ppmi-data-db-setup"
     restart: "no"
     environment:
       FLYWAY_HOST: db
@@ -278,7 +304,7 @@ services:
       FEATURES_DB_SERVER: db:5432
       FEATURES_DB_USER: features
       FEATURES_DB_PASSWORD: featurespwd
-      FEATURES_DB_MAIN_TABLE: cde_features_a
+      FEATURES_DB_MAIN_TABLE: mip_cde_features
       CONTEXT_PATH: /services
       AUTHENTICATION: 0
       FRONTEND_LOGIN_URL: ${FRONTEND_URL}/services/login/hbp

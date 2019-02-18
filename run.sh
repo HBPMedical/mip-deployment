@@ -78,10 +78,12 @@ echo "Migrate woken database..."
 $DOCKER_COMPOSE run woken_db_setup
 
 echo "Migrate metadata database..."
-$DOCKER_COMPOSE run sample_meta_db_setup
+$DOCKER_COMPOSE run mip_cde_meta_db_setup
 
 echo "Migrate features database..."
-$DOCKER_COMPOSE run sample_data_db_setup
+$DOCKER_COMPOSE run adni_data_db_setup
+$DOCKER_COMPOSE run edsd_data_db_setup
+$DOCKER_COMPOSE run ppmi_data_db_setup
 
 echo "Run containers..."
 for i in 1 2 3 4 5 ; do
