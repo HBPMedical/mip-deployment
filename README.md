@@ -19,6 +19,9 @@ You have to install (a recent version of):
 
 ### Run it
 
+Login into private Gitlab Docker registry:
+  ```docker login https://registry.gitlab.com/v2/hbpmip_private```
+
 Launch all the components:
 `./run.sh`
 
