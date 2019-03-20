@@ -441,7 +441,7 @@ services:
       - chronos
 
   portalbackend:
-    image: hbpmip/portal-backend:2.9.3
+    image: hbpmip/portal-backend:2.9.4
     restart: "no"
     ports:
       - "8080:8080"
@@ -505,7 +505,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: DEV
-      VERSION: "2.9.0-dev (Woken 2.9.3, Validation 2.6.4, Backend 2.9.2, Frontend 2.16.1)"
+      VERSION: "2.9.0-dev (Woken 2.9.4, Validation 2.6.4, Backend 2.9.2, Frontend 2.16.1)"
       THEME: mip
 
 networks:
