@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 if groups "$USER" | grep &>/dev/null '\bdocker\b'; then
-  DOCKER_COMPOSE="docker-compose"
+  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter"
 else
-  DOCKER_COMPOSE="sudo docker-compose"
+  DOCKER_COMPOSE="sudo docker-compose --project-name webanalyticsstarter"
 fi
 
 export HOST=$(hostname)

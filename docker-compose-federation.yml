@@ -235,7 +235,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.9.5
+    image: hbpmip/woken:2.9.8
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -293,7 +293,7 @@ services:
       - wokenvalidationnode1
 
   wokennode2:
-    image: hbpmip/woken:2.9.5
+    image: hbpmip/woken:2.9.8
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -351,7 +351,7 @@ services:
       - wokenvalidationnode2
 
   wokennode3:
-    image: hbpmip/woken:2.9.5
+    image: hbpmip/woken:2.9.8
     volumes:
       - ./woken-worker3/config:/opt/woken/config
     ports:
@@ -409,7 +409,7 @@ services:
       - wokenvalidationnode3
 
   wokencentral:
-    image: hbpmip/woken:2.9.5
+    image: hbpmip/woken:2.9.8
     volumes:
       - ./woken-central/config:/opt/woken/config
     ports:
@@ -441,7 +441,7 @@ services:
       - chronos
 
   portalbackend:
-    image: hbpmip/portal-backend:2.9.4
+    image: hbpmip/portal-backend:2.9.5
     restart: "no"
     ports:
       - "8080:8080"
@@ -505,7 +505,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: DEV
-      VERSION: "2.9.0-dev (Woken 2.9.5, Validation 2.7.3, Backend 2.9.4, Frontend 2.16.2)"
+      VERSION: "2.9.0-dev (Woken 2.9.8, Validation 2.7.3, Backend 2.9.5, Frontend 2.16.2)"
       THEME: mip
 
 networks:
