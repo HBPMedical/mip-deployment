@@ -15,6 +15,12 @@ You have to install (a recent version of):
 * docker (tested using version 17.05.0-ce)
 * docker-compose (tested using version 1.17.0)
 
+You need also to add the following line to /etc/hosts to be able to use the http://frontend url:
+
+```
+127.0.0.2       frontend
+```
+
 ## Usage
 
 ### Run it
