@@ -310,7 +310,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:2.16.2
+    image: hbpmip/portal-frontend:2.16.4
     depends_on:
       - portalbackend
     ports:
@@ -323,7 +323,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "DEV"
-      VERSION: "2.9.0-dev (Woken 2.9.8, Validation 2.7.3, Backend 2.9.5, Frontend 2.16.2)"
+      VERSION: "2.9.0-dev (Woken 2.9.8, Validation 2.7.3, Backend 2.9.5, Frontend 2.16.4)"
       THEME: mip
 
 networks:
