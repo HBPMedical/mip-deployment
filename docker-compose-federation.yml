@@ -235,7 +235,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.9.8
+    image: hbpmip/woken:2.9.12
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
