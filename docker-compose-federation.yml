@@ -157,7 +157,7 @@ services:
       - db
 
   sample_meta_db_setup:
-    image: "hbpmip/sample-meta-db-setup:0.6.1"
+    image: "hbpmip/sample-meta-db-setup:0.7.1"
     container_name: "sample-meta-db-setup"
     restart: "no"
     environment:
@@ -170,7 +170,7 @@ services:
       - db
 
   sample_data_db_setup:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
+    image: "hbpmip/sample-data-db-setup:0.7.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -183,7 +183,7 @@ services:
       - db
 
   sample_data_db_setup1:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
+    image: "hbpmip/sample-data-db-setup:0.7.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -196,7 +196,7 @@ services:
       - db
 
   sample_data_db_setup2:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
+    image: "hbpmip/sample-data-db-setup:0.7.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -209,7 +209,7 @@ services:
       - db
 
   sample_data_db_setup3:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
+    image: "hbpmip/sample-data-db-setup:0.7.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -293,7 +293,7 @@ services:
       - wokenvalidationnode1
 
   wokennode2:
-    image: hbpmip/woken:2.9.8
+    image: hbpmip/woken:2.9.12
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -351,7 +351,7 @@ services:
       - wokenvalidationnode2
 
   wokennode3:
-    image: hbpmip/woken:2.9.8
+    image: hbpmip/woken:2.9.12
     volumes:
       - ./woken-worker3/config:/opt/woken/config
     ports:
@@ -409,7 +409,7 @@ services:
       - wokenvalidationnode3
 
   wokencentral:
-    image: hbpmip/woken:2.9.8
+    image: hbpmip/woken:2.9.12
     volumes:
       - ./woken-central/config:/opt/woken/config
     ports:
@@ -504,8 +504,8 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
-      INSTANCE_NAME: DEV
-      VERSION: "2.9.0-dev (Woken 2.9.8, Validation 2.7.3, Backend 2.9.5, Frontend 2.16.4)"
+      INSTANCE_NAME: "DEV-FEDERATION"
+      VERSION: "2.9.0-dev (Woken 2.9.12, Validation 2.7.3, Backend 2.9.5, Frontend 2.16.4)"
       THEME: mip
 
 networks:
