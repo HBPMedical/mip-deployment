@@ -187,7 +187,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.9.12
+    image: hbpmip/woken:3.0.0
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -230,7 +230,7 @@ services:
       - chronos
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.7.3
+    image: hbpmip/woken-validation:2.8.0
     ports:
       - "8081:8081"
       - "8082:8082"
@@ -260,7 +260,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: hbpmip/portal-backend:2.9.5
+    image: hbpmip/portal-backend:3.0.0
     restart: "no"
     ports:
       - "8080:8080"
@@ -323,7 +323,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "MIP LOCAL 3.0 beta"
-      VERSION: "3.0-beta (Woken 2.9.12, Validation 2.7.3, Backend 2.9.5, Frontend 2.16.5)"
+      VERSION: "3.0-beta (Woken 3.0.0, Validation 2.8.0, Backend 3.0.0, Frontend 2.16.5)"
       THEME: mip
 
 networks:
