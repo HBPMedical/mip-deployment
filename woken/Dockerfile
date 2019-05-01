@@ -1,3 +1,3 @@
-FROM hbpmip/woken:2.9.8
+FROM hbpmip/woken:3.0.0
 
 COPY config/application.conf /opt/woken/config/

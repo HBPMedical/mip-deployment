@@ -157,7 +157,7 @@ services:
       - db
 
   sample_meta_db_setup:
-    image: "hbpmip/sample-meta-db-setup:0.6.1"
+    image: "hbpmip/sample-meta-db-setup:0.7.1"
     container_name: "sample-meta-db-setup"
     restart: "no"
     environment:
@@ -170,7 +170,7 @@ services:
       - db
 
   sample_data_db_setup:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
+    image: "hbpmip/sample-data-db-setup:0.7.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -183,7 +183,7 @@ services:
       - db
 
   sample_data_db_setup1:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
+    image: "hbpmip/sample-data-db-setup:0.7.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -196,7 +196,7 @@ services:
       - db
 
   sample_data_db_setup2:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
+    image: "hbpmip/sample-data-db-setup:0.7.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -209,7 +209,7 @@ services:
       - db
 
   sample_data_db_setup3:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
+    image: "hbpmip/sample-data-db-setup:0.7.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -235,7 +235,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:2.9.8
+    image: hbpmip/woken:3.0.0
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -267,7 +267,7 @@ services:
       - chronos
 
   wokenvalidationnode1:
-    image: hbpmip/woken-validation:2.7.3
+    image: hbpmip/woken-validation:2.8.0
     ports:
       - "18081:8081"
       - "18082:8082"
@@ -293,7 +293,7 @@ services:
       - wokenvalidationnode1
 
   wokennode2:
-    image: hbpmip/woken:2.9.8
+    image: hbpmip/woken:3.0.0
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -325,7 +325,7 @@ services:
       - chronos
 
   wokenvalidationnode2:
-    image: hbpmip/woken-validation:2.7.3
+    image: hbpmip/woken-validation:2.8.0
     ports:
       - "28081:8081"
       - "28082:8082"
@@ -351,7 +351,7 @@ services:
       - wokenvalidationnode2
 
   wokennode3:
-    image: hbpmip/woken:2.9.8
+    image: hbpmip/woken:3.0.0
     volumes:
       - ./woken-worker3/config:/opt/woken/config
     ports:
@@ -383,7 +383,7 @@ services:
       - chronos
 
   wokenvalidationnode3:
-    image: hbpmip/woken-validation:2.7.3
+    image: hbpmip/woken-validation:2.8.0
     ports:
       - "38081:8081"
       - "38082:8082"
@@ -409,7 +409,7 @@ services:
       - wokenvalidationnode3
 
   wokencentral:
-    image: hbpmip/woken:2.9.8
+    image: hbpmip/woken:3.0.0
     volumes:
       - ./woken-central/config:/opt/woken/config
     ports:
@@ -441,7 +441,7 @@ services:
       - chronos
 
   portalbackend:
-    image: hbpmip/portal-backend:2.9.5
+    image: hbpmip/portal-backend:3.0.0
     restart: "no"
     ports:
       - "8080:8080"
@@ -492,7 +492,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:2.16.2
+    image: hbpmip/portal-frontend:2.16.5
     depends_on:
       - portalbackend
     ports:
