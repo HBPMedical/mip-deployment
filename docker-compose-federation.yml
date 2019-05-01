@@ -235,7 +235,7 @@ services:
       - db
 
   wokennode1:
-    image: hbpmip/woken:3.0.0
+    image: hbpmip/woken:3.0.2
     volumes:
       - ./woken-worker1/config:/opt/woken/config
     ports:
@@ -293,7 +293,7 @@ services:
       - wokenvalidationnode1
 
   wokennode2:
-    image: hbpmip/woken:3.0.0
+    image: hbpmip/woken:3.0.2
     volumes:
       - ./woken-worker2/config:/opt/woken/config
     ports:
@@ -351,7 +351,7 @@ services:
       - wokenvalidationnode2
 
   wokennode3:
-    image: hbpmip/woken:3.0.0
+    image: hbpmip/woken:3.0.2
     volumes:
       - ./woken-worker3/config:/opt/woken/config
     ports:
@@ -409,7 +409,7 @@ services:
       - wokenvalidationnode3
 
   wokencentral:
-    image: hbpmip/woken:3.0.0
+    image: hbpmip/woken:3.0.2
     volumes:
       - ./woken-central/config:/opt/woken/config
     ports:
@@ -504,8 +504,8 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
-      INSTANCE_NAME: "MIP FEDERATION 3.0 beta"
-      VERSION: "3.0-beta (Woken 3.0.0, Validation 2.8.0, Backend 3.0.0, Frontend 3.0.0)"
+      INSTANCE_NAME: "MIP FEDERATION 3.0 rc1"
+      VERSION: "3.0-beta (Woken 3.0.2, Validation 2.8.0, Backend 3.0.0, Frontend 3.0.0)"
       THEME: mip
 
 networks:
