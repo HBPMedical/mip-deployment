@@ -148,7 +148,7 @@ services:
       - db
 
   sample_meta_db_setup:
-    image: "hbpmip/sample-meta-db-setup:0.6.1"
+    image: "hbpmip/sample-meta-db-setup:0.7.1"
     container_name: "sample-meta-db-setup"
     restart: "no"
     environment:
@@ -161,7 +161,7 @@ services:
       - db
 
   sample_data_db_setup:
-    image: "hbpmip/sample-data-db-setup:0.6.2"
+    image: "hbpmip/sample-data-db-setup:0.7.0"
     container_name: "sample-data-db-setup"
     restart: "no"
     environment:
@@ -204,7 +204,7 @@ services:
       CLUSTER_PORT: 8088
       CLUSTER_IP: woken
       WOKEN_PORT_8088_TCP_ADDR: woken
-      DOCKER_BRIDGE_NETWORK: "tests_default"
+      DOCKER_BRIDGE_NETWORK: "webanalyticsstarter_default"
       LOG_LEVEL: INFO
       KAMON_ENABLED: "yes"
       ZIPKIN_ENABLED: "yes"
@@ -230,7 +230,7 @@ services:
       - chronos
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.7.3
+    image: hbpmip/woken-validation:2.8.0
     ports:
       - "8081:8081"
       - "8082:8082"
@@ -260,7 +260,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: hbpmip/portal-backend:2.9.5
+    image: hbpmip/portal-backend:3.0.0
     restart: "no"
     ports:
       - "8080:8080"
@@ -322,8 +322,8 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
-      INSTANCE_NAME: "MIP 3.0-beta"
-      VERSION: "3.0-beta (Woken 2.9.8, Validation 2.7.3, Backend 2.9.5, Frontend 3.0.2)"
+      INSTANCE_NAME: "MIP LOCAL 3.0 rc1"
+      VERSION: "3.0-rc1 (Woken 3.0.2, Validation 2.8.0, Backend 3.0.0, Frontend 3.0.2)"
       THEME: mip
 
 networks:

@@ -148,7 +148,7 @@ services:
       - db
 
   mip_cde_meta_db_setup:
-    image: "hbpmip/mip-cde-meta-db-setup:1.3.3"
+    image: "hbpmip/mip-cde-meta-db-setup:1.3.5"
     container_name: "mip-cde-meta-db-setup"
     restart: "no"
     environment:
@@ -161,7 +161,7 @@ services:
       - db
 
   adni_data_db_setup:
-    image: "registry.gitlab.com/hbpmip_private/adni-merge-db-setup:1.6.0"
+    image: "registry.gitlab.com/hbpmip_private/adni-merge-db-setup:1.6.2"
     container_name: "adni-data-db-setup"
     restart: "no"
     environment:
@@ -174,7 +174,7 @@ services:
       - db
 
   edsd_data_db_setup:
-    image: "registry.gitlab.com/hbpmip_private/edsd-data-db-setup:1.5.0"
+    image: "registry.gitlab.com/hbpmip_private/edsd-data-db-setup:1.5.2"
     container_name: "adni-data-db-setup"
     restart: "no"
     environment:
@@ -187,7 +187,7 @@ services:
       - db
 
   ppmi_data_db_setup:
-    image: "registry.gitlab.com/hbpmip_private/ppmi-data-db-setup:1.2.0"
+    image: "registry.gitlab.com/hbpmip_private/ppmi-data-db-setup:1.2.2"
     container_name: "ppmi-data-db-setup"
     restart: "no"
     environment:
@@ -213,7 +213,7 @@ services:
       - db
 
   woken:
-    image: hbpmip/woken:2.9.8
+    image: hbpmip/woken:3.0.2
     volumes:
       - ./woken/config:/opt/woken/config
     ports:
@@ -256,7 +256,7 @@ services:
       - chronos
 
   wokenvalidation:
-    image: hbpmip/woken-validation:2.7.3
+    image: hbpmip/woken-validation:2.8.0
     ports:
       - "8081:8081"
       - "8082:8082"
@@ -286,7 +286,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: hbpmip/portal-backend:2.9.5
+    image: hbpmip/portal-backend:3.0.0
     restart: "no"
     ports:
       - "8080:8080"
@@ -348,8 +348,8 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
-      INSTANCE_NAME: "MIP LOCAL 3.0 beta"
-      VERSION: "3.0-beta (Woken 2.9.5, Validation 2.7.3, Backend 2.9.5, Frontend 3.0.2)"
+      INSTANCE_NAME: "MIP LOCAL 3.0 rc1"
+      VERSION: "3.0-rc1 (Woken 3.0.2, Validation 2.8.0, Backend 3.0.0, Frontend 3.0.2)"
       THEME: mip
 
 networks:

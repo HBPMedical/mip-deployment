@@ -16,7 +16,7 @@ set -o errexit   ## set -e : exit the script if any statement returns a non-true
 get_script_dir () {
      SOURCE="${BASH_SOURCE[0]}"
 
-     while [ -h "$SOURCE" ]; do
+     while [[ -h "$SOURCE" ]]; do
           DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
           SOURCE="$( readlink "$SOURCE" )"
           [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
@@ -29,7 +29,7 @@ cd "$(get_script_dir)"
 
 for param in "$@"
 do
-  if [ "--all" == "$param" ]; then
+  if [[ "--all" == "$param" ]]; then
     test_args=""
     echo "INFO: ---all option detected !"
   fi
