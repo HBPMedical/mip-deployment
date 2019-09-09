@@ -1,0 +1,24 @@
+[{
+		"code": "dementia",
+		"datasets": [{
+				"code": "adni"
+			}, {
+				"code": "ppmi"
+			}, {
+				"code": "edsd"
+			}
+
+		]
+	}, {
+		"code": "neuropathology",
+		"datasets": [{
+				"code": "neuro1"
+			}, {
+				"code": "neuro2"
+			}, {
+				"code": "neuro3"
+			}
+
+		]
+	}
+]
