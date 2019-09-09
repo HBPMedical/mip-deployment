@@ -299,6 +299,9 @@ services:
     depends_on:
       - db
       - woken
+    volumes:
+      - {pathologies_path}:/opt/portal/api
+
 
   wait_portal_backend:
     image: "waisbrot/wait"
