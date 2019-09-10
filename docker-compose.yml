@@ -260,7 +260,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: hbpmip/portal-backend:5.0.0-alpha.1
+    image: hbpmip/portal-backend:5.0.0-alpha.2
     restart: "no"
     ports:
       - "8080:8080"
@@ -313,7 +313,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.0.0-alpha.1
+    image: hbpmip/portal-frontend:5.0.0-alpha.2
     depends_on:
       - portalbackend
     ports:
