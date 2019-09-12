@@ -286,7 +286,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image: hbpmip/portal-backend:3.0.0
+    image: hbpmip/portal-backend:5.0.0-alpha.2
     restart: "no"
     ports:
       - "8080:8080"
@@ -315,7 +315,9 @@ services:
       WOKEN_PORT_8088_TCP_ADDR: woken
       WOKEN_PORT_8088_TCP_PORT: 8088
       WOKEN_AKKA_PATH: "/user/entrypoint"
-      EXAREME_URL: http://prozac.madgik.di.uoa.gr:9090/mining/query
+      EXAREME_URL: http://155.105.200.235:9090
+      WORKFLOW_URL: http://155.105.200.235:9091
+      WORKFLOW_AUTHORIZATION: "Bearer xxx"
       LOGGING_LEVEL_WEB: DEBUG
       LOGGING_LEVEL_HIBERNATE: WARN
       SESSION_TIMEOUT: 2592000
@@ -325,6 +327,8 @@ services:
     depends_on:
       - db
       - woken
+    volumes:
+      - ./data:/opt/portal/api
 
   wait_portal_backend:
     image: "waisbrot/wait"
@@ -336,7 +340,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:3.0.2
+    image: hbpmip/portal-frontend:5.0.0-alpha.2
     depends_on:
       - portalbackend
     ports:
@@ -349,7 +353,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
       INSTANCE_NAME: "MIP LOCAL 3.0 rc1"
-      VERSION: "3.0-rc1 (Woken 3.0.2, Validation 2.8.0, Backend 3.0.0, Frontend 3.0.2)"
+      VERSION: "3.0-rc1 (Woken 3.0.2, Validation 2.8.0, Backend 5.0.0-alpha, Frontend 5.0.0-alpha)"
       THEME: mip
 
 networks:
