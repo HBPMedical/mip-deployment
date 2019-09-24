@@ -340,7 +340,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.0.0-alpha.8
+    image: hbpmip/portal-frontend:5.0.0-alpha.9
     depends_on:
       - portalbackend
     ports:
