@@ -286,7 +286,7 @@ services:
       - wokenvalidation
 
   portalbackend:
-    image:  hbpmip/portal-backend:5.0.0-alpha.5
+    image:  hbpmip/portal-backend:5.0.0
     restart: "no"
     ports:
       - "8080:8080"
@@ -315,9 +315,9 @@ services:
       WOKEN_PORT_8088_TCP_ADDR: woken
       WOKEN_PORT_8088_TCP_PORT: 8088
       WOKEN_AKKA_PATH: "/user/entrypoint"
-      EXAREME_URL: http://88.197.53.100:9090
-      WORKFLOW_URL: http://155.105.200.235:9091
-      WORKFLOW_AUTHORIZATION: "Bearer xxx"
+      EXAREME_URL: http://155.105.200.235:9090
+      WORKFLOW_URL: http://88.197.53.106:8091/Middleware_API-1.0.0-SNAPSHOT/api
+      WORKFLOW_AUTHORIZATION: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJtaXAuaHVtYW5icmFpbnByb2plY3QuZXUiLCJpYXQiOjE1Njg5OTE3NDUsImV4cCI6MTYwMDUyNzc0NSwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsIkdpdmVuTmFtZSI6IkpvaG5ueSIsIlN1cm5hbWUiOiJSb2NrZXQiLCJFbWFpbCI6Impyb2NrZXRAZXhhbXBsZS5jb20ifQ.0R4Qzt9vGuiRr07ZVq5SvVC7thPBD9PIBdJ1WtGRt3vcZIvmsaFtVYerQKpRVP-BXqAIjryp8E-vAUrWQBe2Mg"
       LOGGING_LEVEL_WEB: DEBUG
       LOGGING_LEVEL_HIBERNATE: WARN
       SESSION_TIMEOUT: 2592000
@@ -340,7 +340,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.0.0-alpha.9
+    image: hbpmip/portal-frontend:5.0.0-beta.2
     depends_on:
       - portalbackend
     ports:
@@ -356,7 +356,7 @@ services:
       VERSION: "5.0 alpha (Woken 3.0.2, Validation 2.8.0, Backend 5.0.0-alpha, Frontend 5.0.0-alpha)"
       TRACKER_ID: UA-80660232-5
       GALAXY_API_URL: "http://localhost:8090/api"
-      GALAXY_APACHE_URL: "http://88.197.53.100/nativeGalaxy"
+      GALAXY_APACHE_URL: "http://user:pwd@88.197.53.100/nativeGalaxy"
 
 networks:
   default:
