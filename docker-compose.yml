@@ -33,7 +33,7 @@ services:
       - db
 
   portalbackend:
-    image:  hbpmip/portal-backend:5.0.0-standalone
+    image: hbpmip/portal-backend:5.0.0-beta.1
     restart: "no"
     ports:
       - "8080:8080"
@@ -74,7 +74,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.0.0-beta.2
+    image: hbpmip/portal-frontend:5.0.0-beta.4
     depends_on:
       - portalbackend
     ports:
@@ -90,4 +90,4 @@ services:
       VERSION: "5.0 alpha (Woken 3.0.2, Validation 2.8.0, Backend 5.0.0-alpha, Frontend 5.0.0-alpha)"
       TRACKER_ID: UA-80660232-5
       GALAXY_API_URL: "http://localhost:8090/api"
-      GALAXY_APACHE_URL: "http://user:pwd@88.197.53.100/nativeGalaxy"
+      GALAXY_APACHE_URL: "http://88.197.53.100/nativeGalaxy"
