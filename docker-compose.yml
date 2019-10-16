@@ -33,7 +33,7 @@ services:
       - db
 
   portalbackend:
-    image: hbpmip/portal-backend:5.0.0-beta.2
+    image: hbpmip/portal-backend:5.0.0
     restart: "no"
     ports:
       - "8080:8080"
@@ -50,11 +50,11 @@ services:
       FRONTEND_LOGIN_URL: ${FRONTEND_URL}/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: ${FRONTEND_URL}/
       FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
-      EXAREME_URL: http://155.105.200.235:9090
+      EXAREME_URL: http://88.197.39.116:9090
       WORKFLOW_URL: http://88.197.53.36/Middleware_API-1.0.0-SNAPSHOT/api
       JWT_SECRET: "secret"
-      LOGGING_LEVEL_WEB: DEBUG
-      LOGGING_LEVEL_HIBERNATE: WARN
+      LOGGING_LEVEL_WEB: INFO
+      LOGGING_LEVEL_HIBERNATE: INFO
       SESSION_TIMEOUT: 2592000
       RELEASE_STAGE: "testing"
       DATACENTER_LOCATION: "$HOST"
@@ -74,7 +74,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.0.0-beta.5
+    image: hbpmip/portal-frontend:5.0.0
     depends_on:
       - portalbackend
     ports:
@@ -86,8 +86,8 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
-      INSTANCE_NAME: "MIP 5.0 alpha"
-      VERSION: "5.0 alpha (Woken 3.0.2, Validation 2.8.0, Backend 5.0.0-alpha, Frontend 5.0.0-alpha)"
+      INSTANCE_NAME: "MIP 5.0.0"
+      VERSION: "5.0.0"
       TRACKER_ID: UA-80660232-5
       GALAXY_API_URL: "http://localhost:8090/api"
       GALAXY_APACHE_URL: "http://88.197.53.100/nativeGalaxy"
