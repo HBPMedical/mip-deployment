@@ -33,7 +33,7 @@ services:
       - db
 
   portalbackend:
-    image: hbpmip/portal-backend:5.0.0
+    image: hbpmip/portal-backend:5.0.1
     restart: "no"
     ports:
       - "8080:8080"
