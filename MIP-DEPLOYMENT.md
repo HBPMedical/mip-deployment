@@ -31,14 +31,13 @@ You can install exareme locally by following this guide:
 Or you can install federated exareme by following this guide:
 [Federated Deployment Guide](https://github.com/madgik/exareme/tree/master/Federated-Deployment)
 
-It doesn't make a difference what type of exareme you deployed, the only thing you need to continue deployment is the ip of the exareme master node, which we will call `EXAREME_IP` and the `EXAREME_PORT` that is 9090 by default.
-
+In the next steps you will need to provide the IP of the master node of Exareme which will be refered as EXAREME_IP so keep that in mind. 
 
 ###  2. Install Galaxy
 
 In order to deploy Galaxy you need:
 1. `EXAREME_IP`  (from step 1)
-2. `EXAREME_PORT`  (from step 1)
+2. `EXAREME_PORT`  (default 9090)
 
 With that information you can follow the [Galaxy Installation Guide](https://github.com/madgik/galaxy/tree/master/Docker_Build_Scripts) to deploy Galaxy.
 
@@ -77,10 +76,10 @@ Clone this repository in your machine where it will be installed.
 #### Initialize the variables
 
 In order to deploy the Web Analytics Pack you need:
-1. `EXAREME_URL`  (`EXAREME_IP` + `EXAREME_PORT` from step 1 e.g. http://155.105.200.235:9090 )
+1. `EXAREME_URL`  (`EXAREME_IP`:`EXAREME_PORT` from step 1 e.g. http://155.105.200.235:9090 )
 2. `WORKFLOW_URL`  (from step 3)
 3. `JWT_SECRET`   (from step 3)
-4. `GALAXY_APACHE_URL`  (`GALAXY_URL` + `/nativeGalaxy` e.g. http://88.197.53.100:8090/nativeGalaxy )
+4. `GALAXY_APACHE_URL`  (`GALAXY_URL`:`/nativeGalaxy` e.g. http://88.197.53.100:8090/nativeGalaxy )
 
 Go to the `docker-compose.yml` file and modify these env variables with the values that you have from the previous steps.
 
