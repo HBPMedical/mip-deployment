@@ -33,7 +33,7 @@ services:
       - db
 
   portalbackend:
-    image: hbpmip/portal-backend:5.0.1
+    image: hbpmip/portal-backend:5.0.2
     restart: "no"
     ports:
       - "8080:8080"
@@ -50,8 +50,11 @@ services:
       FRONTEND_LOGIN_URL: ${FRONTEND_URL}/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: ${FRONTEND_URL}/
       FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
-      EXAREME_URL: http://88.197.39.116:9090
-      WORKFLOW_URL: http://88.197.53.36/Middleware_API-1.0.0-SNAPSHOT/api
+      EXAREME_URL: http://155.105.200.235:9090
+      GALAXY_CONTEXT: nativeGalaxy
+      GALAXY_USERNAME: admin
+      GALAXY_PASSWORD: password
+      WORKFLOW_URL: http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
       JWT_SECRET: "secret"
       LOGGING_LEVEL_WEB: INFO
       LOGGING_LEVEL_HIBERNATE: INFO
@@ -74,7 +77,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.1.1
+    image: hbpmip/portal-frontend:5.1.2
     depends_on:
       - portalbackend
     ports:
@@ -89,5 +92,3 @@ services:
       INSTANCE_NAME: "MIP 5.0.0"
       VERSION: "5.0.0"
       TRACKER_ID: UA-80660232-5
-      GALAXY_API_URL: "http://localhost:8090/api"
-      GALAXY_APACHE_URL: "http://88.197.53.100/nativeGalaxy"
