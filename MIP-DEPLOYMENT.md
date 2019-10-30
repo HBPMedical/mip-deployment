@@ -88,7 +88,7 @@ In order to deploy the Web Analytics Pack you need:
 4. `GALAXY_PASSWORD` (`GALAXY_PASSWORD`:`password`) (from step 2)
 5. `JWT_SECRET` (from step 3)
 
-Go to the `docker-compose.yml` file and modify these env variables with the values that you have from the previous steps.
+Go to the `docker-compose.yml` file and modify these env variables with the values that you have from the previous steps. You can also modify the images of the portal-backend and the portal-frontend depending on what you want to deploy.
 
 #### Setup the pathologies
 
