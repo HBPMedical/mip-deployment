@@ -81,7 +81,7 @@ In order to deploy the Web Analytics Pack you need:
 3. `JWT_SECRET`   (from step 3)
 4. `GALAXY_APACHE_URL`  (`GALAXY_URL`:`/nativeGalaxy` e.g. http://88.197.53.100:8090/nativeGalaxy )
 
-Go to the `docker-compose.yml` file and modify these env variables with the values that you have from the previous steps.
+Go to the `docker-compose.yml` file and modify these env variables with the values that you have from the previous steps. You can also modify the images of the portal-backend and the portal-frontend depending on what you want to deploy.
 
 #### Setup the pathologies
 
@@ -94,13 +94,4 @@ This is used to inform the frontend what are the available datasets and CDEs. Mo
 Run the ```./run.sh``` command to install the rest of the components.
 
 After the installation is done, MIP will be visible on localhost.
-
-
-
-
-
-
-
-
-
 
