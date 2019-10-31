@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #
-# Start the Web portal and the analytics engine (Woken)
+# Start the Web portal
 #
 # Option:
 #   --no-frontend: do not start the frontend
@@ -64,49 +64,10 @@ $DOCKER_COMPOSE kill
 $DOCKER_COMPOSE rm -f
 
 echo "Deploy a Postgres server and wait for it to be ready..."
-$DOCKER_COMPOSE up -d db zookeeper
-$DOCKER_COMPOSE run wait_zookeeper
-$DOCKER_COMPOSE up -d mesos_master
-$DOCKER_COMPOSE run wait_mesos_master
-$DOCKER_COMPOSE up -d mesos_slave
 $DOCKER_COMPOSE run wait_dbs
 
 echo "Create databases..."
 $DOCKER_COMPOSE run create_dbs
-
-echo "Migrate woken database..."
-$DOCKER_COMPOSE run woken_db_setup
-
-echo "Migrate metadata database..."
-$DOCKER_COMPOSE run sample_meta_db_setup
-
-echo "Migrate features database..."
-$DOCKER_COMPOSE run sample_data_db_setup
-
-echo "Run containers..."
-for i in 1 2 3 4 5 ; do
-  $DOCKER_COMPOSE up -d chronos
-  $DOCKER_COMPOSE run wait_chronos
-  $DOCKER_COMPOSE logs chronos | grep java.util.concurrent.TimeoutException || break
-  echo "Chronos failed to start, restarting..."
-  $DOCKER_COMPOSE stop chronos
-done
-
-$DOCKER_COMPOSE up -d woken
-$DOCKER_COMPOSE run wait_woken
-
-$DOCKER_COMPOSE up -d wokenvalidation
-$DOCKER_COMPOSE run wait_wokenvalidation
-
-for i in 1 2 3 4 5 ; do
-  $DOCKER_COMPOSE logs chronos | grep java.util.concurrent.TimeoutException || break
-  echo "Chronos failed to start, restarting..."
-  $DOCKER_COMPOSE stop chronos
-  $DOCKER_COMPOSE up -d chronos
-  $DOCKER_COMPOSE run wait_chronos
-done
-
-echo "The Algorithm Factory is now running on your system"
 
 if [ $frontend == 1 ]; then
   FRONTEND_URL=http://frontend \
@@ -119,7 +80,6 @@ if [ $frontend == 1 ]; then
   echo "Useful URLs:"
   echo "  http://frontend/ : the Web portal"
   echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
-  echo "  http://localhost:8087 : Swagger admin interface for Woken"
 else
   FRONTEND_URL=http://localhost:8000 \
 	$DOCKER_COMPOSE up -d portalbackend
@@ -128,5 +88,4 @@ else
   echo "System up!"
   echo "Useful URLs:"
   echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
-  echo "  http://localhost:8087 : Swagger admin interface for Woken"
 fi
