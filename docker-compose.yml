@@ -51,7 +51,7 @@ services:
       FRONTEND_AFTER_LOGIN_URL: ${FRONTEND_URL}/
       FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
       EXAREME_URL: http://155.105.200.235:9090
-      GALAXY_CONTEXT: nativeGalaxy
+      GALAXY_CONTEXT: nativeGalaxy/workflows/list
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
       WORKFLOW_URL: http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
@@ -92,3 +92,4 @@ services:
       INSTANCE_NAME: "MIP 5.0.0"
       VERSION: "5.0.0"
       TRACKER_ID: UA-80660232-5
+      GALAXY_URL: "http://88.197.53.10:8090/nativeGalaxy"
