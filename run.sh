@@ -89,3 +89,8 @@ else
   echo "Useful URLs:"
   echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
 fi
+
+
+echo "Create Keycloak..."
+#$DOCKER_COMPOSE up -d keycloak
+$DOCKER_COMPOSE run -p 8095:8095 keycloak -Djboss.http.port=8095

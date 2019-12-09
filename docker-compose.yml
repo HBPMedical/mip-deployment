@@ -1,5 +1,7 @@
 version: '3.0'
-
+volumes:
+  postgres_data:
+      driver: local
 services:
   db:
     image: postgres:11.3-alpine
@@ -33,7 +35,8 @@ services:
       - db
 
   portalbackend:
-    image: hbpmip/portal-backend:5.0.2
+    #image: hbpmip/portal-backend:5.0.4
+    image: jerrypan44/portal-backend:latest
     restart: "no"
     ports:
       - "8080:8080"
@@ -44,12 +47,13 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 0
-      CLIENT_ID: 3ee62745-4080-4928-b5e7-acd15c042552
-      CLIENT_SECRET: SaNJbC2YFHPhPM_nGMyQo4jyAh3x1LI4si0hBCpOYLZO2IQ448ob5AzSoG8r8uW9QwU3T5JimL-tGiJ1b7tmAA
-      FRONTEND_LOGIN_URL: ${FRONTEND_URL}/services/login/hbp
-      FRONTEND_AFTER_LOGIN_URL: ${FRONTEND_URL}/
-      FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
+      AUTHENTICATION: 1
+      #CLIENT_ID: 3ee62745-4080-4928-b5e7-acd15c042552
+      CLIENT_ID: vanilla
+      #CLIENT_SECRET: SaNJbC2YFHPhPM_nGMyQo4jyAh3x1LI4si0hBCpOYLZO2IQ448ob5AzSoG8r8uW9QwU3T5JimL-tGiJ1b7tmAA
+      FRONTEND_LOGIN_URL: http://88.197.53.10/services/login/hbp
+      FRONTEND_AFTER_LOGIN_URL: http://88.197.53.10/
+      FRONTEND_AFTER_LOGOUT_URL: http://88.197.53.10/services/login/hbp
       EXAREME_URL: http://155.105.200.235:9090
       GALAXY_CONTEXT: nativeGalaxy/workflows/list
       GALAXY_USERNAME: admin
@@ -62,11 +66,19 @@ services:
       RELEASE_STAGE: "testing"
       DATACENTER_LOCATION: "$HOST"
       CONTAINER_ORCHESTRATION: "docker-compose"
+      #AUTH_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/auth"
+      #USER_INFO_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/userinfo"
+      #TOKEN_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/token"
+      AUTH_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/auth"
+      USER_INFO_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/userinfo"
+      TOKEN_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/token"
+      LOGOUT_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/logout"
     depends_on:
       - db
     volumes:
-      - ./data:/opt/portal/api
-
+#      - ./data:/opt/portal/api
+      - ./logs:/opt/portal/logs
+      
   wait_portal_backend:
     image: "waisbrot/wait"
     restart: "no"
@@ -77,7 +89,8 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.1.2
+    #image: hbpmip/portal-backend:5.0.4
+    image: jerrypan44/portal-frontend:latest
     depends_on:
       - portalbackend
     ports:
@@ -92,4 +105,30 @@ services:
       INSTANCE_NAME: "MIP 5.0.0"
       VERSION: "5.0.0"
       TRACKER_ID: UA-80660232-5
-      GALAXY_URL: "http://88.197.53.10:8090/nativeGalaxy"
+      GALAXY_URL: "http://88.197.53.100:8090/nativeGalaxy"
+      
+  postgres:
+      image: postgres
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+      environment:
+        POSTGRES_DB: keycloak
+        POSTGRES_USER: keycloak
+        POSTGRES_PASSWORD: password
+  keycloak:
+      image: jboss/keycloak
+      environment:
+        DB_VENDOR: POSTGRES
+        DB_ADDR: postgres
+        DB_DATABASE: keycloak
+        DB_USER: keycloak
+        DB_SCHEMA: public
+        DB_PASSWORD: password
+        KEYCLOAK_USER: admin
+        KEYCLOAK_PASSWORD: Pa55w0rd
+        # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
+        #JDBC_PARAMS: "ssl=true"
+      ports:
+        - "8095:8095"
+      depends_on:
+        - postgres
