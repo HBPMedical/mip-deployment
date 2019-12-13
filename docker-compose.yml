@@ -33,7 +33,7 @@ services:
       - db
 
   portalbackend:
-    image: hbpmip/portal-backend:5.0.4
+    image: kkech/portal_backend:latest
     restart: "no"
     ports:
       - "8080:8080"
@@ -55,13 +55,18 @@ services:
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
       WORKFLOW_URL: http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
-      JWT_SECRET: "secret"
       LOGGING_LEVEL_WEB: INFO
       LOGGING_LEVEL_HIBERNATE: INFO
       SESSION_TIMEOUT: 2592000
       RELEASE_STAGE: "testing"
       DATACENTER_LOCATION: "$HOST"
       CONTAINER_ORCHESTRATION: "docker-compose"
+      JWT_SECRET: "test"
+      JWT_ISSUER: "test"
+      GALAXY_URL: "URL_OF_GALAXY_REVERSE_PROXY"
+      GALAXY_API_KEY: "GALAXY_API_KEY"
+      GALAXY_REVERSE_PROXY_USERNAME: "USERNAME"
+      GALAXY_REVERSE_PROXY_PASSWORD: "PASSWORD"
     depends_on:
       - db
     volumes:
