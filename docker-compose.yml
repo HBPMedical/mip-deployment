@@ -1,7 +1,5 @@
 version: '3.0'
-volumes:
-  postgres_data:
-      driver: local
+
 services:
   db:
     image: postgres:11.3-alpine
@@ -66,13 +64,29 @@ services:
       RELEASE_STAGE: "testing"
       DATACENTER_LOCATION: "$HOST"
       CONTAINER_ORCHESTRATION: "docker-compose"
+      #local keycloak
       #AUTH_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/auth"
       #USER_INFO_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/userinfo"
       #TOKEN_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/token"
-      AUTH_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/auth"
-      USER_INFO_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/userinfo"
-      TOKEN_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/token"
-      LOGOUT_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/logout"
+      
+      # docker keycloak certificate
+      AUTH_URI: "https://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/auth"
+      USER_INFO_URI: "https://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/userinfo"
+      TOKEN_URI: "https://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/token"
+      LOGOUT_URI: "https://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/logout"
+      
+      #docker keycloak no certificate
+      #AUTH_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/auth"
+      #USER_INFO_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/userinfo"
+      #TOKEN_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/token"
+      #LOGOUT_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/logout"
+      
+      #remote keycloak
+      #AUTH_URI: "https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/auth"
+      #USER_INFO_URI: "https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/userinfo"
+      #TOKEN_URI: "https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/token"
+      
+      KEYCLOAK_URL: "88.197.53.10"
     depends_on:
       - db
     volumes:
@@ -110,13 +124,17 @@ services:
   postgres:
       image: postgres
       volumes:
-        - postgres_data:/var/lib/postgresql/data
+        - ./postgres_data:/var/lib/postgresql/data
       environment:
         POSTGRES_DB: keycloak
         POSTGRES_USER: keycloak
         POSTGRES_PASSWORD: password
   keycloak:
       image: jboss/keycloak
+      volumes:
+        #- /etc/letsencrypt/live/dl010.madgik.di.uoa.gr:/etc/x509/https
+        - ./certs:/etc/x509/https
+        #- ./certsLetsEncrypt:/etc/x509/https
       environment:
         DB_VENDOR: POSTGRES
         DB_ADDR: postgres
@@ -129,6 +147,8 @@ services:
         # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
         #JDBC_PARAMS: "ssl=true"
       ports:
+        #- "8095:8095"
         - "8095:8095"
+        - "8443:8443"
       depends_on:
         - postgres
