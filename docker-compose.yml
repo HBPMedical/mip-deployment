@@ -33,7 +33,7 @@ services:
       - db
 
   portalbackend:
-    #image: hbpmip/portal-backend:5.0.4
+    #image: hbpmip/portal-backend:5.0.5
     image: jerrypan44/portal-backend:latest
     restart: "no"
     ports:
@@ -103,8 +103,8 @@ services:
       - portalbackend
 
   frontend:
-    #image: hbpmip/portal-backend:5.0.4
-    image: jerrypan44/portal-frontend:latest
+    image: hbpmip/portal-frontend:5.1.12
+    #image: jerrypan44/portal-frontend:latest
     depends_on:
       - portalbackend
     ports:
