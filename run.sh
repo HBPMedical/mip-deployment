@@ -93,4 +93,3 @@ fi
 
 echo "Create Keycloak..."
 $DOCKER_COMPOSE run -p 8095:8095 keycloak -Djboss.https.port=8095 
-#$DOCKER_COMPOSE run -p 8095:8095 keycloak -Djboss.http.port=8095
