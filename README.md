@@ -41,7 +41,7 @@ In order to deploy Galaxy you need:
 1. `EXAREME_IP` (from step 1)
 2. `EXAREME_PORT` (default 9090)
 
-With that information you can follow the [Galaxy Installation Guide](https://github.com/madgik/galaxy/tree/master/Docker_Build_Scripts) to deploy Galaxy.
+With that information you can follow the [Galaxy Installation Guide](https://github.com/madgik/galaxy/tree/master) to deploy Galaxy.
 
 After installing Galaxy an API key should be created:
 
@@ -78,7 +78,7 @@ From this installation, remember the following details:
 
 Clone this repository in your machine where it will be installed.
 
-#### Initialize the variables
+#### a. Initialize the variables
 
 In order to deploy the Web Analytics Pack you need:
 
@@ -90,13 +90,13 @@ In order to deploy the Web Analytics Pack you need:
 
 Go to the `docker-compose.yml` file and modify these env variables with the values that you have from the previous steps. You can also modify the images of the portal-backend and the portal-frontend depending on what you want to deploy.
 
-#### Setup the pathologies
+#### b. Setup the pathologies
 
 Go to the `data` folder and there you will find a `pathologies.json` file.
 
 This is used to inform the frontend what are the available datasets and CDEs. Modify this file accordingly before deploying.
 
-#### Deploy
+#### c. Deploy
 
 Run the `./run.sh` command to install the rest of the components.
 
