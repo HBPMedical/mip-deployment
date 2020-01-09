@@ -46,7 +46,6 @@ services:
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
       AUTHENTICATION: 1
-      #CLIENT_ID: 3ee62745-4080-4928-b5e7-acd15c042552
       CLIENT_ID: vanilla
       #CLIENT_SECRET: SaNJbC2YFHPhPM_nGMyQo4jyAh3x1LI4si0hBCpOYLZO2IQ448ob5AzSoG8r8uW9QwU3T5JimL-tGiJ1b7tmAA
       FRONTEND_LOGIN_URL: http://88.197.53.10/services/login/hbp
@@ -90,7 +89,7 @@ services:
     depends_on:
       - db
     volumes:
-#      - ./data:/opt/portal/api
+      - ./data:/opt/portal/api
       - ./logs:/opt/portal/logs
       
   wait_portal_backend:
@@ -104,7 +103,6 @@ services:
 
   frontend:
     image: hbpmip/portal-frontend:5.1.12
-    #image: jerrypan44/portal-frontend:latest
     depends_on:
       - portalbackend
     ports:
@@ -132,9 +130,7 @@ services:
   keycloak:
       image: jboss/keycloak
       volumes:
-        #- /etc/letsencrypt/live/dl010.madgik.di.uoa.gr:/etc/x509/https
         - ./certs:/etc/x509/https
-        #- ./certsLetsEncrypt:/etc/x509/https
       environment:
         DB_VENDOR: POSTGRES
         DB_ADDR: postgres
