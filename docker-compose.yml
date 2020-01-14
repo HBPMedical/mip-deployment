@@ -47,11 +47,11 @@ services:
       CONTEXT_PATH: /services
       AUTHENTICATION: 1
       CLIENT_ID: medical-informatics-platform
-      CLIENT_SECRET: 4968bc77-33c4-42d5-a7ba-e1f16c42b3a4
+      CLIENT_SECRET: ebe5aaa1-0056-49e2-b010-88e5cceef1ec
       FRONTEND_LOGIN_URL: http://88.197.53.106/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: http://88.197.53.106/
       FRONTEND_AFTER_LOGOUT_URL: http://88.197.53.106/services/login/hbp
-      EXAREME_URL: http://88.197.53.100:9090
+      EXAREME_URL: http://88.197.53.106:9090
       GALAXY_CONTEXT: nativeGalaxy/workflows/list
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
@@ -69,10 +69,10 @@ services:
       #TOKEN_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/token"
       
       # docker keycloak certificate
-      AUTH_URI: "https://88.197.53.106:8095/auth/realms/Demo/protocol/openid-connect/auth"
-      USER_INFO_URI: "https://88.197.53.106:8095/auth/realms/Demo/protocol/openid-connect/userinfo"
-      TOKEN_URI: "https://88.197.53.106:8095/auth/realms/Demo/protocol/openid-connect/token"
-      LOGOUT_URI: "https://88.197.53.106:8095/auth/realms/Demo/protocol/openid-connect/logout"
+      AUTH_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/auth"
+      USER_INFO_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/userinfo"
+      TOKEN_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/token"
+      LOGOUT_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/logout"
       
       #docker keycloak no certificate
       #AUTH_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/auth"
@@ -102,7 +102,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.1.12
+    image: hbpmip/portal-frontend:5.1.11-58-g15c70130
     depends_on:
       - portalbackend
     ports:
@@ -127,10 +127,12 @@ services:
         POSTGRES_DB: keycloak
         POSTGRES_USER: keycloak
         POSTGRES_PASSWORD: password
+  
   keycloak:
-      image: hbpmip/keycloak:latest
+      image: jboss/keycloak
       volumes:
         - ./certs:/etc/x509/https
+        - ./tmp/realm-export.json:/tmp/realm-export.json
       environment:
         DB_VENDOR: POSTGRES
         DB_ADDR: postgres
@@ -140,6 +142,7 @@ services:
         DB_PASSWORD: password
         KEYCLOAK_USER: admin
         KEYCLOAK_PASSWORD: Pa55w0rd
+        KEYCLOAK_IMPORT: /tmp/realm-export.json
         # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
         #JDBC_PARAMS: "ssl=true"
       ports:
