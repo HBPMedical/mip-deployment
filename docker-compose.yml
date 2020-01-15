@@ -132,7 +132,7 @@ services:
       image: jboss/keycloak
       volumes:
         - ./certs:/etc/x509/https
-        - ./tmp/mip.json:/tmp/mip.json
+        - ./realms/mip.json:/tmp/mip.json
         - ./tmp:/tmp
       environment:
         DB_VENDOR: POSTGRES
