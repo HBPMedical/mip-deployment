@@ -92,4 +92,8 @@ fi
 
 
 echo "Create Keycloak..."
+if test -f "logs"; then
+	mkdir logs
+	sudo chmod a+rwx logs
+fi
 $DOCKER_COMPOSE run -d -p 8095:8095 keycloak -Djboss.https.port=8095 
