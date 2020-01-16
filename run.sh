@@ -24,6 +24,7 @@ get_script_dir () {
 }
 
 cd "$(get_script_dir)"
+./stop.sh
 
 frontend=1
 for param in "$@"
