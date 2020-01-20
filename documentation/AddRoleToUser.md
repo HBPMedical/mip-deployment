@@ -13,4 +13,4 @@ Select the Role Mappings tab.
 
 Select Add the ROLE_Researcher and the ROLE_Data Manager (optional) 
 
-![img5](images/step4.png)
+![img5](images/step5.png)
