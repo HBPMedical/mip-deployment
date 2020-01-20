@@ -1,13 +1,9 @@
 #### Create a User
-Login to your running keycloak (e.g. https://88.197.53.106:8095/auth/admin/ 
+Login to your running keycloak (e.g. https://keycloakURL:8095/auth/admin/ 
 
  
 
-Use credentials 
-
-UserName : admin 
-
-Password: Pa55w0rd 
+Use credentials (Default ones defined in docker-compose are UserName : admin, Password: Pa55w0rd) 
 
  
 
