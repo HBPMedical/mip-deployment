@@ -1,5 +1,10 @@
 
 #### Add roles to a User
+
+Login to your running keycloak (e.g. https://keycloakURL:8095/auth/admin/
+
+Use credentials (Default ones defined in docker-compose are UserName : admin, Password: Pa55w0rd)
+
 Select users : 
 
 ![img1](images/step1.png)
