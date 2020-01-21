@@ -97,7 +97,7 @@ services:
       PORTAL_VIRTUAL_HOST: frontend
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
-      MODE: federation
+      MODE: local
       INSTANCE_NAME: "MIP 5.0.0"
       VERSION: "5.0.0"
       TRACKER_ID: UA-80660232-5

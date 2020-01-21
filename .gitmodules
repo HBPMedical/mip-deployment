@@ -1,0 +1,3 @@
+[submodule "Galaxy_Middleware_API"]
+	path = Galaxy_Middleware_API
+	url = https://github.com/madgik/Galaxy_Middleware_API.git
