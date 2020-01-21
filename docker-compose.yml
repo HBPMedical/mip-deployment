@@ -33,8 +33,7 @@ services:
       - db
 
   portalbackend:
-    #image: hbpmip/portal-backend:5.0.5
-    image: jerrypan44/portal-backend:latest
+    image: hbpmip/portal-backend:5.1.0
     restart: "no"
     ports:
       - "8080:8080"
@@ -63,29 +62,14 @@ services:
       RELEASE_STAGE: "testing"
       DATACENTER_LOCATION: "$HOST"
       CONTAINER_ORCHESTRATION: "docker-compose"
-      #local keycloak
-      #AUTH_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/auth"
-      #USER_INFO_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/userinfo"
-      #TOKEN_URI: "http://195.134.66.237:8080/auth/realms/Demo/protocol/openid-connect/token"
       
       # docker keycloak certificate
-      AUTH_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/auth"
-      USER_INFO_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/userinfo"
-      TOKEN_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/token"
-      LOGOUT_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/logout"
-      
-      #docker keycloak no certificate
-      #AUTH_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/auth"
-      #USER_INFO_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/userinfo"
-      #TOKEN_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/token"
-      #LOGOUT_URI: "http://88.197.53.10:8095/auth/realms/Demo/protocol/openid-connect/logout"
-      
-      #remote keycloak
-      #AUTH_URI: "https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/auth"
-      #USER_INFO_URI: "https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/userinfo"
-      #TOKEN_URI: "https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/token"
-      
-      KEYCLOAK_URL: "88.197.53.106"
+      AUTH_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/auth"
+      USER_INFO_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/userinfo"
+      TOKEN_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/token"
+      LOGOUT_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/logout"     
+     
+      KEYCLOAK_URL: "keycloakUrl"
     depends_on:
       - db
     volumes:
@@ -102,7 +86,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.1.11-58-g15c70130
+    image: hbpmip/portal-frontend:5.1.3
     depends_on:
       - portalbackend
     ports:
@@ -121,8 +105,8 @@ services:
       
   postgres:
       image: postgres
-      #volumes:
-        #- ./postgres_data:/var/lib/postgresql/data
+      volumes:
+        - ./postgres_data:/var/lib/postgresql/data
       environment:
         POSTGRES_DB: keycloak
         POSTGRES_USER: keycloak
@@ -144,10 +128,7 @@ services:
         KEYCLOAK_USER: admin
         KEYCLOAK_PASSWORD: Pa55w0rd
         KEYCLOAK_IMPORT: /tmp/mip.json
-        # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
-        #JDBC_PARAMS: "ssl=true"
       ports:
-        #- "8095:8095"
         - "8095:8095"
         - "8443:8443"
       depends_on:
