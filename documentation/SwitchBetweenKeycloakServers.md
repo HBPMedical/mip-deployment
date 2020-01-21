@@ -39,3 +39,15 @@ TOKEN_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/tok
 LOGOUT_URI: https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/logout 
 
 KEYCLOAK_URL: "keycloakUrl" 
+
+#### Change certificate 
+Once you switch to a local keycloak you can also use your own self signed certificate.
+
+Just replace the already existing
+
+./certs/tls.key
+and
+./certs/tls.crt
+
+with your own.
+
