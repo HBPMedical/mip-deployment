@@ -13,7 +13,7 @@ This guide will assist you in deploying all the packs together and explain what 
 
 ## Requirements
 
-Each software stack has it's own requirements but in order to deploy everything into one machine you need at least 16 GB of ram.
+Each software stack has its own requirements but in order to deploy everything into one machine you need at least 16 GB of ram.
 
 All of the software stack is based on docker so you need to install it in the machines that you will use:
 
@@ -32,7 +32,7 @@ You can install exareme locally by following this guide:
 Or you can install federated exareme by following this guide:
 [Federated Deployment Guide](https://github.com/madgik/exareme/tree/master/Federated-Deployment)
 
-In the next steps you will need to provide the IP of the master node of Exareme which will be refered as EXAREME_IP so keep that in mind.
+In the next steps you will need to provide the IP of the master node of Exareme which will be refered as `EXAREME_IP` so keep that in mind.
 
 ### 2. Install Galaxy
 
