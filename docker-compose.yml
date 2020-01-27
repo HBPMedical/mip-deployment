@@ -33,7 +33,7 @@ services:
       - db
 
   portalbackend:
-    image: hbpmip/portal-backend:5.1.0
+    image: thanasulas/portal-backend:latest
     restart: "no"
     ports:
       - "8080:8080"
@@ -44,36 +44,33 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 1
+      AUTHENTICATION: 0 
       CLIENT_ID: medical-informatics-platform
       CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
       FRONTEND_LOGIN_URL: http://88.197.53.106/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: http://88.197.53.106/
       FRONTEND_AFTER_LOGOUT_URL: http://88.197.53.106/services/login/hbp
-      EXAREME_URL: http://88.197.53.106:9090
-      GALAXY_CONTEXT: nativeGalaxy/workflows/list
-      GALAXY_USERNAME: admin
-      GALAXY_PASSWORD: password
-      WORKFLOW_URL: http://88.197.53.106:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
-      JWT_SECRET: "secret"
       LOGGING_LEVEL_WEB: INFO
       LOGGING_LEVEL_HIBERNATE: INFO
       SESSION_TIMEOUT: 2592000
       RELEASE_STAGE: "testing"
       DATACENTER_LOCATION: "$HOST"
       CONTAINER_ORCHESTRATION: "docker-compose"
-      GALAXY_URL: "URL_OF_GALAXY_REVERSE_PROXY"
-      GALAXY_API_KEY: "GALAXY_API_KEY"
-      GALAXY_REVERSE_PROXY_USERNAME: "USERNAME"
-      GALAXY_REVERSE_PROXY_PASSWORD: "PASSWORD"
       
-      # docker keycloak certificate
-      AUTH_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/auth"
-      USER_INFO_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/userinfo"
-      TOKEN_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/token"
-      LOGOUT_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/logout"     
+      EXAREME_URL: http://88.197.53.106:9090
      
-      KEYCLOAK_URL: "keycloakUrl"
+      GALAXY_URL: "http://88.197.53.106:8090/nativeGalaxy"
+      GALAXY_CONTEXT: nativeGalaxy/workflows/list
+      GALAXY_API_KEY: "d14a4cc5eebf805eb2ff261374ed08a2"
+      GALAXY_USERNAME: admin
+      GALAXY_PASSWORD: password
+
+      KEYCLOAK_URL: "88.197.53.106"
+      AUTH_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/auth"
+      USER_INFO_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/userinfo"
+      TOKEN_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/token"
+      LOGOUT_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/logout"     
+     
     depends_on:
       - db
     volumes:
@@ -109,8 +106,6 @@ services:
       
   postgres:
       image: postgres
-      volumes:
-        - ./postgres_data:/var/lib/postgresql/data
       environment:
         POSTGRES_DB: keycloak
         POSTGRES_USER: keycloak

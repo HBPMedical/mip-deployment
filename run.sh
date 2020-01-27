@@ -70,6 +70,12 @@ $DOCKER_COMPOSE run wait_dbs
 echo "Create databases..."
 $DOCKER_COMPOSE run create_dbs
 
+echo "Create log folder for the backend."
+if test -f "logs"; then
+	mkdir logs
+	sudo chmod a+rwx logs
+fi
+
 if [ $frontend == 1 ]; then
   FRONTEND_URL=http://frontend \
 	  $DOCKER_COMPOSE up -d portalbackend
@@ -91,10 +97,4 @@ else
   echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
 fi
 
-
-echo "Create Keycloak..."
-if test -f "logs"; then
-	mkdir logs
-	sudo chmod a+rwx logs
-fi
 $DOCKER_COMPOSE run -d -p 8095:8095 keycloak -Djboss.https.port=8095 
