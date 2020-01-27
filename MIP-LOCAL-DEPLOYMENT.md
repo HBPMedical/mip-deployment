@@ -55,6 +55,12 @@ EXAREME_URL (EXAREME_IP:EXAREME_PORT from step 1 e.g. http://155.105.200.235:909
 
 Go to the docker-compose.yml file and modify these env variables with the values that you have from the previous steps. You can also modify the images of the portal-backend and the portal-frontend depending on what you want to deploy.
 
+### Setup the pathologies
+
+Go to the `data` folder and there you will find a `pathologies.json` file.
+
+This is used to inform the frontend what are the available datasets and CDEs. Modify this file accordingly before deploying.
+
 ### Deploy
 Run the ./run.sh command to install the rest of the components.
 

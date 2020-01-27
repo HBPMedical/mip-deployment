@@ -24,6 +24,7 @@ get_script_dir () {
 }
 
 cd "$(get_script_dir)"
+./stop.sh
 
 frontend=1
 for param in "$@"
@@ -89,3 +90,11 @@ else
   echo "Useful URLs:"
   echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
 fi
+
+
+echo "Create Keycloak..."
+if test -f "logs"; then
+	mkdir logs
+	sudo chmod a+rwx logs
+fi
+$DOCKER_COMPOSE run -d -p 8095:8095 keycloak -Djboss.https.port=8095 

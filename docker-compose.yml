@@ -33,7 +33,7 @@ services:
       - db
 
   portalbackend:
-    image: kkech/portal_backend:latest
+    image: hbpmip/portal-backend:5.1.0
     restart: "no"
     ports:
       - "8080:8080"
@@ -44,34 +44,42 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 0
-      CLIENT_ID: 3ee62745-4080-4928-b5e7-acd15c042552
-      CLIENT_SECRET: SaNJbC2YFHPhPM_nGMyQo4jyAh3x1LI4si0hBCpOYLZO2IQ448ob5AzSoG8r8uW9QwU3T5JimL-tGiJ1b7tmAA
-      FRONTEND_LOGIN_URL: ${FRONTEND_URL}/services/login/hbp
-      FRONTEND_AFTER_LOGIN_URL: ${FRONTEND_URL}/
-      FRONTEND_AFTER_LOGOUT_URL: ${FRONTEND_URL}/services/login/hbp
-      EXAREME_URL: http://155.105.200.235:9090
+      AUTHENTICATION: 1
+      CLIENT_ID: medical-informatics-platform
+      CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
+      FRONTEND_LOGIN_URL: http://88.197.53.106/services/login/hbp
+      FRONTEND_AFTER_LOGIN_URL: http://88.197.53.106/
+      FRONTEND_AFTER_LOGOUT_URL: http://88.197.53.106/services/login/hbp
+      EXAREME_URL: http://88.197.53.106:9090
       GALAXY_CONTEXT: nativeGalaxy/workflows/list
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-      WORKFLOW_URL: http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
+      WORKFLOW_URL: http://88.197.53.106:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
+      JWT_SECRET: "secret"
       LOGGING_LEVEL_WEB: INFO
       LOGGING_LEVEL_HIBERNATE: INFO
       SESSION_TIMEOUT: 2592000
       RELEASE_STAGE: "testing"
       DATACENTER_LOCATION: "$HOST"
       CONTAINER_ORCHESTRATION: "docker-compose"
-      JWT_SECRET: "test"
-      JWT_ISSUER: "test"
       GALAXY_URL: "URL_OF_GALAXY_REVERSE_PROXY"
       GALAXY_API_KEY: "GALAXY_API_KEY"
       GALAXY_REVERSE_PROXY_USERNAME: "USERNAME"
       GALAXY_REVERSE_PROXY_PASSWORD: "PASSWORD"
+      
+      # docker keycloak certificate
+      AUTH_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/auth"
+      USER_INFO_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/userinfo"
+      TOKEN_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/token"
+      LOGOUT_URI: "https://keycloakUrl:8095/auth/realms/MIP/protocol/openid-connect/logout"     
+     
+      KEYCLOAK_URL: "keycloakUrl"
     depends_on:
       - db
     volumes:
       - ./data:/opt/portal/api
-
+      - ./logs:/opt/portal/logs
+      
   wait_portal_backend:
     image: "waisbrot/wait"
     restart: "no"
@@ -82,7 +90,7 @@ services:
       - portalbackend
 
   frontend:
-    image: hbpmip/portal-frontend:5.1.11
+    image: hbpmip/portal-frontend:5.1.3
     depends_on:
       - portalbackend
     ports:
@@ -97,4 +105,35 @@ services:
       INSTANCE_NAME: "MIP 5.0.0"
       VERSION: "5.0.0"
       TRACKER_ID: UA-80660232-5
-      GALAXY_URL: "http://88.197.53.10:8090/nativeGalaxy"
+      GALAXY_URL: "http://88.197.53.106:8090/nativeGalaxy"
+      
+  postgres:
+      image: postgres
+      volumes:
+        - ./postgres_data:/var/lib/postgresql/data
+      environment:
+        POSTGRES_DB: keycloak
+        POSTGRES_USER: keycloak
+        POSTGRES_PASSWORD: password
+  
+  keycloak:
+      image: jboss/keycloak
+      volumes:
+        - ./certs:/etc/x509/https
+        - ./realms/mip.json:/tmp/mip.json
+        - ./tmp:/tmp
+      environment:
+        DB_VENDOR: POSTGRES
+        DB_ADDR: postgres
+        DB_DATABASE: keycloak
+        DB_USER: keycloak
+        DB_SCHEMA: public
+        DB_PASSWORD: password
+        KEYCLOAK_USER: admin
+        KEYCLOAK_PASSWORD: Pa55w0rd
+        KEYCLOAK_IMPORT: /tmp/mip.json
+      ports:
+        - "8095:8095"
+        - "8443:8443"
+      depends_on:
+        - postgres
