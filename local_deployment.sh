@@ -137,6 +137,7 @@ download_exareme(){
 			if [ "$answer" = "y" ]; then
 				cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
 				git clone https://github.com/$EXAREME_GITHUB_OWNER/$EXAREME_GITHUB_PROJECT
+				cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT
 				git checkout $EXAREME_BRANCH
 			fi
 		else
