@@ -6,7 +6,7 @@ DOCKER_DOWNLOAD_HOST="download.docker.com"
 CONFLICTING_PACKAGES="docker docker-engine docker.io containerd runc"
 PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates curl gnupg-agent software-properties-common net-tools lsof"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
-MIP_GITHUB_OWNER="HBPMedical"
+MIP_GITHUB_OWNER="crochat"
 MIP_GITHUB_PROJECT="mip-deployment-infrastructure"
 MIP_BRANCH="release"
 EXAREME_GITHUB_OWNER="madgik"
@@ -169,12 +169,14 @@ exareme_local_deployment(){
 }
 
 prepare_mip_env(){
+	_get_docker_main_ip
+
 	cat <<EOF >$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/.env
-HOST=$(hostname)
-FRONTEND_URL=http://localhost
-EXAREME_URL=http://$DOCKER_MAIN_IP:9090
-WORKFLOW_URL=http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
-GALAXY_URL=http://88.197.53.10:8090/nativeGalaxy
+HOST="$(hostname)"
+FRONTEND_URL="http://localhost"
+EXAREME_URL="http://$DOCKER_MAIN_IP:9090"
+WORKFLOW_URL="http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api"
+GALAXY_URL="http://88.197.53.10:8090/nativeGalaxy"
 EOF
 }
 
