@@ -1,112 +1,46 @@
 #!/usr/bin/env bash
 
-REQUIRED_OS_DISTRIBUTOR_ID="Ubuntu"
-REQUIRED_OS_RELEASE="18.04"
-REQUIRED_DOCKER_VERSION="19.03.6"
 INSTALL_PATH="$(pwd)"
 ENV="local"
 DOCKER_DOWNLOAD_HOST="download.docker.com"
 CONFLICTING_PACKAGES="docker docker-engine docker.io containerd runc"
-CONFLICTING_SNAP_PACKAGES="docker"
-PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates curl gnupg-agent software-properties-common net-tools lsof python3-pip"
+PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates curl gnupg-agent software-properties-common net-tools lsof"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
-REQUIRED_PIP3_PACKAGES="chardet"
 MIP_GITHUB_OWNER="HBPMedical"
-MIP_GITHUB_PROJECT="mip-deployment"
-MIP_BRANCH="master"
+MIP_GITHUB_PROJECT="mip-deployment-infrastructure"
+MIP_BRANCH="release"
+EXAREME_GITHUB_OWNER="madgik"
+EXAREME_GITHUB_PROJECT="exareme"
+EXAREME_BRANCH="master"
 
 
 _get_docker_main_ip(){
-	local dockerip=$(ip address show|grep 'inet.*docker0'|awk '{print $2}'|awk -F '/' '{print $1}')
+	dockerip=$(ip address show|grep 'inet.*docker0'|awk '{print $2}'|awk -F '/' '{print $1}')
 	if [ "$dockerip" != "" ]; then
 		DOCKER_MAIN_IP=$dockerip
 	fi
 }
 
-_has_minimum_version(){
-	local current=$1
-	local required=$2
-	local version_check=`(echo $required; echo $current)|sort -Vk3|tail -1`
-	if [ "$version_check" = "$required" -a "$required" != "$current" ]; then
-		return 1
-	fi
-	return 0
-}
-
-check_os(){
-	_has_minimum_version $(lsb_release -sr) $REQUIRED_OS_RELEASE
-	if [ $? -ne 0 -o "$(lsb_release -si)" != "$REQUIRED_OS_DISTRIBUTOR_ID" ]; then
-		echo "Required OS version: $REQUIRED_OS_DISTRIBUTOR_ID $REQUIRED_OS_RELEASE!"
-		exit 1
-	fi
-}
-
-check_conflicting_packages(){
-	local packages=""
-	for package in $CONFLICTING_PACKAGES; do
-		local match=$(dpkg --list|grep -E "^ii[ \t]+$package[ \t]+")
-		if [ "$match" != "" ]; then
-			packages="$packages $package"
-		fi
-	done
-
-	if [ "$packages" != "" ]; then
-		echo "Conflicting packages detected			: $packages" && echo
-	fi
-}
-
-check_conflicting_snap_packages(){
-	local packages=""
-	for package in $CONFLICTING_SNAP_PACKAGES; do
-		local match=$(snap list 2>/dev/null|grep "^$package[ \t]")
-		if [ "$match" != "" ]; then
-			packages="$packages $package"
-		fi
-	done
-
-	if [ "$packages" != "" ]; then
-		echo "Conflicting Snap packages detected		: $packages" && echo
-	fi
-}
-
-uninstall_conflicting_snap_packages(){
-	local next=0
-	while [ $next -eq 0 ]; do
-		local packages=""
-		next=1
-		for package in $CONFLICTING_SNAP_PACKAGES; do
-			local match=$(snap list 2>/dev/null|grep "^$package[ \t]")
-			if [ "$match" != "" ]; then
-				packages="$packages $package"
-				next=0
-			fi
-		done
-		if [ $next -eq 0 ]; then
-			snap remove $packages
-		fi
-	done
-}
-
-uninstall_conflicting_packages(){
+uninstall_conflicting_tools(){
 	local next=0
 	while [ $next -eq 0 ]; do
 		local packages=""
 		next=1
 		for package in $CONFLICTING_PACKAGES; do
-			local match=$(dpkg --list|grep -E "^ii[ \t]+$package[ \t]+")
+			local match=$(dpkg --list|grep -E '^ii[ \t]+$package[ \t]+')
 			if [ "$match" != "" ]; then
 				packages="$packages $package"
 				next=0
 			fi
 		done
 		if [ $next -eq 0 ]; then
-			apt remove $packages
+			sudo apt remove $packages
 		fi
 	done
 }
 
-install_required_packages(){
-	if [ "$1" = "prerequired" -o "$1" = "required" -o "$1" = "pip3" ]; then
+install_required_tools(){
+	if [ "$1" = "prerequired" -o "$1" = "required" ]; then
 		local required_packages=""
 		case "$1" in
 			"prerequired")
@@ -115,9 +49,6 @@ install_required_packages(){
 			"required")
 				required_packages=$REQUIRED_PACKAGES
 				;;
-			"pip3")
-				required_packages=$REQUIRED_PIP3_PACKAGES
-				;;
 		esac
 
 		local next=0
@@ -125,27 +56,14 @@ install_required_packages(){
 			local packages=""
 			next=1
 			for package in $required_packages; do
-				local match=""
-				if [ "$1" = "pip3" ]; then
-					match=$(pip3 list --format=columns|grep "^$package "|awk '{print $1}')
-				else
-					match=$(dpkg --list|grep "^ii.*$package ")
-				fi
+				local match=$(dpkg --list|grep "^ii.*$package ")
 				if [ "$match" = "" ]; then
 					packages="$packages $package"
 					next=0
 				fi
 			done
-			local install_option=""
-			if [ "$2" = "-y" ]; then
-				install_option=$2
-			fi
 			if [ $next -eq 0 ]; then
-				if [ "$1" = "pip3" ]; then
-					pip3 install $packages
-				else
-					apt install $install_option $packages
-				fi
+				sudo apt install $packages
 			fi
 		done
 	fi
@@ -160,138 +78,25 @@ prepare_docker_apt_sources(){
 			next=0
 		fi
 		if [ "$(grep -R $DOCKER_DOWNLOAD_HOST /etc/apt)" = "" ]; then
-			add-apt-repository "deb [arch=amd64] https://$DOCKER_DOWNLOAD_HOST/linux/ubuntu $(lsb_release -cs) stable"
-			apt update
+			sudo add-apt-repository "deb [arch=amd64] https://$DOCKER_DOWNLOAD_HOST/linux/ubuntu $(lsb_release -cs) stable"
 			next=0
 		fi
 	done
 }
 
-contains(){
-	[[ $1 =~ (^|[[:space:]])"$2"($|[[:space:]]) ]] && return 0 || return 1
-}
-
-check_docker(){
-	if [ "$(command -v docker)" = "" ]; then
-		echo "docker not installed!"
-		exit 1
-	fi
-
-	local dockerversion=$(docker --version|awk '{print $3}'|cut -d, -f1)
-	_has_minimum_version $dockerversion $REQUIRED_DOCKER_VERSION
-	if [ $? -ne 0 ]; then
-		echo "docker version $REQUIRED_DOCKER_VERSION is required!"
-		exit 1
-	fi
-}
-
-ensure_running_dockerd(){
-	check_docker
-	if [ "$(pgrep -x dockerd)" = "" ]; then
-		enabled=$(systemctl status docker|grep 'Loaded:'|awk '{print $4}'|cut -d\; -f1)
-		status=$(systemctl status docker|grep 'Active:'|awk '{print $2}')
-		if [ "$enabled" != "disabled" ]; then
-			systemctl --quiet enable docker
-		fi
-		if [ "$status" = "inactive" ]; then
-			systemctl --quiet start docker
-		fi
-	fi
-}
-
 check_exareme_required_ports(){
 	local next=0
 	while [ $next -eq 0 ]; do
-		check=$(netstat -atun | awk '(($1~/^tcp/) && (($4~/:2377$/) || ($4~/:7946/)) && ($NF~/LISTEN$/)) || (($1~/^udp/) && ($4~/\:7946/))')
+		check=$(netstat -atun | awk '(($1~/^tcp/) && (($4~/:2377$/) || ($4~/:7946/)) && ($NF~/LISTEN$/)) || (($1~/^udp/) && (($4~/\:4789$/) || ($4~/\:7946/)))')
 		if [ "$check" = "" ]; then
 			next=1
 		else
-			if [ "$1" != "short" ]; then
-				echo "Exareme: required ports currently in use"
-				echo "$check"
-				echo "Please fix it (try with $0 stop), then press ENTER to continue"
-				read
-			else
-				return 1
-			fi
+			echo "Exareme: required ports currently in use"
+			echo "$check"
+			echo "Please fix it, then press a key to continue"
+			read
 		fi
 	done
-}
-
-check_docker_container(){
-	local result=""
-
-	local process_id=$(docker ps|grep $1|awk '{print $1}')
-	if [ "$process_id" != "" ]; then
-		local process_state=$(docker inspect $process_id --format '{{.State.Status}}')
-		if [ "$process_state" = "running" ]; then
-			result="ok"
-		else
-			result="$process_state"
-		fi
-	else
-		result="NOT RUNNING!"
-	fi
-
-	echo $result
-}
-
-prerunning_backend_guard(){
-	check_exareme_required_ports short
-	if [ $? -eq 1 ]; then
-		echo "It seems something is already using/locking required ports. Maybe you should call $0 restart"
-		exit 1
-	fi
-}
-
-check_running(){
-	local docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
-	if [ "$docker_ps" != "" ]; then
-		echo -n "Portal Frontend								"
-		echo $(check_docker_container mip_frontend_1)
-
-		echo -n "Portal Backend								"
-		echo $(check_docker_container mip_portalbackend_1)
-
-		echo -n "Portal Backend PostgreSQL DB						"
-		echo $(check_docker_container mip_portalbackend_db_1)
-
-		echo -n "Galaxy									"
-		echo $(check_docker_container mip_galaxy_1)
-
-		echo -n "KeyCloak								"
-		echo $(check_docker_container mip_keycloak_1)
-
-		echo -n "KeyCloak PostgreSQL DB							"
-		echo $(check_docker_container mip_keycloak_db_1)
-
-		echo -n "Exareme Master								"
-		echo $(check_docker_container mip_exareme_master_1)
-
-		echo -n "Exareme Keystore							"
-		echo $(check_docker_container mip_exareme_keystore_1)
-	else
-		check_exareme_required_ports short
-		if [ $? -eq 1 ]; then
-			echo "It seems dockerd is running without allowing connections. Maybe you should call $0 stop --force"
-		else
-			echo "No docker container is currently running!"
-		fi
-	fi
-}
-
-check_running_details(){
-	local docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
-	if [ "$docker_ps" != "" ]; then
-		docker ps
-	else
-		check_exareme_required_ports short
-		if [ $? -eq 1 ]; then
-			echo "It seems dockerd is running without allowing connections. Maybe you should call $0 stop --force"
-		else
-			echo "No docker container is currently running!"
-		fi
-	fi
 }
 
 download_mip(){
@@ -305,17 +110,16 @@ download_mip(){
 		if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT ]; then
 			next=1
 		else
-			if [ "$1" = "-y" ]; then
-				answer="y"
-			else
-				echo -n "MIP not found. Download it [y/n]? "
-				read answer
-			fi
+			echo -e "MIP not found. Download it [y/n]? "
+			read answer
 			if [ "$answer" = "y" ]; then
 				git clone https://github.com/$MIP_GITHUB_OWNER/$MIP_GITHUB_PROJECT $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
 				cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
 				if [ "$MIP_BRANCH" != "" ]; then
 					git checkout $MIP_BRANCH
+				fi
+				if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT ]; then
+					rm -rf $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT
 				fi
 			fi
 		fi
@@ -323,92 +127,71 @@ download_mip(){
 	cd $path
 }
 
+download_exareme(){
+	local path=$(pwd)
+	local next=0
+	while [ $next -eq 0 ]; do
+		if [ ! -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT ]; then
+			echo -e "Exareme not found. Download it [y/n]? "
+			read answer
+			if [ "$answer" = "y" ]; then
+				cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
+				git clone https://github.com/$EXAREME_GITHUB_OWNER/$EXAREME_GITHUB_PROJECT
+				git checkout $EXAREME_BRANCH
+			fi
+		else
+			next=1
+		fi
+	done
+	cd $path
+}
+
+generate_local_data_path_txt(){
+	if [ ! -s $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/data_path.txt ]; then
+		echo "$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/data" > $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/data_path.txt
+	fi
+}
+
+generate_local_exareme_yaml(){
+	if [ ! -s $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/exareme.yaml ]; then
+		cat <<EOF >$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/exareme.yaml
+EXAREME_IMAGE: "hbpmip/exareme"
+EXAREME_TAG: "v21.3.0"
+EOF
+	fi
+}
+
+exareme_local_deployment(){
+	local path=$(pwd)
+	cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment
+	./deployLocal.sh
+	cd $path
+}
+
 prepare_mip_env(){
-	local ip=$(hostname -I|awk '{print $1}')
-	cat << EOF > $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/.env
-PUBLIC_MIP_IP=$ip
+	cat <<EOF >$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/.env
+HOST=$(hostname)
+FRONTEND_URL=http://localhost
+EXAREME_URL=http://$DOCKER_MAIN_IP:9090
+WORKFLOW_URL=http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
+GALAXY_URL=http://88.197.53.10:8090/nativeGalaxy
 EOF
 }
 
 run_mip(){
-	ensure_running_dockerd
-	prepare_mip_env
-
-	local images_list="mip_frontend_1 mip_portalbackend_1 mip_portalbackend_db_1 mip_galaxy_1 mip_keycloak_1 mip_keycloak_db_1 mip_exareme_master_1 mip_exareme_keystore_1"
-	local ko_list=""
-	for image in $images_list; do
-		local image_check=$(check_docker_container $image)
-		if [ "$image_check" != "ok" ]; then
-			ko_list=$ko_list" "$image_check
-		fi
-	done
-
-	if [ "$ko_list" = "" ]; then
-		echo "The MIP frontend seems to be already running! Maybe you want $0 restart"
-		exit 1
-	else
-		if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT ]; then
-			local path=$(pwd)
-			cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
-			./run.sh
-			cd $path
-		else
-			echo "No such directory: $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT"
-			exit 1
-		fi
-	fi
-}
-
-logs(){
-	local image="mip_$1_1"
-	contains "mip_frontend_1 mip_portalbackend_1 mip_portalbackend_db_1 mip_galaxy_1 mip_keycloak_1 mip_keycloak_db_1 mip_exareme_master_1 mip_exareme_keystore_1" $image
-	if [ $? -ne 0 ]; then
-		echo "Usage: $0 logs [frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|exareme_master|exareme_keystore]"
-		exit 1
-	fi
-
-	local process_id=$(docker ps|grep $image|awk '{print $1}')
-	if [ "$process_id" != "" ]; then
-		docker logs -f $process_id
-	else
-		echo "$1 docker container is not running!"
-	fi
-}
-
-stop_mip(){
-	if [ "$1" = "--force" ]; then
-		echo -n "WARNING: This will kill any docker container, swarm node, and finally kill any docker daemon running on this machine! Are you sure you want to continue? [y/n] "
-		read answer
-		if [ "$answer" = "y" ]; then
-			local docker_ps=$(docker ps -q 2>/dev/null)
-			if [ "$docker_ps" != "" ]; then
-				docker stop $docker_ps
-			fi
-			docker swarm leave --force 2>/dev/null
-
-			check_exareme_required_ports short
-			if [ $? -eq 1 ]; then
-				killall -9 dockerd
-			fi
-		fi
-	elif [ "$1" != "" ]; then
-		echo "Usage: $0 stop"
-	else
-		if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT ]; then
-			local path=$(pwd)
-			cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
-			./stop.sh
-			cd $path
-		fi
+	echo -e "Run MIP [y/n]? "
+	read answer
+	if [ "$answer" = "y" ]; then
+		$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/run.sh
 	fi
 }
 
 delete_mip(){
 	if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT ]; then
-		echo -n "Delete full MIP [y/n]? "
+		echo -e "Delete full MIP [y/n]? "
 		read answer
 		if [ "$answer" = "y" ]; then
-			docker swarm leave --force 2>/dev/null
+			sudo docker swarm leave --force 2>/dev/null
 			rm -rf $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
 		fi
 	fi
@@ -418,77 +201,23 @@ delete_mip(){
 }
 
 main(){
-	if [ "$(id -u)" != "0" ]; then
-		echo "Call me with sudo!"
-		exit 1
+	if [ "$1" != "uninstall" ]; then
+		uninstall_conflicting_tools
+		install_required_tools prerequired
+		prepare_docker_apt_sources
+		install_required_tools required
+		check_exareme_required_ports
+		download_mip
+		download_exareme
+		generate_local_data_path_txt
+		generate_local_exareme_yaml
+		exareme_local_deployment
+		prepare_mip_env
+		run_mip
+	else
+		delete_mip
 	fi
-
-	case "$1" in
-		start)
-			check_docker
-			run_mip
-			;;
-		stop)
-			check_docker
-			stop_mip $2
-			;;
-		restart)
-			check_docker
-			stop_mip
-			sleep 2
-			run_mip
-			;;
-		check-required)
-			check_os
-			check_conflicting_packages
-			check_conflicting_snap_packages
-			check_docker
-			check_exareme_required_ports
-			echo "ok"
-			;;
-		status)
-			check_docker
-			check_running
-			;;
-		status-details)
-			check_docker
-			check_running_details
-			;;
-		logs)
-			check_docker
-			logs $2
-			;;
-		uninstall)
-			check_os
-			stop_mip
-			delete_mip
-			;;
-		install)
-			check_os
-			stop_mip
-			delete_mip
-			uninstall_conflicting_packages
-			uninstall_conflicting_snap_packages
-			install_required_packages prerequired $2
-			prepare_docker_apt_sources
-			install_required_packages required $2
-			install_required_packages pip3 $2
-			check_exareme_required_ports
-			download_mip $2
-			if [ "$2" = "-y" ]; then
-				answer="y"
-			else
-				echo -n "Run MIP [y/n]? "
-				read answer
-			fi
-			if [ "$answer" = "y" -a "$3" != "--no-run" ]; then
-				run_mip
-			fi
-			;;
-		*)
-			echo "Usage: $0 [check-required|install|uninstall|start|stop|status|status-details|restart|logs]"
-			;;
-	esac
+	echo "done"
 }
 
 main $@

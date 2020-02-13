@@ -7,3 +7,5 @@ logs/
 Federation/data
 Federation/logs
 Federation/.combined_env
+federated
+local
