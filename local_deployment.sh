@@ -195,7 +195,7 @@ delete_mip(){
 		read answer
 		if [ "$answer" = "y" ]; then
 			sudo docker swarm leave --force 2>/dev/null
-			rm -rf $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
+			sudo rm -rf $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
 		fi
 	fi
 	if [ -d $INSTALL_PATH/$ENV ]; then
