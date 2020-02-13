@@ -9,7 +9,7 @@ REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
 MIP_GITHUB_OWNER="crochat"
 MIP_GITHUB_PROJECT="mip-deployment-infrastructure"
 MIP_BRANCH="release"
-EXAREME_GITHUB_OWNER="madgik"
+EXAREME_GITHUB_OWNER="crochat"
 EXAREME_GITHUB_PROJECT="exareme"
 EXAREME_BRANCH="master"
 
@@ -149,7 +149,7 @@ download_exareme(){
 
 generate_local_data_path_txt(){
 	if [ ! -s $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/data_path.txt ]; then
-		echo "$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/data" > $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/data_path.txt
+		echo "LOCAL_DATA_FOLDER=$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/data" > $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/data_path.txt
 	fi
 }
 
