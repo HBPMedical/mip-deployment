@@ -173,11 +173,11 @@ prepare_mip_env(){
 	_get_docker_main_ip
 
 	cat <<EOF >$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/.env
-HOST="$(hostname)"
-FRONTEND_URL="http://localhost"
-EXAREME_URL="http://$DOCKER_MAIN_IP:9090"
-WORKFLOW_URL="http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api"
-GALAXY_URL="http://88.197.53.10:8090/nativeGalaxy"
+HOST=$(hostname)
+FRONTEND_URL=http://localhost
+EXAREME_URL=http://$DOCKER_MAIN_IP:9090
+WORKFLOW_URL=http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
+GALAXY_URL=http://88.197.53.10:8090/nativeGalaxy
 EOF
 }
 
