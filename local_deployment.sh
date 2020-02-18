@@ -79,6 +79,7 @@ prepare_docker_apt_sources(){
 		fi
 		if [ "$(grep -R $DOCKER_DOWNLOAD_HOST /etc/apt)" = "" ]; then
 			sudo add-apt-repository "deb [arch=amd64] https://$DOCKER_DOWNLOAD_HOST/linux/ubuntu $(lsb_release -cs) stable"
+			sudo apt update
 			next=0
 		fi
 	done
