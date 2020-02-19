@@ -114,8 +114,8 @@ services:
   keycloak:
       image: jboss/keycloak
       volumes:
-        - ./certs:/etc/x509/https
-        - ./realms/mip.json:/tmp/mip.json
+        - ./config/certs:/etc/x509/https
+        - ./config/keycloak.json:/tmp/mip.json
         - ./tmp:/tmp
       environment:
         DB_VENDOR: POSTGRES
