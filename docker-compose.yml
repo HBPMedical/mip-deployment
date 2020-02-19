@@ -33,7 +33,7 @@ services:
       - db
 
   portalbackend:
-    image:  
+    image: hbpmip/portal-backend:dev_v6.0.0
     restart: "no"
     ports:
       - "8080:8080"
@@ -74,7 +74,7 @@ services:
     depends_on:
       - db
     volumes:
-      - ./data:/opt/portal/api
+      - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
       
   wait_portal_backend:
@@ -114,8 +114,8 @@ services:
   keycloak:
       image: jboss/keycloak
       volumes:
-        - ./config/certs:/etc/x509/https
-        - ./config/keycloak.json:/tmp/mip.json
+        - ./certs:/etc/x509/https
+        - ./realms/mip.json:/tmp/mip.json
         - ./tmp:/tmp
       environment:
         DB_VENDOR: POSTGRES

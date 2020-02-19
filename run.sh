@@ -80,6 +80,7 @@ if [ $frontend == 1 ]; then
   FRONTEND_URL=http://frontend \
 	  $DOCKER_COMPOSE up -d portalbackend
   $DOCKER_COMPOSE run wait_portal_backend
+  $DOCKER_COMPOSE run -d -p 8095:8095 keycloak -Djboss.https.port=8095 
   $DOCKER_COMPOSE up -d frontend
 
   echo ""
@@ -91,10 +92,10 @@ else
   FRONTEND_URL=http://localhost:8000 \
 	$DOCKER_COMPOSE up -d portalbackend
   $DOCKER_COMPOSE run wait_portal_backend
+  $DOCKER_COMPOSE run -d -p 8095:8095 keycloak -Djboss.https.port=8095 
   echo ""
   echo "System up!"
   echo "Useful URLs:"
   echo "  http://localhost:8080/services/swagger-ui.html : Swagger admin interface for backend"
 fi
 
-$DOCKER_COMPOSE run -d -p 8095:8095 keycloak -Djboss.https.port=8095 
