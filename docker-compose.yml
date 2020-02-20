@@ -32,6 +32,20 @@ services:
       - ./data:/root/exareme/data/
     networks:
       - backend
+  
+  galaxy:
+    image: hbpmip/galaxy:v1.3
+    environment:
+      - EXAREME_IP=exareme_master
+      - EXAREME_PORT=9090
+      - PASSWORD=password
+    command: bash -c "htpasswd -bc /etc/apache2/htpasswd admin $$PASSWORD && ./createExaremeVariables.sh && /etc/init.d/apache2 restart && ./run.sh"
+    depends_on:
+      - exareme_master
+    expose:
+      - '80'
+    networks:
+      - backend
 
   portalbackend_db:
     image: postgres:11.3-alpine
@@ -83,7 +97,7 @@ services:
 
       EXAREME_URL: http://exareme_master:9090
 
-      GALAXY_URL: 'http://88.197.53.106:8090/nativeGalaxy'
+      GALAXY_URL: 'http://galaxy'
       GALAXY_CONTEXT: nativeGalaxy/workflows/list
       GALAXY_API_KEY: 'd14a4cc5eebf805eb2ff261374ed08a2'
       GALAXY_USERNAME: admin
@@ -121,7 +135,7 @@ services:
       INSTANCE_NAME: 'MIP DEV 6.0.0'
       VERSION: 'Frontend: dev_5.2.0, Exareme: dev_v11.0, Backend: dev_v6.0.0'
       TRACKER_ID: UA-80660232-5
-      GALAXY_URL: 'http://88.197.53.106:8090/nativeGalaxy'
+      GALAXY_URL: 'http://galaxy/nativeGalaxy'
     networks:
       - frontend
       - backend
