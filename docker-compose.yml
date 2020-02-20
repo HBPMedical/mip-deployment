@@ -1,28 +1,50 @@
-version: '3.0'
+version: '3.2'
+
+networks:
+  frontend:
+  backend:
+    driver: bridge
 
 services:
-  db:
-    image: postgres:11.3-alpine
+  exareme_keystore:
+    image: progrium/consul
+    command: -server -bootstrap
+    networks:
+      - backend
+
+  exareme_master:
+    image: hbpmip/exareme:dev_v11.0
+    environment:
+      - CONSULURL=exareme_keystore:8500
+      - MASTER_FLAG=master
+      - NODE_NAME=miplocal
+      - DOCKER_DATA_FOLDER=/root/exareme/data/
+      - DOCKER_METADATA_FOLDER=/root/exareme/data/
+      - EXAREME_ACTIVE_WORKERS_PATH=active_workers
+      - EXAREME_MASTER_PATH=master
+      - DATA=data
+      - TAG=prod
+    depends_on:
+      - exareme_keystore
     ports:
-      - "5432:5432"
-    hostname: db
+      - '9090:9090'
+    volumes:
+      - ./data:/root/exareme/data/
+    networks:
+      - backend
+
+  portalbackend_db:
+    image: postgres:11.3-alpine
+    hostname: portalbackend_db
     environment:
       POSTGRES_PASSWORD: test
-
-  wait_dbs:
-    image: "waisbrot/wait"
-    restart: "no"
-    environment:
-      TARGETS: "db:5432"
-      TIMEOUT: 60
-    depends_on:
-      - db
+    networks:
+      - backend
 
   create_dbs:
-    image: "hbpmip/create-databases:1.1.0"
-    restart: "no"
+    image: 'hbpmip/create-databases:1.1.0'
     environment:
-      DB_HOST: db
+      DB_HOST: portalbackend_db
       DB_PORT: 5432
       DB_ADMIN_USER: postgres
       DB_ADMIN_PASSWORD: test
@@ -30,21 +52,23 @@ services:
       USER4: portal
       PASSWORD4: portalpwd
     depends_on:
-      - db
+      - portalbackend_db
+    restart: on-failure
+    networks:
+      - backend
 
   portalbackend:
     image: hbpmip/portal-backend:dev_v6.0.0
-    restart: "no"
     ports:
-      - "8080:8080"
-      - "8089:8089"
+      - '8080:8080'
+      - '8089:8089'
     environment:
-      PORTAL_DB_URL: jdbc:postgresql://db:5432/portal
-      PORTAL_DB_SERVER: db:5432
+      PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5432/portal
+      PORTAL_DB_SERVER: portalbackend_db:5432
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 0 
+      AUTHENTICATION: 0
       CLIENT_ID: medical-informatics-platform
       CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
       FRONTEND_LOGIN_URL: http://88.197.53.106/services/login/hbp
@@ -53,45 +77,40 @@ services:
       LOGGING_LEVEL_WEB: INFO
       LOGGING_LEVEL_HIBERNATE: INFO
       SESSION_TIMEOUT: 2592000
-      RELEASE_STAGE: "testing"
-      DATACENTER_LOCATION: "$HOST"
-      CONTAINER_ORCHESTRATION: "docker-compose"
-      
-      EXAREME_URL: http://localhost:9090
-     
-      GALAXY_URL: "http://88.197.53.106:8090/nativeGalaxy"
+      RELEASE_STAGE: 'testing'
+      DATACENTER_LOCATION: '$HOST'
+      CONTAINER_ORCHESTRATION: 'docker-compose'
+
+      EXAREME_URL: http://exareme_master:9090
+
+      GALAXY_URL: 'http://88.197.53.106:8090/nativeGalaxy'
       GALAXY_CONTEXT: nativeGalaxy/workflows/list
-      GALAXY_API_KEY: "d14a4cc5eebf805eb2ff261374ed08a2"
+      GALAXY_API_KEY: 'd14a4cc5eebf805eb2ff261374ed08a2'
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
 
-      KEYCLOAK_URL: "88.197.53.106"
-      AUTH_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/auth"
-      USER_INFO_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/userinfo"
-      TOKEN_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/token"
-      LOGOUT_URI: "https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/logout"     
-     
+      KEYCLOAK_URL: '88.197.53.106'
+      AUTH_URI: 'https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/auth'
+      USER_INFO_URI: 'https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/userinfo'
+      TOKEN_URI: 'https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/token'
+      LOGOUT_URI: 'https://88.197.53.106:8095/auth/realms/MIP/protocol/openid-connect/logout'
+
     depends_on:
-      - db
+      - create_dbs
+    restart: on-failure
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
-      
-  wait_portal_backend:
-    image: "waisbrot/wait"
-    restart: "no"
-    environment:
-      TARGETS: "portalbackend:8080"
-      TIMEOUT: 60
-    depends_on:
-      - portalbackend
+    networks:
+      - backend
+      - frontend
 
   frontend:
     image: hbpmip/portal-frontend:dev_5.2.0
     depends_on:
       - portalbackend
     ports:
-      - "80:80"
+      - '80:80'
     environment:
       WORKER_PROCESSES: 1
       ERROR_LOG_LEVEL: warn
@@ -99,36 +118,47 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
-      INSTANCE_NAME: "MIP 5.0.0"
-      VERSION: "5.0.0"
+      INSTANCE_NAME: 'MIP 5.0.0'
+      VERSION: '5.0.0'
       TRACKER_ID: UA-80660232-5
-      GALAXY_URL: "http://88.197.53.106:8090/nativeGalaxy"
-      
-  postgres:
-      image: postgres
-      environment:
-        POSTGRES_DB: keycloak
-        POSTGRES_USER: keycloak
-        POSTGRES_PASSWORD: password
-  
+      GALAXY_URL: 'http://88.197.53.106:8090/nativeGalaxy'
+    networks:
+      - frontend
+      - backend
+
+  keycloak_db:
+    image: postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+    command: -p 5433
+    expose:
+      - 5433
+    networks:
+      - backend
+
   keycloak:
-      image: jboss/keycloak
-      volumes:
-        - ./config/certs:/etc/x509/https
-        - ./config/keycloak.json:/tmp/mip.json
-        - ./tmp:/tmp
-      environment:
-        DB_VENDOR: POSTGRES
-        DB_ADDR: postgres
-        DB_DATABASE: keycloak
-        DB_USER: keycloak
-        DB_SCHEMA: public
-        DB_PASSWORD: password
-        KEYCLOAK_USER: admin
-        KEYCLOAK_PASSWORD: Pa55w0rd
-        KEYCLOAK_IMPORT: /tmp/mip.json
-      ports:
-        - "8095:8095"
-        - "8443:8443"
-      depends_on:
-        - postgres
+    image: jboss/keycloak
+    volumes:
+      - ./config/certs:/etc/x509/https
+      - ./config/keycloak.json:/tmp/mip.json
+      - ./tmp:/tmp
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: keycloak_db
+      DB_PORT: 5433
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_SCHEMA: public
+      DB_PASSWORD: password
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: Pa55w0rd
+      KEYCLOAK_IMPORT: /tmp/mip.json
+    ports:
+      - '8095:8095'
+      - '8443:8443'
+    depends_on:
+      - keycloak_db
+    networks:
+      - backend
