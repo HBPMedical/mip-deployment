@@ -118,8 +118,8 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       MODE: local
-      INSTANCE_NAME: 'MIP 5.0.0'
-      VERSION: '5.0.0'
+      INSTANCE_NAME: 'MIP DEV 6.0.0'
+      VERSION: 'Frontend: dev_5.2.0, Exareme: dev_v11.0, Backend: dev_v6.0.0'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: 'http://88.197.53.106:8090/nativeGalaxy'
     networks:
