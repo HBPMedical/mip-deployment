@@ -127,7 +127,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       MODE: federation
       INSTANCE_NAME: 'MIP DEV 6.0.0'
-      VERSION: 'Frontend: dev_5.2.0, Exareme: dev_v11.0, Backend: dev_v6.0.0'
+      VERSION: 'Frontend: dev_5.2.0, Exareme: dev_v11.2, Backend: dev_v6.0.0'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: 'http://galaxy/nativeGalaxy'
     networks:
