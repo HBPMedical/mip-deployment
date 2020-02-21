@@ -12,16 +12,11 @@ services:
       - backend
 
   exareme_master:
-    image: hbpmip/exareme:dev_v11.0
+    image: hbpmip/exareme:dev_v11.2
     environment:
       - CONSULURL=exareme_keystore:8500
       - MASTER_FLAG=master
       - NODE_NAME=miplocal
-      - DOCKER_DATA_FOLDER=/root/exareme/data/
-      - DOCKER_METADATA_FOLDER=/root/exareme/data/
-      - EXAREME_ACTIVE_WORKERS_PATH=active_workers
-      - EXAREME_MASTER_PATH=master
-      - DATA=data
       - TAG=prod
     depends_on:
       - exareme_keystore
