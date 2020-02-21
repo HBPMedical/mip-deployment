@@ -11,7 +11,7 @@
                     "label": "Demo Dataset 1"
                 }
             ],
-            "label": "Datasets",
+            "label": "Dataset",
             "sql_type": "text",
             "isCategorical": true
         },

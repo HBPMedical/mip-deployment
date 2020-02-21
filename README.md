@@ -1,14 +1,14 @@
-# MIP-Local Deployment Guide v6
+# MIP-Local Deployment Guide 6.0
 
 ## Introduction
 
-The main objective of this pack is to provide you with the information and guidance needed to successfully install the MIP Local Version 6 with all of its components that is used for demonstration purposes.
+The main objective of this pack is to provide you with the information and guidance needed to successfully install MIP.
 
 This pack contains two sets of metadata and data for the following medical conditions:
   - Dementia
   - Trauma Brain Injury
 
-This pack does not cover the installation of the data pre-processing tools (Data Factory) that are used to prepare your data and metadata.
+This pack does not contain the data pre-processing tools (Data Factory) that are used to prepare your data and metadata.
 
 ### Additional Data
 
@@ -29,7 +29,7 @@ It should also have:
 ### Deploy
 Execute the `./run.sh` script to install the components.
 
-## Verify the MIP 6 is working
+## Verify the MIP 6.0 is working
 After the installation is done, MIP will be visible on localhost.  To verify all is working fine launch MIP and 
   - Check that 2 medical conditions (dementia and TBI) are accessible from the frontend,
   - Check that 5 datasets are accessible from the front end (4 in dementia and 1 in TBI).
