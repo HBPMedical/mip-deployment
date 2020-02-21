@@ -1,103 +1,38 @@
-# MIP Deployment Guide
+# MIP-Local Deployment Guide 6.0
 
 ## Introduction
 
-The deployment process is divided into different parts along with the different software stacks that need to be deployed. The services that will be deployed are:
+The main objective of this pack is to provide you with the information and guidance needed to successfully install MIP.
 
-1. Web-Analytics-Pack
-2. Exareme
-3. Galaxy
-4. Galaxy-Middleware-API
+This pack contains two sets of metadata and data for the following medical conditions:
+  - Dementia
+  - Trauma Brain Injury
 
-This guide will assist you in deploying all the packs together and explain what dependencies each one has with the rest. This guide does not include detailed installation steps for each service but will prompt you to the appropriate guide.
+This pack does not contain the data pre-processing tools (Data Factory) that are used to prepare your data and metadata.
 
-## Requirements
+### Additional Data
 
-Each software stack has it's own requirements but in order to deploy everything into one machine you need at least 16 GB of ram.
+If you want to add your data on your local MIP deployment, you can look in the [Data Requirements](https://github.com/madgik/exareme/blob/reorderReadme/Documentation/InputRequirements.md) for the specifications.
+When you have your data ready create a new folder inside the `data` folder, with the name of your pathology and add the data/metadata inside that folder. If you want to add some data on a pre-existing pathology you can just add you csv inside that folder. Be careful though, your data have to match with the metadata in that folder.
 
-All of the software stack is based on docker so you need to install it in the machines that you will use:
+If your data do not match the specifications of MIP, a message will be shown when installing the software.
 
-- docker (tested using version 17.05.0-ce)
-- docker-compose (tested using version 1.17.0)
+## Prerequisites
 
-Each software stack has more specific requirments
+The server must be set up according to the MIP Technical Requirements and must be in a clean state.
 
-## Deployment
+It should also have:
+  - git 
+  - docker (tested using version 17.05.0-ce)
+  - docker-compose (tested using version 1.17.0)
 
-### 1. Install Exareme
+### Deploy
+Execute the `./run.sh` script to install the components.
 
-You can install exareme locally by following this guide:
-[Local Deployment Guide](https://github.com/madgik/exareme/tree/master/Local-Deployment)
+## Verify the MIP 6.0 is working
+After the installation is done, MIP will be visible on localhost.  To verify all is working fine launch MIP and 
+  - Check that 2 medical conditions (dementia and TBI) are accessible from the frontend,
+  - Check that 5 datasets are accessible from the front end (4 in dementia and 1 in TBI).
+  
+Enjoy!
 
-Or you can install federated exareme by following this guide:
-[Federated Deployment Guide](https://github.com/madgik/exareme/tree/master/Federated-Deployment)
-
-In the next steps you will need to provide the IP of the master node of Exareme which will be refered as EXAREME_IP so keep that in mind.
-
-### 2. Install Galaxy
-
-In order to deploy Galaxy you need:
-
-1. `EXAREME_IP` (from step 1)
-2. `EXAREME_PORT` (default 9090)
-
-With that information you can follow the [Galaxy Installation Guide](https://github.com/madgik/galaxy/tree/master) to deploy Galaxy.
-
-After installing Galaxy an API key should be created:
-
-- Enter Galaxy from the browser.
-- Select the "User" Drop Down menu, on the navigation bar.
-- Select the "Preferences" option.
-- Select the "Manage API Key" option.
-- "Create a new key"
-- Copy the key so we can use it in the next step.
-
-From this installation, remember the following details:
-
-1. `GALAXY_URL` (the url where galaxy is visible e.g. http://88.197.53.100:8090/ )
-2. `GALAXY_API_KEY` (the key that you created inside Galaxy)
-3. `GALAXY_PASSWORD` (the password that you provided when deploying Galaxy)
-4. The reverse proxy endpoint for galaxy, default to `nativeGalaxy`
-
-### 3. Install Galaxy Middleware API
-
-In order to deploy the Galaxy Middleware API you need:
-
-1. `GALAXY_URL` (from step 2)
-2. `GALAXY_API_KEY` (from step 2)
-3. `GALAXY_PASSWORD` (from step 2)
-
-You can now follow this [Galaxy Middleware API Deployment Guide](https://github.com/madgik/Galaxy_Middleware_API/)
-
-From this installation, remember the following details:
-
-1. `WORKFLOW_URL` (the endpoint of the api e.g. http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api )
-1. `JWT_SECRET` (provided in the installation process)
-
-### 4. Install Web-Analytics-Pack
-
-Clone this repository in your machine where it will be installed.
-
-#### a. Initialize the variables
-
-In order to deploy the Web Analytics Pack you need:
-
-1. `EXAREME_URL` (`EXAREME_IP`:`EXAREME_PORT` from step 1 e.g. http://155.105.200.235:9090 )
-2. `GALAXY_CONTEXT` (reverse proxy endpoint, default to `nativeGalaxy`) (from step 2)
-3. `GALAXY_USERNAME` (`GALAXY_USERNAME`:`admin`) (from step 2)
-4. `GALAXY_PASSWORD` (`GALAXY_PASSWORD`:`password`) (from step 2)
-5. `JWT_SECRET` (from step 3)
-
-Go to the `docker-compose.yml` file and modify these env variables with the values that you have from the previous steps. You can also modify the images of the portal-backend and the portal-frontend depending on what you want to deploy.
-
-#### b. Setup the pathologies
-
-Go to the `data` folder and there you will find a `pathologies.json` file.
-
-This is used to inform the frontend what are the available datasets and CDEs. Modify this file accordingly before deploying.
-
-#### c. Deploy
-
-Run the `./run.sh` command to install the rest of the components.
-
-After the installation is done, MIP will be visible on localhost.

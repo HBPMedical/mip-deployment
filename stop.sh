@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 
-if groups "$USER" | grep &>/dev/null '\bdocker\b'; then
-  DOCKER_COMPOSE="docker-compose --project-name webanalyticsstarter"
-else
-  DOCKER_COMPOSE="sudo docker-compose --project-name webanalyticsstarter"
-fi
+set -o pipefail # trace ERR through pipes
+set -o errtrace # trace ERR through 'time command' and other functions
+set -o errexit  ## set -e : exit the script if any statement returns a non-true return value
 
-export HOST=$(hostname)
-
-$DOCKER_COMPOSE down
-$DOCKER_COMPOSE rm -f
+echo -e "\nRemoving previous services..."
+docker-compose --project-name mip down

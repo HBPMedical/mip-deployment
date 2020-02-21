@@ -1,4 +1,4 @@
 .idea
 tmp/
-log/
-*.log
+logs/
+*.db
