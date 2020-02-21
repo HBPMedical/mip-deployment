@@ -3,7 +3,6 @@ version: '3.2'
 networks:
   frontend:
   backend:
-    driver: bridge
 
 services:
   exareme_keystore:

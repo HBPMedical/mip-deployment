@@ -2,7 +2,7 @@
   {
     "code": "dementia",
     "label": "Dementia",
-    "hierarchy": {
+    "metadataHierarchy": {
       "variables": [],
       "code": "root",
       "groups": [
@@ -2568,7 +2568,7 @@
   {
     "code": "tbi",
     "label": "Traumatic brain injury",
-    "hierarchy": {
+    "metadataHierarchy": {
       "code": "tbi",
       "groups": [],
       "label": "Traumatic Βrain Ιnjury",
