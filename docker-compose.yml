@@ -12,10 +12,10 @@ services:
       - backend
 
   exareme_master:
-    image: hbpmip/exareme:dev_v11.2
+    image: hbpmip/exareme:dev_v11.3
     environment:
       - CONSULURL=exareme_keystore:8500
-      - MASTER_FLAG=master
+      - FLAG=master
       - NODE_NAME=miplocal
       - TAG=prod
     depends_on:
