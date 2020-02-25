@@ -109,9 +109,8 @@ class gen_pathologies:
         file_ensure_ascii = True
         if file_encoding != 'ascii':
             file_ensure_ascii = False
-        print(f"Will write {filepath} in {file_encoding} with indent <{file_indent}>")
         with open(filepath, 'wb') as f:
-            f.write(json.dumps(content, indent=file_indent, ensure_ascii=file_ensure_ascii).encode(file_encoding) + "\n")
+            f.write(json.dumps(content, indent=file_indent, ensure_ascii=file_ensure_ascii).encode(file_encoding))
 
     def __file_writer(self, filepath, content, file_format='json', file_encoding='utf-8', file_indent='    '):
         if file_format == 'json':
