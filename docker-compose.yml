@@ -12,16 +12,11 @@ services:
       - backend
 
   exareme_master:
-    image: hbpmip/exareme:dev_v11.0
+    image: hbpmip/exareme:dev_v12.1
     environment:
       - CONSULURL=exareme_keystore:8500
-      - MASTER_FLAG=master
+      - FEDERATION_ROLE=master
       - NODE_NAME=miplocal
-      - DOCKER_DATA_FOLDER=/root/exareme/data/
-      - DOCKER_METADATA_FOLDER=/root/exareme/data/
-      - EXAREME_ACTIVE_WORKERS_PATH=active_workers
-      - EXAREME_MASTER_PATH=master
-      - DATA=data
       - TAG=prod
     depends_on:
       - exareme_keystore
@@ -33,7 +28,7 @@ services:
       - backend
 
   galaxy:
-    image: hbpmip/galaxy:v1.3
+    image: hbpmip/galaxy:v1.3.1
     environment:
       - EXAREME_IP=exareme_master
       - EXAREME_PORT=9090
@@ -43,6 +38,8 @@ services:
       - exareme_master
     expose:
       - '80'
+    ports:
+      - '8090:80'
     networks:
       - backend
 
@@ -71,7 +68,7 @@ services:
       - backend
 
   portalbackend:
-    image: hbpmip/portal-backend:dev_v6.0.0
+    image: hbpmip/portal-backend:dev_v6.0.1
     ports:
       - '8080:8080'
       - '8089:8089'
@@ -119,7 +116,7 @@ services:
       - frontend
 
   frontend:
-    image: hbpmip/portal-frontend:dev_5.2.0
+    image: hbpmip/portal-frontend:dev_5.2.1
     depends_on:
       - portalbackend
     ports:
@@ -130,11 +127,11 @@ services:
       PORTAL_VIRTUAL_HOST: frontend
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
-      MODE: federation
       INSTANCE_NAME: 'MIP DEV 6.0.0'
-      VERSION: 'Frontend: dev_5.2.0, Exareme: dev_v11.0, Backend: dev_v6.0.0'
+      VERSION: 'Frontend: dev_5.2.1, Backend: dev_v6.0.1, Exareme: dev_v12.1, Galaxy: v1.3.1'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: 'http://galaxy/nativeGalaxy'
+    restart: on-failure
     networks:
       - frontend
       - backend
