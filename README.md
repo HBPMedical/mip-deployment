@@ -27,7 +27,8 @@ It should also have:
   - docker-compose (tested using version 1.17.0)
 
 ### Deploy
-Execute the `./run.sh` script to install the components.
+Clone this repository.
+Execute `sudo ./run.sh` script to install the components.
 
 ## Verify the MIP 6.0 is working
 After the installation is done, MIP will be visible on localhost.  To verify all is working fine launch MIP and
