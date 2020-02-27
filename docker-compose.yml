@@ -31,7 +31,7 @@ services:
       - ./data:/root/exareme/data/
     networks:
       - backend
-  
+
   galaxy:
     image: hbpmip/galaxy:v1.3
     environment:
