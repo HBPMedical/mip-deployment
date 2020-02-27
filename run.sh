@@ -15,20 +15,21 @@ fi
 
 chmod a+rwx logs
 
-echo "Starting the process of creating databases.."
+echo "Starting the process of creating databases..Deleting previous ones.."
 chmod 775 convert-csv-dataset-to-db.py
 #Removing all previous .db files from the data/
-echo -e "\nDeleting previous databases."
 rm -rf data/**/*.db
 
-echo "Parsing CSV files from data/ to database files. "
+echo -e"\nParsing CSV files from data/ to Database files. "
 python convert-csv-dataset-to-db.py -f data/ -t "master" 2> /dev/null
 #Get the status code from previous command
 py_script=$?
 #If status code != 0 an error has occurred
 if [[ ${py_script} -ne 0 ]]; then
-     echo "Creation of databases failed. Exiting.." >&2
+     echo -e "\nCreation of databases failed. Exiting.." >&2
      exit 1
+else
+    echo -e "\nDatabase files created."
 fi
 
 echo -e "\nRemoving previous services..."
