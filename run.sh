@@ -20,7 +20,7 @@ chmod 775 convert-csv-dataset-to-db.py
 #Removing all previous .db files from the data/
 rm -rf data/**/*.db
 
-echo -e"\nParsing CSV files from data/ to Database files. "
+echo -e "\nParsing CSV files from data/ to Database files. "
 python convert-csv-dataset-to-db.py -f data/ -t "master" 2> /dev/null
 #Get the status code from previous command
 py_script=$?
