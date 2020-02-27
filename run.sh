@@ -20,7 +20,7 @@ chmod 775 convert-csv-dataset-to-db.py
 rm -rf data/**/*.db
 
 echo -e "\nParsing CSV files from data/ to Database files. "
-python convert-csv-dataset-to-db.py -f data/ -t "master" 2> /dev/null
+python convert-csv-dataset-to-db.py -f data/ -t "master"
 #Get the status code from previous command
 py_script=$?
 #If status code != 0 an error has occurred
