@@ -4,7 +4,7 @@ This is the MIP6 ready **local** deployment script.
 
 * Once you get it, you may move the script to use it later the easy way
 ```bash
-mv mip-deployment/local-deployment.sh /usr/local/bin/mip
+mv mip-deployment/local_deployment.sh /usr/local/bin/mip
 ```
 * Then, you may change the install path to /opt
 ```bash
