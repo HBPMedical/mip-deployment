@@ -49,7 +49,7 @@ check_conflicting_packages(){
 check_conflicting_snap_packages(){
 	local packages=""
 	for package in $CONFLICTING_SNAP_PACKAGES; do
-		local match=$(snap list|grep "^$package[ \t]")
+		local match=$(snap list 2>/dev/null|grep "^$package[ \t]")
 		if [ "$match" != "" ]; then
 			packages="$packages $package"
 		fi
@@ -66,7 +66,7 @@ uninstall_conflicting_snap_packages(){
 		local packages=""
 		next=1
 		for package in $CONFLICTING_SNAP_PACKAGES; do
-			local match=$(snap list|grep "^$package[ \t]")
+			local match=$(snap list 2>/dev/null|grep "^$package[ \t]")
 			if [ "$match" != "" ]; then
 				packages="$packages $package"
 				next=0
