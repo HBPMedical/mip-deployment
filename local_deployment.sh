@@ -348,11 +348,11 @@ logs(){
 }
 
 stop_mip(){
-	local docker_ps=$(docker ps -q)
+	local docker_ps=$(docker ps -q 2>/dev/null)
 	if [ "$docker_ps" != "" ]; then
 		docker stop $docker_ps
 	fi
-	docker swarm leave --force
+	docker swarm leave --force 2>/dev/null
 
 	if [ "$1" = "force" ]; then
 		check_exareme_required_ports short
