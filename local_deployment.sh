@@ -139,6 +139,10 @@ prepare_docker_apt_sources(){
 	done
 }
 
+contains(){
+	[[ $1 =~ (^|[[:space:]])"$2"($|[[:space:]]) ]] && return 0 || return 1
+}
+
 check_docker(){
 	if [ "$(command -v docker)" = "" ]; then
 		echo "docker not installed!"
@@ -238,8 +242,6 @@ check_running_details(){
 	local dockerps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
 	if [ "$dockerps" != "" ]; then
 		docker ps
-		echo && echo
-		docker service ls
 	else
 		check_exareme_required_ports short
 		if [ $? -eq 1 ]; then
@@ -269,9 +271,6 @@ download_mip(){
 				if [ "$MIP_BRANCH" != "" ]; then
 					git checkout $MIP_BRANCH
 				fi
-				#if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT ]; then
-				#	rm -rf $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT
-				#fi
 			fi
 		fi
 	done
@@ -291,7 +290,19 @@ run_mip(){
 }
 
 logs(){
-	docker service logs -f $(hostname)_exareme-master
+	local image="mip_$1_1"
+	contains "mip_frontend_1 mip_portalbackend_1 mip_portalbackend_db_1 mip_galaxy_1 mip_keycloak_1 mip_keycloak_db_1 mip_exareme_master_1 mip_exareme_keystore_1" $image
+	if [ $? -ne 0 ]; then
+		echo "Usage: $0 logs [frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|exareme_master|exareme_keystore]"
+		exit 1
+	fi
+
+	local process_id=$(docker ps|grep $image|awk '{print $1}')
+	if [ "$process_id" != "" ]; then
+		docker logs -f $process_id
+	else
+		echo "$1 docker container is not running!"
+	fi
 }
 
 stop_mip(){
@@ -366,7 +377,7 @@ main(){
 			;;
 		logs)
 			check_docker
-			logs
+			logs $2
 			;;
 		uninstall)
 			check_os
