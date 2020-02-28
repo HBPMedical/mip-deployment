@@ -116,7 +116,7 @@ services:
       - frontend
 
   frontend:
-    image: jerrypan44/portal-frontend:latest
+    image: hbpmip/portal-frontend:dev_5.2.1
     depends_on:
       - portalbackend
     ports:
@@ -131,8 +131,8 @@ services:
       VERSION: 'Frontend: dev_5.2.1, Backend: dev_v6.0.1, Exareme: dev_v12.1, Galaxy: v1.3.1'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: 'http://galaxy/nativeGalaxy'
-      KEYCLOAK_AUTH_URL: "http://88.197.53.10:8095/auth/"
-      KEYCLOAK_LOGIN_URL: "http://88.197.53.10:8095/auth/realms/MIP/protocol/openid-connect/auth"
+      KEYCLOAK_AUTH_URL: "http://127.0.0.1/auth/"
+      KEYCLOAK_LOGIN_URL: "http://127.0.0.1/auth/realms/MIP/protocol/openid-connect/auth"
     restart: on-failure
     networks:
       - frontend
