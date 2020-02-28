@@ -10,12 +10,9 @@ CONFLICTING_PACKAGES="docker docker-engine docker.io containerd runc"
 CONFLICTING_SNAP_PACKAGES="docker"
 PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates curl gnupg-agent software-properties-common net-tools lsof"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
-MIP_GITHUB_OWNER="crochat"
-MIP_GITHUB_PROJECT="mip-deployment-infrastructure"
-MIP_BRANCH="release"
-EXAREME_GITHUB_OWNER="crochat"
-EXAREME_GITHUB_PROJECT="exareme"
-EXAREME_BRANCH="master"
+MIP_GITHUB_OWNER="HBPMedical"
+MIP_GITHUB_PROJECT="mip-deployment"
+MIP_BRANCH="master"
 
 
 _get_docker_main_ip(){
@@ -205,22 +202,28 @@ check_running(){
 	local dockerps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
 	if [ "$dockerps" != "" ]; then
 		echo -n "Portal Frontend								"
-		echo $(check_docker_container portal-frontend)
+		echo $(check_docker_container mip_frontend_1)
 
 		echo -n "Portal Backend								"
-		echo $(check_docker_container portal-backend)
+		echo $(check_docker_container mip_portalbackend_1)
 
-		echo -n "PostgreSQL								"
-		echo $(check_docker_container postgres)
+		echo -n "Portal Backend PostgreSQL DB						"
+		echo $(check_docker_container mip_portalbackend_db_1)
 
-		echo -n "Consul									"
-		echo $(check_docker_container consul)
+		echo -n "Galaxy									"
+		echo $(check_docker_container mip_galaxy_1)
+
+		echo -n "KeyCloak								"
+		echo $(check_docker_container mip_keycloak_1)
+
+		echo -n "KeyCloak PostgreSQL DB							"
+		echo $(check_docker_container mip_keycloak_db_1)
 
 		echo -n "Exareme Master								"
-		echo $(check_docker_container exareme-master)
+		echo $(check_docker_container mip_exareme_master_1)
 
 		echo -n "Exareme Keystore							"
-		echo $(check_docker_container exareme-keystore)
+		echo $(check_docker_container mip_exareme_keystore_1)
 	else
 		check_exareme_required_ports short
 		if [ $? -eq 1 ]; then
@@ -266,72 +269,13 @@ download_mip(){
 				if [ "$MIP_BRANCH" != "" ]; then
 					git checkout $MIP_BRANCH
 				fi
-				if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT ]; then
-					rm -rf $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT
-				fi
+				#if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT ]; then
+				#	rm -rf $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT
+				#fi
 			fi
 		fi
 	done
 	cd $path
-}
-
-download_exareme(){
-	local path=$(pwd)
-	local next=0
-	while [ $next -eq 0 ]; do
-		if [ ! -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT ]; then
-			echo -e "Exareme not found. Download it [y/n]? "
-			read answer
-			if [ "$answer" = "y" ]; then
-				cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
-				git clone https://github.com/$EXAREME_GITHUB_OWNER/$EXAREME_GITHUB_PROJECT
-				cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT
-				git checkout $EXAREME_BRANCH
-			fi
-		else
-			next=1
-		fi
-	done
-	cd $path
-}
-
-generate_local_data_path_txt(){
-	if [ ! -s $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/data_path.txt ]; then
-		echo "LOCAL_DATA_FOLDER=$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/data" > $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/data_path.txt
-	fi
-}
-
-generate_local_exareme_yaml(){
-	if [ ! -s $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/exareme.yaml ]; then
-		cat <<EOF >$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment/exareme.yaml
-EXAREME_IMAGE: "hbpmip/exareme"
-EXAREME_TAG: "v21.3.0"
-EOF
-	fi
-}
-
-exareme_local_deployment(){
-	if [ "$(check_docker_container exareme-master)" = "ok" -a "$(check_docker_container exareme-keystore)" = "ok" ]; then
-		echo "The MIP backend seems to be already running! There's no need to deploy it again, but maybe you want $0 restart"
-	else
-		prerunning_backend_guard
-		local path=$(pwd)
-		cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/$EXAREME_GITHUB_PROJECT/Local-Deployment
-		./deployLocal.sh
-		cd $path
-	fi
-}
-
-prepare_mip_env(){
-	_get_docker_main_ip
-
-	cat <<EOF >$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/.env
-HOST=$(hostname)
-FRONTEND_URL=http://localhost
-EXAREME_URL=http://$DOCKER_MAIN_IP:9090
-WORKFLOW_URL=http://88.197.53.100:8091/Galaxy_Middleware_API-1.0.0-SNAPSHOT/api
-GALAXY_URL=http://88.197.53.10:8090/nativeGalaxy
-EOF
 }
 
 run_mip(){
@@ -339,7 +283,10 @@ run_mip(){
 		echo "The MIP frontend seems to be already running! Maybe you want $0 restart"
 		exit 1
 	else
-		$INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/run.sh
+	    local path=$(pwd)
+		cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
+		./run.sh
+		cd $path
 	fi
 }
 
@@ -385,7 +332,6 @@ main(){
 	case "$1" in
 		start)
 			check_docker
-			exareme_local_deployment
 			run_mip
 			;;
 		stop)
@@ -400,7 +346,6 @@ main(){
 			check_docker
 			stop_mip
 			sleep 2
-			exareme_local_deployment
 			run_mip
 			;;
 		check-required)
@@ -438,11 +383,6 @@ main(){
 			install_required_packages required
 			check_exareme_required_ports
 			download_mip
-			download_exareme
-			generate_local_data_path_txt
-			generate_local_exareme_yaml
-			exareme_local_deployment
-			prepare_mip_env
 			echo -e "Run MIP [y/n]? "
 			read answer
 			if [ "$answer" = "y" ]; then
