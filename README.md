@@ -1,30 +1,31 @@
-# mip-deployment for Ubuntu >= 18.04
+# mip-deployment
 
 This is the MIP6 ready **local** deployment script.
 
-* Once you get it, you may change the install path in the script, to /opt/mip (it's $(pwd) by default, which means that the setup is done in the directory where you are when you call the command. Changing it to /opt may be a better idea then).
+* Once you get it, you may move the script to use it later the easy way
 ```bash
-sed --in-place 's/^INSTALL_PATH.*/INSTALL_PATH="\/opt\/mip"/' mip-deployment/local_deployment.sh
+mv mip-deployment/local-deployment.sh /usr/local/bin/mip
 ```
-* Then, you may move the script to use it later the easy way
+* Then, you may change the install path to /opt
 ```bash
-sudo mv mip-deployment/local_deployment.sh /usr/local/bin/mip
+sed --in-place 's/^INSTALL_PATH.*/INSTALL_PATH="\/opt"' /usr/local/bin/mip
 ```
-* Then, just call *mip* with its options to auto-do the setup: start, stop, status, whatever required
+* Then, just run it to auto-do the setup, start, stop, status, whatever required
 ```bash
-sudo mip install -y
+mip check-required
 ```
 ```bash
-sudo mip status
+mip install
 ```
-If everything is ok here, this means that you should be able to see the MIP on http://*your_machine*
-
+```bash
+mip status
+```
 * If you have issues, sometimes, doing it may save you
 ```bash
-sudo mip restart
+mip restart
 ```
 * Or even, in case of real problems
 ```bash
-sudo mip stop --force
-sudo mip start
+mip stop-force
+mip start
 ```
