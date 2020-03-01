@@ -203,8 +203,8 @@ prerunning_backend_guard(){
 }
 
 check_running(){
-	local dockerps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
-	if [ "$dockerps" != "" ]; then
+	local docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
+	if [ "$docker_ps" != "" ]; then
 		echo -n "Portal Frontend								"
 		echo $(check_docker_container mip_frontend_1)
 
@@ -231,7 +231,7 @@ check_running(){
 	else
 		check_exareme_required_ports short
 		if [ $? -eq 1 ]; then
-			echo "It seems dockerd is running without allowing connections. Maybe you should call $0 stop-force"
+			echo "It seems dockerd is running without allowing connections. Maybe you should call $0 stop --force"
 		else
 			echo "No docker container is currently running!"
 		fi
@@ -239,13 +239,13 @@ check_running(){
 }
 
 check_running_details(){
-	local dockerps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
-	if [ "$dockerps" != "" ]; then
+	local docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
+	if [ "$docker_ps" != "" ]; then
 		docker ps
 	else
 		check_exareme_required_ports short
 		if [ $? -eq 1 ]; then
-			echo "It seems dockerd is running without allowing connections. Maybe you should call $0 stop-force"
+			echo "It seems dockerd is running without allowing connections. Maybe you should call $0 stop --force"
 		else
 			echo "No docker container is currently running!"
 		fi
@@ -278,14 +278,28 @@ download_mip(){
 }
 
 run_mip(){
-	if [ "$(check_docker_container postgres)" = "ok" -a "$(check_docker_container consul)" = "ok" -a "$(check_docker_container portal-backend)" = "ok" -a "$(check_docker_container portal-frontend)" = "ok" ]; then
+	local images_list="mip_frontend_1 mip_portalbackend_1 mip_portalbackend_db_1 mip_galaxy_1 mip_keycloak_1 mip_keycloak_db_1 mip_exareme_master_1 mip_exareme_keystore_1"
+	local ko_list=""
+	for image in $images_list; do
+		local image_check=$(check_docker_container $image)
+		if [ "$image_check" != "ok" ]; then
+			ko_list=$ko_list" "$image_check
+		fi
+	done
+
+	if [ "$ko_list" = "" ]; then
 		echo "The MIP frontend seems to be already running! Maybe you want $0 restart"
 		exit 1
 	else
-	    local path=$(pwd)
-		cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
-		./run.sh
-		cd $path
+		if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT ]; then
+			local path=$(pwd)
+			cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
+			./run.sh
+			cd $path
+		else
+			echo "No such directory: $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT"
+			exit 1
+		fi
 	fi
 }
 
@@ -306,16 +320,32 @@ logs(){
 }
 
 stop_mip(){
-	local docker_ps=$(docker ps -q 2>/dev/null)
-	if [ "$docker_ps" != "" ]; then
-		docker stop $docker_ps
-	fi
-	docker swarm leave --force 2>/dev/null
+	if [ "$1" = "--force" ]; then
+		echo -n "WARNING: This will kill any docker container, swarm node, and finally kill any docker daemon running on this machine! Are you sure you want to continue? [y/n] "
+		read answer
+		if [ "$answer" = "y" ]; then
+			local docker_ps=$(docker ps -q 2>/dev/null)
+			if [ "$docker_ps" != "" ]; then
+				docker stop $docker_ps
+			fi
+			docker swarm leave --force 2>/dev/null
 
-	if [ "$1" = "force" ]; then
-		check_exareme_required_ports short
-		if [ $? -eq 1 ]; then
-			killall -9 dockerd
+			check_exareme_required_ports short
+			if [ $? -eq 1 ]; then
+				killall -9 dockerd
+			fi
+		fi
+	elif [ "$1" != "" ]; then
+		echo "Usage: $0 stop"
+	else
+		if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT ]; then
+			local path=$(pwd)
+			cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
+			./stop.sh
+			cd $path
+		else
+			echo "No such directory: $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT"
+			exit 1
 		fi
 	fi
 }
@@ -347,11 +377,7 @@ main(){
 			;;
 		stop)
 			check_docker
-			stop_mip
-			;;
-		stop-force)
-			check_docker
-			stop_mip force
+			stop_mip $2
 			;;
 		restart)
 			check_docker
@@ -381,6 +407,7 @@ main(){
 			;;
 		uninstall)
 			check_os
+			stop_mip
 			delete_mip
 			;;
 		install)
