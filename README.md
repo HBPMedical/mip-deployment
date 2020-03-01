@@ -26,6 +26,6 @@ mip restart
 ```
 * Or even, in case of real problems
 ```bash
-mip stop-force
+mip stop --force
 mip start
 ```
