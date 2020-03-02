@@ -116,8 +116,12 @@ install_required_packages(){
 					next=0
 				fi
 			done
+			local install_option=""
+			if [ "$2" = "-y" ]; then
+				install_option=$2
+			fi
 			if [ $next -eq 0 ]; then
-				apt install $packages
+				apt install $install_option $packages
 			fi
 		done
 	fi
@@ -263,8 +267,12 @@ download_mip(){
 		if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT ]; then
 			next=1
 		else
-			echo -e "MIP not found. Download it [y/n]? "
-			read answer
+			if [ "$1" = "-y" ]; then
+				answer="y"
+			else
+				echo -n "MIP not found. Download it [y/n]? "
+				read answer
+			fi
 			if [ "$answer" = "y" ]; then
 				git clone https://github.com/$MIP_GITHUB_OWNER/$MIP_GITHUB_PROJECT $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
 				cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
@@ -343,16 +351,13 @@ stop_mip(){
 			cd $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT
 			./stop.sh
 			cd $path
-		else
-			echo "No such directory: $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT"
-			exit 1
 		fi
 	fi
 }
 
 delete_mip(){
 	if [ -d $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT ]; then
-		echo -e "Delete full MIP [y/n]? "
+		echo -n "Delete full MIP [y/n]? "
 		read answer
 		if [ "$answer" = "y" ]; then
 			docker swarm leave --force 2>/dev/null
@@ -416,13 +421,17 @@ main(){
 			delete_mip
 			uninstall_conflicting_packages
 			uninstall_conflicting_snap_packages
-			install_required_packages prerequired
+			install_required_packages prerequired $2
 			prepare_docker_apt_sources
-			install_required_packages required
+			install_required_packages required $2
 			check_exareme_required_ports
-			download_mip
-			echo -e "Run MIP [y/n]? "
-			read answer
+			download_mip $2
+			if [ "$2" = "-y" ]; then
+				answer="y"
+			else
+				echo -n "Run MIP [y/n]? "
+				read answer
+			fi
 			if [ "$answer" = "y" ]; then
 				run_mip
 			fi
