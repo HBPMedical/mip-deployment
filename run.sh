@@ -15,12 +15,12 @@ fi
 chmod a+rwx logs
 
 echo "Starting the process of creating databases..Deleting previous ones.."
-chmod 775 convert-csv-dataset-to-db.py
+chmod 775 data/convert-csv-dataset-to-db.py
 #Removing all previous .db files from the data/
 rm -rf data/**/*.db
 
 echo -e "\nParsing CSV files from data/ to Database files. "
-python convert-csv-dataset-to-db.py -f data/ -t "master"
+python data/convert-csv-dataset-to-db.py -f data/ -t "master"
 #Get the status code from previous command
 py_script=$?
 #If status code != 0 an error has occurred
