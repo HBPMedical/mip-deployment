@@ -24,7 +24,7 @@ _get_docker_main_ip(){
 
 check_os(){
 	if [ "$(lsb_release -si)" != "$REQUIRED_OS_DISTRIBUTOR_ID" -o "$(lsb_release -sr)" != "$REQUIRED_OS_RELEASE" ]; then
-		echo "Required OS version: Ubuntu 18.04!"
+		echo "Required OS version: $REQUIRED_OS_DISTRIBUTOR_ID $REQUIRED_OS_RELEASE!"
 		exit 1
 	fi
 }
