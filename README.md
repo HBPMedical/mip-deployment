@@ -17,6 +17,8 @@ sudo mip install -y
 ```bash
 sudo mip status
 ```
+If everything is ok here, this means that you should be able to see the MIP on http://*your_machine*
+
 * If you have issues, sometimes, doing it may save you
 ```bash
 sudo mip restart
