@@ -12,7 +12,7 @@ services:
       - backend
 
   exareme_master:
-    image: hbpmip/exareme:dev_v12.1
+    image: hbpmip/exareme:dev_v13
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
