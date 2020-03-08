@@ -2,38 +2,13 @@
 
 import sys
 import os
+import argparse
 import re
 import glob
 import csv
 import json
 import chardet
 import copy
-
-config = {
-            'data':
-            {
-                'path': 'data',
-                'max_recursion_depth': 1,
-                'metadata_format': 'json',
-                'metadata_filename': 'CDEsMetadata.json',
-                'metadata_encoding': 'utf-8',
-                'metadata_indent': '  ',
-                'metadata_dataset_sync': True,
-                'dataset_format': 'csv',
-                'dataset_encoding': 'ascii',
-                'dataset_delimiter': ',',
-                'dataset_quotechar': '"'
-            },
-            'pathologies':
-            {
-                'path': 'config',
-                'format': 'json',
-                'filename': 'pathologies2.json',
-                'file_encoding': 'utf-8',
-                'file_indent': '  '
-            }
-        }
-
 
 class gen_pathologies:
     __config = None
@@ -43,39 +18,40 @@ class gen_pathologies:
     __datasets_codes = {}
     __datasets = {}
 
-    def __init__(self, config):
-        check = False
-        go_ahead = True
-        if isinstance(config, dict):
-            keys = {
-                        'data':
-                            {'keys': ['path', 'max_recursion_depth', 'metadata_format', 'metadata_filename', 'metadata_encoding', 'metadata_indent', 'metadata_dataset_sync', 'dataset_format', 'dataset_encoding', 'dataset_delimiter', 'dataset_quotechar']},
-                        'pathologies':
-                            {'keys': ['path', 'format', 'filename', 'file_encoding', 'file_indent']}
-                    }
-            for section in keys:
-                if section in config and isinstance(config[section], dict):
-                    for key in keys[section]['keys']:
-                        if key not in config[section] or (key in config[section] and (config[section][key] is None or config[section][key] == '')):
-                            if key in config[section] and config[section][key] is None and re.search(r'encoding', key):
-                                pass
-                            else:
-                                go_ahead = False
-                                break
-                        if key == 'path':
-                            if os.path.isdir(config[section][key]):
-                                config[section][key] = os.path.abspath(config[section][key])
-                            else:
-                                go_ahead = False
-                                break
-                    if go_ahead:
-                        check = True
+    def __init__(self, args):
+        check = True
+
+        args_dict = vars(args)
+        config = {'data': {}, 'pathologies': {}}
+        for key in args_dict:
+            if key.startswith('data_'):
+                config['data'][key[5:]] = args_dict[key]
+            elif key.startswith('pathologies_'):
+                config['pathologies'][key[12:]] = args_dict[key]
+
+        for section in ['data', 'pathologies']:
+            keyname = 'metadata_indent'
+            if section == 'pathologies':
+                keyname = 'file_indent'
+            config[section][keyname] = ''
+            for i in range(config[section][keyname+'_count']):
+                config[section][keyname] += config[section][keyname+'_char']
+
+        config['data']['metadata_dataset_sync'] = True
+        if config['data']['metadata_dataset_unsync']:
+            config['data']['metadata_dataset_sync'] = False
+
+        for section in ['data', 'pathologies']:
+            path = config[section]['path']
+            if os.path.isdir(path):
+                config[section]['path'] = os.path.abspath(path)
+            else:
+                sys.exit('Invalid directory: %s' % path)
 
         if check:
             self.__config = config
         else:
-            print("configuration is not consistent! Can't go further...")
-            sys.exit(1)
+            sys.exit("configuration is not consistent! Can't go further...")
 
     def __predict_encoding(self, file_path, n_lines=None):
         if n_lines is None:
@@ -109,8 +85,9 @@ class gen_pathologies:
         file_ensure_ascii = True
         if file_encoding != 'ascii':
             file_ensure_ascii = False
+        file_indent = file_indent.replace('\\t', '\t').replace('\\n', '\n').replace('\\r', '\r')
         with open(filepath, 'wb') as f:
-            f.write(json.dumps(content, indent=file_indent, ensure_ascii=file_ensure_ascii).encode(file_encoding))
+            f.write(json.dumps(content, indent=file_indent, ensure_ascii=file_ensure_ascii).encode(file_encoding) + b"\n")
 
     def __file_writer(self, filepath, content, file_format='json', file_encoding='utf-8', file_indent='    '):
         if file_format == 'json':
@@ -142,7 +119,9 @@ class gen_pathologies:
                 self.__pathologies[pathology_id][item] = content[item]
         for i, var_type in enumerate(content['variables']):
             if var_type['code'] == 'dataset':
-                metadata_datasets = content['variables'].pop(i)
+                metadata_datasets = content['variables'][i]
+                if not self.__config['pathologies']['preserve_dataset_var']:
+                    content['variables'].pop(i)
                 metadata_datasets = metadata_datasets['enumerations']
 
         datasets_codes = [sub['code'] for sub in metadata_datasets]
@@ -291,7 +270,30 @@ class gen_pathologies:
                 self.__file_analyser(path)
 
 def main():
-    pathologies = gen_pathologies(config)
+    argsparser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    argsparser.add_argument('-d', '--data-path', dest='data_path', default='data', help='Data base directory path', type=str)
+    argsparser.add_argument('-r', '--max-recursion-depth', dest='data_max_recursion_depth', default=1, help='Maximum level of recursion for data directory analysis', type=int)
+    argsparser.add_argument('-f', '--metadata-format', dest='data_metadata_format', default='json', help='CDE metadata files format', type=str)
+    argsparser.add_argument('-m', '--metadata-filename', dest='data_metadata_filename', default='CDEsMetadata.json', help='CDE metadata file name', type=str)
+    argsparser.add_argument('-e', '--metadata-encoding', dest='data_metadata_encoding', default='utf-8', help='CDE metadata files encoding', type=str)
+    argsparser.add_argument('-i', '--metadata-indent-char', dest='data_metadata_indent_char', default=' ', help='CDE metadata files indentation character', type=str)
+    argsparser.add_argument('-c', '--metadata-indent-count', dest='data_metadata_indent_count', default=2, help='CDE metadata files indentation character count', type=int)
+    argsparser.add_argument('-u', '--metadata-dataset-unsync', dest='data_metadata_dataset_unsync', default=False, action='store_true', help='Do NOT synchronize CDE metadata files dataset with dataset files content')
+    argsparser.add_argument('-t', '--dataset-format', dest='data_dataset_format', default='csv', help='Dataset files format', type=str)
+    argsparser.add_argument('-o', '--dataset-encoding', dest='data_dataset_encoding', default='ascii', help='Dataset files encoding', type=str)
+    argsparser.add_argument('-l', '--dataset-delimiter', dest='data_dataset_delimiter', default=',', help='Dataset files fields delimiter', type=str)
+    argsparser.add_argument('-q', '--dataset-quotechar', dest='data_dataset_quotechar', default='"', help='Dataset files fields quote character', type=str)
+    argsparser.add_argument('-p', '--pathologies-path', dest='pathologies_path', default='config', help='Directory path where to save pathologies file', type=str)
+    argsparser.add_argument('-g', '--pathologies-format', dest='pathologies_format', default='json', help='Pathologies file format', type=str)
+    argsparser.add_argument('-a', '--pathologies-filename', dest='pathologies_filename', default='pathologies.json', help='Pathologies file name', type=str)
+    argsparser.add_argument('-b', '--pathologies-encoding', dest='pathologies_file_encoding', default='utf-8', help='Pathologies file encoding', type=str)
+    argsparser.add_argument('-j', '--pathologies-indent-char', dest='pathologies_file_indent_char', default=' ', help='Pathologies file indentation character', type=str)
+    argsparser.add_argument('-k', '--pathologies-indent-count', dest='pathologies_file_indent_count', default=2, help='Pathologies file indentation character count', type=int)
+    argsparser.add_argument('-n', '--pathologies-preserve-dataset-var', dest='pathologies_preserve_dataset_var', default=False, action='store_true', help='Preserve dataset variable in pathologies file')
+
+    args = argsparser.parse_args()
+
+    pathologies = gen_pathologies(args)
     pathologies.browse()
     pathologies.pathologies_generator()
     pathologies.pathologies_file_writer()
