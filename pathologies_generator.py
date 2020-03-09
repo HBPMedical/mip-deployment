@@ -93,7 +93,7 @@ class gen_pathologies:
         if file_format == 'json':
             self.__json_file_writer(filepath, content, file_encoding, file_indent)
         else:
-            print(f"WARNING: No pathologies processor for format \"{file_format}\"! I won't be able to write {filepath}")
+            print("WARNING: No pathologies processor for format \"%s\"! I won't be able to write %s" %(file_format, filepath))
 
     def __metadata_file_writer(self, pathology):
         filepath = os.path.join(self.__config['data']['path'], pathology, self.__config['data']['metadata_filename'])
@@ -117,6 +117,7 @@ class gen_pathologies:
                 self.__pathologies[pathology_id]['label'] = pathology.capitalize()
             else:
                 self.__pathologies[pathology_id][item] = content[item]
+
         for i, var_type in enumerate(content['variables']):
             if var_type['code'] == 'dataset':
                 metadata_datasets = content['variables'][i]
@@ -139,13 +140,12 @@ class gen_pathologies:
             if dataset['code'] not in self.__datasets_codes[pathology]:
                 exceeding_datasets.append(dataset['code'])
 
-        pathology_datasets_codes = [sub['code'] for sub in self.__datasets[pathology]]
         for missing_dataset in missing_datasets:
             missing_dataset_id = self.__get_dict_id(self.__datasets[pathology], 'code', missing_dataset)
             metadata_datasets.append(self.__datasets[pathology][missing_dataset_id])
             if self.__config['data']['metadata_dataset_sync']:
                 metadata_dataset_variable_id = self.__get_dict_id(self.__metadatas[pathology]['source']['variables'], 'code', 'dataset')
-                self.__metadatas[pathology]['source'][metadata_dataset_variable_id].append(self.__datasets[pathology][dataset_id])
+                self.__metadatas[pathology]['source']['variables'][metadata_dataset_variable_id]['enumerations'].append(self.__datasets[pathology][missing_dataset_id])
                 metadata_dataset_file_change = True
         for exceeding_dataset in exceeding_datasets:
             for i, dataset in enumerate(metadata_datasets):
@@ -153,9 +153,10 @@ class gen_pathologies:
                     metadata_datasets.pop(i)
                     break
             if self.__config['data']['metadata_dataset_sync']:
-                for i, dataset in enumerate(self.__metadatas[pathology]['source']['variables']):
+                metadata_dataset_variable_id = self.__get_dict_id(self.__metadatas[pathology]['source']['variables'], 'code', 'dataset')
+                for i, dataset in enumerate(self.__metadatas[pathology]['source']['variables'][metadata_dataset_variable_id]['enumerations']):
                     if dataset['code'] == exceeding_dataset:
-                        self.__metadatas[pathology]['source']['variables'].pop(i)
+                        self.__metadatas[pathology]['source']['variables'][metadata_dataset_variable_id]['enumerations'].pop(i)
                         metadata_dataset_file_change = True
 
         if metadata_dataset_file_change:
@@ -228,7 +229,10 @@ class gen_pathologies:
             pathology_id = self.__pathologies_ids[pathology]
             if self.__metadatas[pathology]['final'] is not None:
                 self.__metadata_processor(pathology)
-                self.__pathologies[pathology_id]['metadataHierarchy'] = self.__metadatas[pathology]['final']
+                hierarchyName = 'metadataHierarchy'
+                if self.__config['pathologies']['mip5_compatibility']:
+                    hierarchyName = 'hierarchy'
+                self.__pathologies[pathology_id][hierarchyName] = self.__metadatas[pathology]['final']
             self.__pathologies[pathology_id]['datasets'] = self.__datasets[pathology]
 
     def pathologies_file_writer(self):
@@ -290,6 +294,7 @@ def main():
     argsparser.add_argument('-j', '--pathologies-indent-char', dest='pathologies_file_indent_char', default=' ', help='Pathologies file indentation character', type=str)
     argsparser.add_argument('-k', '--pathologies-indent-count', dest='pathologies_file_indent_count', default=2, help='Pathologies file indentation character count', type=int)
     argsparser.add_argument('-n', '--pathologies-preserve-dataset-var', dest='pathologies_preserve_dataset_var', default=False, action='store_true', help='Preserve dataset variable in pathologies file')
+    argsparser.add_argument('-5', '--pathologies-mip5-ok', dest='pathologies_mip5_compatibility', default=False, action='store_true', help='Generate MIP5 compatible pathologies file')
 
     args = argsparser.parse_args()
 
