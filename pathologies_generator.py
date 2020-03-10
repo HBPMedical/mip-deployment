@@ -3,12 +3,11 @@
 import sys
 import os
 import argparse
-import re
 import glob
 import csv
 import json
-import chardet
 import copy
+import chardet
 
 class gen_pathologies:
     __config = None
@@ -72,9 +71,13 @@ class gen_pathologies:
         return encoding
 
     def __get_dict_id(self, dict_list, dict_item, search_value):
+        result = None
         for i, item in enumerate(dict_list):
             if item[dict_item] == search_value:
-                return i
+                result = i
+                break
+
+        return result
 
     def __get_filtered_dict_list(self, dict_list, key_name):
         return [sub[key_name] for sub in dict_list]
@@ -187,7 +190,7 @@ class gen_pathologies:
             else:
                 print('No dataset processor for format "%s"!' % self.__config['data']['dataset_format'])
                 sys.exit(1)
-        if len(datasets) > 0:
+        if datasets:
             if pathology not in self.__datasets_codes:
                 self.__datasets_codes[pathology] = []
                 self.__datasets[pathology] = []
