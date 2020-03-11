@@ -163,7 +163,15 @@ class gen_pathologies:
                         metadata_dataset_file_change = True
 
         if metadata_dataset_file_change:
-            self.__metadata_file_writer(pathology)
+            answer = input('It appears that the datasets enumerations of the ' + pathology + ' metadata, do not match with the dataset values in the csvs. Do you want to configure them automatically? (Y/N) ')
+            while answer != 'Y' and answer != 'y' and answer != 'N' and answer != 'n':
+                answer = input('Do you want to configure them automatically? (Y/N) ')
+            
+            if answer == 'Y' or answer == 'y':
+                self.__metadata_file_writer(pathology)
+                print('The metadata of the ' + pathology + ' pathology were automatically configured.')
+            else:
+                print('The metadata of the ' + pathology + ' pathology were not changed.')
 
     def __dataset_processor(self, pathology, file_path):
         datasets = []
