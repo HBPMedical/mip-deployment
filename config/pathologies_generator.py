@@ -41,7 +41,12 @@ class gen_pathologies:
             config['data']['metadata_dataset_sync'] = False
 
         for section in ['data', 'pathologies']:
-            path = config[section]['path']
+            if config[section]['path'] is not None:
+                path = config[section]['path']
+            else:
+                path = os.path.dirname(__file__)
+                if section == 'data':
+                    path = os.path.join(path, '../data')
             if os.path.isdir(path):
                 config[section]['path'] = os.path.abspath(path)
             else:
@@ -163,15 +168,15 @@ class gen_pathologies:
                         metadata_dataset_file_change = True
 
         if metadata_dataset_file_change:
-            print('It appears that the datasets enumerations of the ' + pathology + ' metadata, do not match with the dataset values in the csvs. Do you want to configure them automatically? (Y/N) ')
+            print('It appears that the datasets enumerations of the "%s" metadata do not match the dataset values in the dataset files (%s format). Do you want to configure them automatically? (Y/N) ' %(pathology, self.__config['data']['dataset_format']))
             while True:
                 answer = input()
-                if answer == 'Y' or answer == 'y':
+                if answer.lower() == 'y':
                     self.__metadata_file_writer(pathology)
-                    print('The metadata of the ' + pathology + ' pathology were automatically configured.')
+                    print('The metadata of the "%s" pathology were automatically configured.' % pathology)
                     break
-                elif answer == 'N' or answer == 'n':
-                    print('The metadata of the ' + pathology + ' pathology were not changed.')
+                elif answer.lower() == 'n':
+                    print('The metadata of the "%s" pathology were not changed.' % pathology)
                     break
                 else:
                     print('Do you want to configure them automatically? (Y/N) ')
@@ -289,7 +294,7 @@ class gen_pathologies:
 
 def main():
     argsparser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    argsparser.add_argument('-d', '--data-path', dest='data_path', default='data', help='Data base directory path', type=str)
+    argsparser.add_argument('-d', '--data-path', dest='data_path', help='Data base directory path', type=str)
     argsparser.add_argument('-r', '--max-recursion-depth', dest='data_max_recursion_depth', default=1, help='Maximum level of recursion for data directory analysis', type=int)
     argsparser.add_argument('-f', '--metadata-format', dest='data_metadata_format', default='json', help='CDE metadata files format', type=str)
     argsparser.add_argument('-m', '--metadata-filename', dest='data_metadata_filename', default='CDEsMetadata.json', help='CDE metadata file name', type=str)
@@ -301,7 +306,7 @@ def main():
     argsparser.add_argument('-o', '--dataset-encoding', dest='data_dataset_encoding', default='ascii', help='Dataset files encoding', type=str)
     argsparser.add_argument('-l', '--dataset-delimiter', dest='data_dataset_delimiter', default=',', help='Dataset files fields delimiter', type=str)
     argsparser.add_argument('-q', '--dataset-quotechar', dest='data_dataset_quotechar', default='"', help='Dataset files fields quote character', type=str)
-    argsparser.add_argument('-p', '--pathologies-path', dest='pathologies_path', default='config', help='Directory path where to save pathologies file', type=str)
+    argsparser.add_argument('-p', '--pathologies-path', dest='pathologies_path', help='Directory path where to save pathologies file', type=str)
     argsparser.add_argument('-g', '--pathologies-format', dest='pathologies_format', default='json', help='Pathologies file format', type=str)
     argsparser.add_argument('-a', '--pathologies-filename', dest='pathologies_filename', default='pathologies.json', help='Pathologies file name', type=str)
     argsparser.add_argument('-b', '--pathologies-encoding', dest='pathologies_file_encoding', default='utf-8', help='Pathologies file encoding', type=str)
