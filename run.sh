@@ -14,21 +14,25 @@ fi
 
 chmod a+rwx logs
 
-echo "Starting the process of creating databases..Deleting previous ones.."
-chmod 775 data/convert-csv-dataset-to-db.py
-#Removing all previous .db files from the data/
+# CSVs and metadata validation
+echo "Validating if the CSVs match with the metadata..."
+chmod 775 config/convert-csv-dataset-to-db.py
+
+# Removing previous .db files
 rm -rf data/**/*.db
 
-echo -e "\nParsing CSV files from data/ to Database files. "
-python data/convert-csv-dataset-to-db.py -f data/ -t "master"
-#Get the status code from previous command
+# Running the database creation script
+python config/convert-csv-dataset-to-db.py -f data/ -t "master"
+
+# Get the status code from previous command
 py_script=$?
-#If status code != 0 an error has occurred
+
+# If status code != 0 an error has occurred
 if [[ ${py_script} -ne 0 ]]; then
-     echo -e "\nCreation of databases failed. Exiting.." >&2
-     exit 1
+    echo -e "\nThe CSVs could not be parsed using the metadata. Exiting..." >&2
+    exit 1
 else
-    echo -e "\nDatabase files created."
+    echo -e "\nThe CSVs match with the metadata."
 fi
 
 echo -e "\nRemoving previous services..."
