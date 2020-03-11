@@ -34,7 +34,7 @@ When you have your data ready create a new folder inside the `data` folder, with
 
 If your data do not match the specifications of MIP, a message will be shown when installing the software.
 
-*You should consider adjusting the above <a href="README.md#additional-data">requirements</a> with respect to your additional data's size.*
+*You should consider adjusting the above <a href="README.md#minimum-requirements">requirements</a> with respect to your additional data's size.*
 
 ## Prerequisites
 
