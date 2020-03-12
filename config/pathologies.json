@@ -3,7 +3,36 @@
     "code": "dementia",
     "label": "Dementia",
     "metadataHierarchy": {
-      "variables": [],
+      "variables": [
+        {
+          "isCategorical": true,
+          "code": "dataset",
+          "sql_type": "text",
+          "description": "Variable used to differentiate datasets",
+          "enumerations": [
+            {
+              "code": "adni",
+              "label": "ADNI"
+            },
+            {
+              "code": "ppmi",
+              "label": "PPMI"
+            },
+            {
+              "code": "edsd",
+              "label": "EDSD"
+            },
+            {
+              "code": "desd-synthdata",
+              "label": "DESD-synthdata"
+            }
+          ],
+          "label": "Dataset",
+          "units": "",
+          "type": "multinominal",
+          "methodology": "mip-cde"
+        }
+      ],
       "code": "dementia",
       "groups": [
         {
@@ -1690,6 +1719,112 @@
               ],
               "code": "dataset_specific_diagnosis",
               "label": "Dataset_specific_diagnosis"
+            },
+            {
+              "variables": [
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_etiology_1",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:etiology:1",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                },
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_etiology_2",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:etiology:2",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                },
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_etiology_3",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:etiology:3",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                },
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_lng",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:lng",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                },
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_lngapp",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:lngapp",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                },
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_stade",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:stade",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                },
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_stademin",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:stademin",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                },
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_syndamn",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:syndamn",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                },
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_syndoth",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:syndoth",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                },
+                {
+                  "isCategorical": false,
+                  "code": "DIAG_syndr",
+                  "sql_type": "text",
+                  "description": "",
+                  "label": "DIAG:syndr",
+                  "units": "",
+                  "type": "text",
+                  "methodology": "mip-cde"
+                }
+              ],
+              "code": "bna",
+              "label": "Bna"
             }
           ],
           "label": "Diagnosis"
@@ -2308,7 +2443,24 @@
     "code": "tbi",
     "label": "Tbi",
     "metadataHierarchy": {
-      "variables": [],
+      "variables": [
+        {
+          "isCategorical": true,
+          "code": "dataset",
+          "sql_type": "text",
+          "description": "Variable used to differentiate datasets.",
+          "enumerations": [
+            {
+              "code": "demo1",
+              "label": "DEMO1"
+            }
+          ],
+          "label": "Dataset",
+          "units": "",
+          "type": "multinominal",
+          "methodology": "mip-cde"
+        }
+      ],
       "code": "tbi",
       "groups": [
         {

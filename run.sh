@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+SCRIPTDIR=`dirname "$0"`
+
+cd $SCRIPTDIR
+
 if [ `id -u` -ne 0 ]; then
     echo "Please run this script with sudo"
     exit 1
@@ -22,7 +26,7 @@ while true
 do
 	if [[ ${answer} == "y" || ${answer} == "Y" ]]; then
 		echo "Auto-generating the config files..."
-		./config/pathologies_generator.py
+		./config/pathologies_generator.py -n
 		break
 	elif [[ ${answer} == "n" || ${answer} == "N" ]]; then
 		echo "You can change the configurations manually from the config folder."
