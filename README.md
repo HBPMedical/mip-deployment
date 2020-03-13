@@ -10,14 +10,11 @@ This pack contains two sets of metadata and data for the following medical condi
 
 This pack does not contain the data pre-processing tools (Data Factory) that are used to prepare your data and metadata.
 
-### Additional Data
+### How to add Custom Data
 
-If you want to add your data on your local MIP deployment, you can look in the [Data Requirements](https://github.com/madgik/exareme/blob/master/Documentation/InputRequirements.md) for the specifications.
-When you have your data ready create a new folder inside the `data` folder, with the name of your pathology and add the data/metadata inside that folder. If you want to add some data on a pre-existing pathology you can just add you csv inside that folder. Be careful though, your data have to match with the metadata in that folder.
+You can follow this <a href="../documentation/NewDataRequirements.md#new-data-requirements">guide</a>.
 
-If your data do not match the specifications of MIP, a message will be shown when installing the software.
-
-## Prerequisites
+## System Requirements
 
 The server must be set up according to the MIP Technical Requirements and must be in a clean state.
 
@@ -27,8 +24,9 @@ It should also have:
   - docker-compose (tested using version 1.17.0)
 
 ### Deploy
+
 Clone this repository.
-Execute `sudo ./run.sh` script to install the components.
+Execute `sudo ./run.sh` script to install all the components.
 
 ## Verify the MIP 6.0 is working
 After the installation is done, MIP will be visible on localhost.  To verify all is working fine launch MIP and
