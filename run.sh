@@ -20,6 +20,25 @@ fi
 chmod a+rwx logs
 
 
+# Running the pathologies.json generator
+echo -e "\nDo you want to auto-generate the config files? ( Y/N )"
+read answer
+while true
+do
+	if [[ ${answer} == "y" || ${answer} == "Y" ]]; then
+		echo "Auto-generating the config files..."
+		./config/pathologies_generator.py -n
+		break
+	elif [[ ${answer} == "n" || ${answer} == "N" ]]; then
+		echo "You can change the configurations manually from the config folder."
+		break
+	else
+		echo "$answer is not a valid answer! Try again... ( Y/N )"
+		read answer
+	fi
+done
+
+
 # CSVs and metadata validation
 echo "Validating if the CSVs match with the metadata..."
 chmod 775 config/convert-csv-dataset-to-db.py
@@ -40,25 +59,6 @@ if [[ ${py_script} -ne 0 ]]; then
 else
     echo -e "\nThe CSVs match with the metadata."
 fi
-
-
-# Running the pathologies.json generator
-echo -e "\nDo you want to auto-generate the config files? ( Y/N )"
-read answer
-while true
-do
-	if [[ ${answer} == "y" || ${answer} == "Y" ]]; then
-		echo "Auto-generating the config files..."
-		./config/pathologies_generator.py -n
-		break
-	elif [[ ${answer} == "n" || ${answer} == "N" ]]; then
-		echo "You can change the configurations manually from the config folder."
-		break
-	else
-		echo "$answer is not a valid answer! Try again... ( Y/N )"
-		read answer
-	fi
-done
 
 
 echo -e "\nRemoving previous services..."
