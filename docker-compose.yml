@@ -12,7 +12,7 @@ services:
       - backend
 
   exareme_master:
-    image: hbpmip/exareme:dev_v12.1
+    image: hbpmip/exareme:dev_v16
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
@@ -68,7 +68,7 @@ services:
       - backend
 
   portalbackend:
-    image: hbpmip/portal-backend:dev_v6.0.1
+    image: hbpmip/portal-backend:6.0.0
     ports:
       - '8080:8080'
       - '8089:8089'
@@ -98,8 +98,8 @@ services:
       GALAXY_API_KEY: 'd14a4cc5eebf805eb2ff261374ed08a2'
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-
-      KEYCLOAK_URL: '127.0.0.1'
+      
+      KEYCLOAK_URL: "127.0.0.1"
       AUTH_URI: 'https://127.0.0.1:8095/auth/realms/MIP/protocol/openid-connect/auth'
       USER_INFO_URI: 'https://127.0.0.1:8095/auth/realms/MIP/protocol/openid-connect/userinfo'
       TOKEN_URI: 'https://127.0.0.1:8095/auth/realms/MIP/protocol/openid-connect/token'
@@ -116,7 +116,7 @@ services:
       - frontend
 
   frontend:
-    image: hbpmip/portal-frontend:dev_5.2.1
+    image: hbpmip/portal-frontend:dev_5.2.7
     depends_on:
       - portalbackend
     ports:
@@ -128,9 +128,11 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       INSTANCE_NAME: 'MIP DEV 6.0.0'
-      VERSION: 'Frontend: dev_5.2.1, Backend: dev_v6.0.1, Exareme: dev_v12.1, Galaxy: v1.3.1'
+      VERSION: 'Frontend: dev_5.2.7, Backend: 6.0.0, Exareme: dev_v16, Galaxy: v1.3.1'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: 'http://galaxy/nativeGalaxy'
+      KEYCLOAK_AUTH_URL: "http://127.0.0.1/auth/"
+      KEYCLOAK_LOGIN_URL: "http://127.0.0.1/auth/realms/MIP/protocol/openid-connect/auth"
     restart: on-failure
     networks:
       - frontend
@@ -138,6 +140,8 @@ services:
 
   keycloak_db:
     image: postgres
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
@@ -150,8 +154,9 @@ services:
 
   keycloak:
     image: jboss/keycloak
+    command:
+      -Djboss.http.port=8095 
     volumes:
-      - ./config/certs:/etc/x509/https
       - ./config/keycloak.json:/tmp/mip.json
       - ./tmp:/tmp
     environment:
