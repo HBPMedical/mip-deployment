@@ -11,7 +11,7 @@ There can be many csv files in a pathology. A csv file should follow these rules
 	<li>It should contain a subjectcode variable, with the pseudo-id of each record,</li>
 	<li>and the dataset column, that declares in which dataset the row belongs to.</li>
 	<li>All the variable names should exist in the CDEsMetadata.json file, except from the <code>subjectcode</code>.</li>
-<ul>
+</ul>
 
 If your data do not match the specifications of MIP, a message will be shown when installing the software.
 
@@ -20,7 +20,7 @@ If your data do not match the specifications of MIP, a message will be shown whe
 If you want to add a new pathology on MIP then you need to create a new folder inside the `data` directory with the name of your pathology. Inside that folder you need to add:
 <ul><li>The CDEsMetadata.json file</li>
 	<li>and the CSVs containing the data.</li>
-<ul>
+</ul>
 
 ## CDEsMetadata:
 
@@ -44,6 +44,7 @@ The metadata file should follow these rules:
 		</ul>
 	</li>
 </ul>
-An example can be seen <a href="../data/dementia/CDEsMetadata.json#CDEsMetadata">here</a>.
+
+An example can be seen <a href="../data/dementia/CDEsMetadata.json">here</a>.
 
 After adding the CDEsMetadata file you can add your data the same way as adding <b>New Data on existing Pathology</b>.

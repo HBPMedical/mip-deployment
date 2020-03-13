@@ -1,4 +1,4 @@
-# MIP-Local Deployment Guide 6.0
+# MIP-LOCAL Deployment Guide
 
 ## Introduction
 
@@ -12,7 +12,7 @@ This pack does not contain the data pre-processing tools (Data Factory) that are
 
 ### How to add Custom Data
 
-You can follow this <a href="../documentation/NewDataRequirements.md#new-data-requirements">guide</a>.
+You can follow this <a href="./documentation/NewDataRequirements.md">guide</a>.
 
 ## System Requirements
 
@@ -23,14 +23,14 @@ It should also have:
   - docker (tested using version 17.05.0-ce)
   - docker-compose (tested using version 1.17.0)
 
-### Deploy
+## Deploy
 
 Clone this repository.
 Execute `sudo ./run.sh` script to install all the components.
 
-## Verify the MIP 6.0 is working
-After the installation is done, MIP will be visible on localhost.  To verify all is working fine launch MIP and
-  - Check that 2 medical conditions (dementia and TBI) are accessible from the frontend,
-  - Check that 5 datasets are accessible from the front end (4 in dementia and 1 in TBI).
+## Test
+After the installation is done, MIP will be visible on localhost.  To verify everything is working properly go to http://localhost and
+  - Check that 2 medical conditions (dementia and TBI) are visible,
+  - and that 5 datasets are accessible (4 in dementia and 1 in TBI).
 
 Enjoy!
