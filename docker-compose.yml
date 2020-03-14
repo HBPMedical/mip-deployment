@@ -127,7 +127,7 @@ services:
       PORTAL_VIRTUAL_HOST: frontend
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
-      INSTANCE_NAME: 'MIP DEV 6.0.0'
+      INSTANCE_NAME: 'MIP 6.0.0'
       VERSION: 'Frontend: 6.0.0, Backend: 6.0.0, Exareme: dev_v16, Galaxy: v1.3.1'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
