@@ -116,7 +116,7 @@ services:
       - frontend
 
   frontend:
-    image: hbpmip/portal-frontend:dev_5.2.7
+    image: hbpmip/portal-frontend:6.0.0
     depends_on:
       - portalbackend
     ports:
@@ -127,8 +127,8 @@ services:
       PORTAL_VIRTUAL_HOST: frontend
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
-      INSTANCE_NAME: 'MIP DEV 6.0.0'
-      VERSION: 'Frontend: dev_5.2.7, Backend: 6.0.0, Exareme: dev_v16, Galaxy: v1.3.1'
+      INSTANCE_NAME: 'MIP 6.0.0'
+      VERSION: 'Frontend: 6.0.0, Backend: 6.0.0, Exareme: dev_v16, Galaxy: v1.3.1'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: 'http://galaxy/nativeGalaxy'
       KEYCLOAK_AUTH_URL: "http://127.0.0.1/auth/"
