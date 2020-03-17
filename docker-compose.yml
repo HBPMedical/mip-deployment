@@ -175,6 +175,7 @@ services:
       - '8443:8443'
     depends_on:
       - keycloak_db
+    restart: on-failure
     networks:
       - backend
-
+    
