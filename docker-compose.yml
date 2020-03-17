@@ -131,8 +131,8 @@ services:
       VERSION: 'Frontend: 6.0.0, Backend: 6.0.0, Exareme: dev_v16, Galaxy: v1.3.1'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
-      KEYCLOAK_AUTH_URL: http://${PUBLIC_MIP_IP}:8095/auth/
-      KEYCLOAK_LOGIN_URL: http://${PUBLIC_MIP_IP}:8095/auth/realms/MIP/protocol/openid-connect/auth
+      KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
+      KEYCLOAK_LOGIN_URL: http://keycloak:8095/auth/realms/MIP/protocol/openid-connect/auth
     restart: on-failure
     networks:
       - frontend
@@ -158,7 +158,6 @@ services:
       -Djboss.http.port=8095 
     volumes:
       - ./config/keycloak.json:/tmp/mip.json
-      - ./tmp:/tmp
     environment:
       DB_VENDOR: POSTGRES
       DB_ADDR: keycloak_db
