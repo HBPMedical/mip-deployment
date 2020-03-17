@@ -29,8 +29,18 @@ Clone this repository.
 Execute `sudo ./run.sh` script to install all the components.
 
 ## Test
-After the installation is done, MIP will be visible on localhost.  To verify everything is working properly go to http://localhost and
+
+After the installation is done, MIP will be visible on localhost. To verify everything is working properly go to http://localhost and
   - Check that 2 medical conditions (dementia and TBI) are visible,
   - and that 5 datasets are accessible (4 in dementia and 1 in TBI).
 
+You can login with the default user:
+```
+username: user
+password: password
+```
+
+If everything is working properly you should configure the users following this <a href="./documentation/UsersConfiguration.md">guide</a>.
+
 Enjoy!
+

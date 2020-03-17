@@ -1,9 +1,6 @@
+### Add roles to a User
 
-#### Add roles to a User
-
-Login to your running keycloak (e.g. https://keycloakURL:8095/auth/admin/
-
-Use credentials (Default ones defined in docker-compose are UserName : admin, Password: Pa55w0rd)
+Login to the keycloak console on https://{MIP_IP}/auth/admin/ with the administrator credentials.
 
 Select users : 
 
@@ -16,6 +13,6 @@ Select the Role Mappings tab.
 
 ![img4](images/step4.png)
 
-Select Add the ROLE_Researcher and the ROLE_Data Manager (optional) 
+Select Add the ROLE_Researcher and the ROLE_Data Manager (Optional) 
 
 ![img5](images/step5.png)
