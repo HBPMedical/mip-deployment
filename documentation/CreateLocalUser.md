@@ -1,6 +1,6 @@
 ### Create a User
 
-Login to the keycloak console on https://{MIP_IP}/auth/admin/ with the administrator credentials.
+Login to the keycloak console on http://{MIP_IP}/auth/admin/ with the administrator credentials.
 
 1) Select users : 
 ![img1](images/step1.png)

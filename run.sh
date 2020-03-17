@@ -61,8 +61,26 @@ else
 fi
 
 
+# Removing previous services
 echo -e "\nRemoving previous services..."
 docker-compose --project-name mip down
 
+
+# Deploying MIP services
 echo -e "\nDeploy Services..."
 docker-compose --project-name mip up -d
+
+
+# Disabling the Keycloak SSL Certificate
+echo -e "\nConfiguring Keycloak..."
+sleep 10
+source .env
+{
+	docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://${PUBLIC_MIP_IP}:8095/auth --realm master --user admin --password Pa55w0rd
+	docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE 
+} &> /dev/null
+
+
+
+echo -e "\nMIP is up and running you can access it on: http://${PUBLIC_MIP_IP}"
+

@@ -1,6 +1,6 @@
 ### Add roles to a User
 
-Login to the keycloak console on https://{MIP_IP}/auth/admin/ with the administrator credentials.
+Login to the keycloak console on http://{MIP_IP}/auth/admin/ with the administrator credentials.
 
 Select users : 
 
