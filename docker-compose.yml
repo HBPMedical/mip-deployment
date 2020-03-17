@@ -139,7 +139,7 @@ services:
       - backend
 
   keycloak_db:
-    image: postgres
+    image: postgres:12.2
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
     environment:
@@ -153,7 +153,7 @@ services:
       - backend
 
   keycloak:
-    image: jboss/keycloak
+    image: jboss/keycloak:8.0.1
     command:
       -Djboss.http.port=8095 
     volumes:
@@ -177,3 +177,4 @@ services:
       - keycloak_db
     networks:
       - backend
+
