@@ -23,6 +23,23 @@ It should also have:
   - docker (tested using version 17.05.0-ce)
   - docker-compose (tested using version 1.17.0)
 
+The iptables config should have the following configuration (for ports 80 and 8095)
+
+Input:
+-A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp -m tcp --sport 80 -j ACCEPT
+Output:
+-Α OUTPUT -p tcp -m tcp --dport 80 -j ACCEPT
+-A OUTPUT -p tcp -m tcp --sport 80 -j ACCEPT
+
+Input:
+-A INPUT -p tcp -m tcp --dport 8095 -j ACCEPT
+-A INPUT -p tcp -m tcp --sport 8095 -j ACCEPT
+Output:
+-Α OUTPUT -p tcp -m tcp --dport 8095 -j ACCEPT
+-A OUTPUT -p tcp -m tcp --sport 8095 -j ACCEPT
+
+
 ## Deploy
 
 Clone this repository.
@@ -39,6 +56,8 @@ You can login with the default user:
 username: user
 password: password
 ```
+
+
 
 If everything is working properly you should configure the users following this <a href="./documentation/UsersConfiguration.md">guide</a>.
 
