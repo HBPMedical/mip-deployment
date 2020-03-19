@@ -24,7 +24,7 @@ It should also have:
   - docker-compose (tested using version 1.17.0)
 
 The iptables config should have the following configuration (for ports 80 and 8095)
-
+```
 Input:
 -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
 -A INPUT -p tcp -m tcp --sport 80 -j ACCEPT
@@ -38,7 +38,7 @@ Input:
 Output:
 -Α OUTPUT -p tcp -m tcp --dport 8095 -j ACCEPT
 -A OUTPUT -p tcp -m tcp --sport 8095 -j ACCEPT
-
+```
 
 ## Deploy
 
