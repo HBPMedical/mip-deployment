@@ -168,7 +168,7 @@ class gen_pathologies:
                         metadata_dataset_file_change = True
 
         if metadata_dataset_file_change:
-            print('It appears that the datasets enumerations of the "%s" metadata do not match the dataset values in the dataset files (%s format). Do you want to configure them automatically? (Y/N) ' %(pathology, self.__config['data']['dataset_format']))
+            print('It appears that the dataset enumerations of the "%s" metadata, do not match the distinct dataset values in the data files (%s format). Do you want to configure them automatically? (Y/N) ' %(pathology, self.__config['data']['dataset_format']))
             while True:
                 answer = input()
                 if answer.lower() == 'y':
