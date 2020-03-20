@@ -13,11 +13,18 @@ set -o pipefail # trace ERR through pipes
 set -o errtrace # trace ERR through 'time command' and other functions
 
 
+
+# MIP Installation
+echo -e "\nStarting the MIP installation."
+
+
+
 # Creating logs folder
 if [ ! -d "logs" ]; then
         mkdir logs
 fi
 chmod a+rwx logs
+
 
 
 # Running the pathologies.json generator
@@ -26,33 +33,25 @@ read answer
 while true
 do
 	if [[ ${answer} == "y" || ${answer} == "Y" ]]; then
-		echo "Auto-generating the config files..."
+		echo -e "\nAuto-generating the config files..."
 		./config/pathologies_generator.py -n
 		break
 	elif [[ ${answer} == "n" || ${answer} == "N" ]]; then
-		echo "You can change the configurations manually from the config folder."
+		echo -e "\nYou can change the configurations (pathologies.json) manually from the config folder."
 		break
 	else
-		echo "$answer is not a valid answer! Try again... ( Y/N )"
+		echo -e "\n$answer is not a valid answer! Try again... ( Y/N )"
 		read answer
 	fi
 done
 
 
+
 # CSVs and metadata validation
-echo "Validating if the CSVs match with the metadata..."
-chmod 775 config/convert-csv-dataset-to-db.py
-
-# Removing previous .db files
-rm -rf data/**/*.db
-
-# Running the database creation script
-python config/convert-csv-dataset-to-db.py -f data/ -t "master"
-
-# Get the status code from previous command
+echo -e "\nValidating if the CSVs match with the metadata..."
+rm -rf data/**/*.db	# Removing previous .db files
+python config/convert-csv-dataset-to-db.py -f data/ -t "master" # Running the database creation script
 py_script=$?
-
-# If status code != 0 an error has occurred
 if [[ ${py_script} -ne 0 ]]; then
     echo -e "\nThe CSVs could not be parsed using the metadata. Exiting..." >&2
     exit 1
@@ -61,9 +60,19 @@ else
 fi
 
 
+
+# Checking the PUBLIC_MIP_IP env variable
+echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from. If you only want to install it on your local machine, you can initialize it with 127.0.0.1"
+./config/check_env_variabe_IP.sh .env PUBLIC_MIP_IP
+
+source .env # Load the env variables
+
+
+
 # Removing previous services
 echo -e "\nRemoving previous services..."
 docker-compose --project-name mip down
+
 
 
 # Deploying MIP services
@@ -71,9 +80,9 @@ echo -e "\nDeploy Services..."
 docker-compose --project-name mip up -d
 
 
+
 # Disabling the Keycloak SSL Certificate
 echo -e "\nConfiguring Keycloak..."
-source .env
 
 docker_login_worked=1
 count=0
@@ -82,7 +91,7 @@ while [[ ${docker_login_worked} -ne 0 ]]
 do
 	
 	# Wait for keycloak to start
-	sleep 10
+	sleep 20
 
 	# Login to the docker container
 	{
@@ -94,14 +103,13 @@ do
 	# Try 10 times and then throw error
 	count=`expr $count + 1`
 	if [[ ${count} -eq 10 ]]; then
-		echo -e "\nCould not configure Keycloak properly." >&2
+		echo -e "\nCould not configure Keycloak properly. Please try running the script again." >&2
 		exit 1
 	fi
 done
 
 # Disable sslRequired on Keycloak
 docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE 
-
 
 
 
