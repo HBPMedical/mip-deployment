@@ -10,10 +10,6 @@ This pack contains two sets of metadata and data for the following medical condi
 
 This pack does not contain the data pre-processing tools (Data Factory) that are used to prepare your data and metadata.
 
-### How to add Custom Data
-
-You can follow this <a href="./documentation/NewDataRequirements.md">guide</a>.
-
 ## System Requirements
 
 The server must be set up according to the MIP Technical Requirements and must be in a clean state.
@@ -22,6 +18,13 @@ It should also have:
   - git
   - docker (tested using version 17.05.0-ce)
   - docker-compose (tested using version 1.17.0)
+  - python (2.7)
+
+If you want your MIP installation to be accessible externally you should follow this ports configuration <a href="./documentation/PortsConfiguration.md">guide</a>.
+
+## How to add Custom Data
+
+You can follow this <a href="./documentation/NewDataRequirements.md">guide</a>.
 
 ## Deploy
 
@@ -29,8 +32,20 @@ Clone this repository.
 Execute `sudo ./run.sh` script to install all the components.
 
 ## Test
-After the installation is done, MIP will be visible on localhost.  To verify everything is working properly go to http://localhost and
+
+After the installation is done, MIP will be visible on localhost. To verify everything is working properly go to http://localhost and
   - Check that 2 medical conditions (dementia and TBI) are visible,
   - and that 5 datasets are accessible (4 in dementia and 1 in TBI).
 
+You can login with the default user:
+```
+username: user
+password: password
+```
+
+
+
+If everything is working properly you should configure the users following this <a href="./documentation/UsersConfiguration.md">guide</a>.
+
 Enjoy!
+
