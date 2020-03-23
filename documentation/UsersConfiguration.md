@@ -12,8 +12,8 @@ password: Pa55w0rd
 
 ### Create a New User
 
-Follow this <a href="./documentation/CreateLocalUser.md">guide</a>.
+Follow this <a href="./CreateLocalUser.md">guide</a>.
 
 ### Add Role to Existing User
 
-Follow this <a href="./documentation/AddRoleToUser.md">guide</a>.
+Follow this <a href="./AddRoleToUser.md">guide</a>.
