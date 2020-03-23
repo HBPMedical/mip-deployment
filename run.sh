@@ -78,8 +78,13 @@ docker-compose --project-name mip down
 # Deploying MIP services
 echo -e "\nDeploy Services..."
 docker-compose --project-name mip up -d
-
-
+docker_compose_up=$?
+if [[ ${docker_compose_up} -ne 0 ]]; then
+    echo -e "\nAn error has occurred while deploying services.Exiting.." >&2
+    exit 1
+else
+    :
+fi
 
 # Disabling the Keycloak SSL Certificate
 echo -e "\nConfiguring Keycloak..."
