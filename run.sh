@@ -72,7 +72,13 @@ source .env # Load the env variables
 # Removing previous services
 echo -e "\nRemoving previous services..."
 docker-compose --project-name mip down
-
+docker_compose_down=$?
+if [[ ${docker_compose_down} -ne 0 ]]; then
+    echo -e "\nAn error has occurred while removing services and networks.Exiting.." >&2
+    exit 1
+else
+    :
+fi
 
 
 # Deploying MIP services

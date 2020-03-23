@@ -12,6 +12,13 @@ echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP wher
 
 echo -e "\nRemoving previous services..."
 docker-compose --project-name mip_federation down
+docker_compose_down=$?
+if [[ ${docker_compose_down} -ne 0 ]]; then
+    echo -e "\nAn error has occurred while removing services and networks.Exiting.." >&2
+    exit 1
+else
+    :
+fi
 
 echo -e "\nDeploy Services..."
 
