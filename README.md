@@ -1,4 +1,4 @@
-# MIP-LOCAL Deployment Guide
+# MIP Deployment Guide for Local
 
 ## Introduction
 
