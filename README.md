@@ -31,7 +31,7 @@ You can follow this <a href="./documentation/NewDataRequirements.md">guide</a>.
 Clone this repository.
 Execute `sudo ./run.sh` script to install all the components.
 
-*If at any point during the creation of docker networks (mip_backend,mip_frontend) encounter this error:*
+*If at any point during the execution of the script, while docker networks (mip_backend,mip_frontend) are created, encounter this error:*</br>
 ```Creating network "mip_*" with the default driver
 ERROR: Failed to program FILTER chain: iptables failed: * DOCKER: iptables v1.6.1: Couldn't load target `DOCKER':No such file or directory
 
@@ -39,7 +39,7 @@ Try `iptables -h' or 'iptables --help' for more information.
  (exit status 2)
 ```
 
-*try restarting docker as so:*
+*try restarting docker as so:*</br>
 ```sudo systemctl restart docker```
 
 ## Test
