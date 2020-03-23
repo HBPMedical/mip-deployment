@@ -1,0 +1,151 @@
+version: '3.2'
+
+networks:
+  frontend:
+  backend:
+
+services:
+  galaxy:
+    image: hbpmip/galaxy:v1.3.1
+    environment:
+      - EXAREME_IP=${EXAREME_IP}
+      - EXAREME_PORT=9090
+      - PASSWORD=password
+    command: bash -c "htpasswd -bc /etc/apache2/htpasswd admin $$PASSWORD && ./createExaremeVariables.sh && /etc/init.d/apache2 restart && ./run.sh"
+    expose:
+      - '80'
+    ports:
+      - '8090:80'
+    networks:
+      - backend
+
+  portalbackend_db:
+    image: postgres:11.3-alpine
+    hostname: portalbackend_db
+    environment:
+      POSTGRES_PASSWORD: test
+    networks:
+      - backend
+
+  create_dbs:
+    image: 'hbpmip/create-databases:1.1.0'
+    environment:
+      DB_HOST: portalbackend_db
+      DB_PORT: 5432
+      DB_ADMIN_USER: postgres
+      DB_ADMIN_PASSWORD: test
+      DB4: portal
+      USER4: portal
+      PASSWORD4: portalpwd
+    depends_on:
+      - portalbackend_db
+    restart: on-failure
+    networks:
+      - backend
+
+  portalbackend:
+    image: hbpmip/portal-backend:6.0.0
+    ports:
+      - '8080:8080'
+      - '8089:8089'
+    environment:
+      PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5432/portal
+      PORTAL_DB_SERVER: portalbackend_db:5432
+      PORTAL_DB_USER: portal
+      PORTAL_DB_PASSWORD: portalpwd
+      CONTEXT_PATH: /services
+      AUTHENTICATION: 0
+      CLIENT_ID: medical-informatics-platform
+      CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
+      FRONTEND_LOGIN_URL: http://127.0.0.1/services/login/hbp
+      FRONTEND_AFTER_LOGIN_URL: http://127.0.0.1/
+      FRONTEND_AFTER_LOGOUT_URL: http://127.0.0.1/services/login/hbp
+      LOGGING_LEVEL_WEB: INFO
+      LOGGING_LEVEL_HIBERNATE: INFO
+      SESSION_TIMEOUT: 2592000
+      RELEASE_STAGE: 'testing'
+      DATACENTER_LOCATION: '$HOST'
+      CONTAINER_ORCHESTRATION: 'docker-compose'
+      EXAREME_URL: http://${EXAREME_IP}:9090
+      GALAXY_URL: 'http://galaxy'
+      GALAXY_CONTEXT: nativeGalaxy/workflows/list
+      GALAXY_API_KEY: 'd14a4cc5eebf805eb2ff261374ed08a2'
+      GALAXY_USERNAME: admin
+      GALAXY_PASSWORD: password
+      KEYCLOAK_URL: "127.0.0.1"
+      AUTH_URI: 'https://127.0.0.1:8095/auth/realms/MIP/protocol/openid-connect/auth'
+      USER_INFO_URI: 'https://127.0.0.1:8095/auth/realms/MIP/protocol/openid-connect/userinfo'
+      TOKEN_URI: 'https://127.0.0.1:8095/auth/realms/MIP/protocol/openid-connect/token'
+      LOGOUT_URI: 'https://127.0.0.1:8095/auth/realms/MIP/protocol/openid-connect/logout'
+    depends_on:
+      - create_dbs
+    restart: on-failure
+    volumes:
+      - ./config:/opt/portal/api
+      - ./logs:/opt/portal/logs
+    networks:
+      - backend
+      - frontend
+
+  frontend:
+    image: hbpmip/portal-frontend:6.0.0
+    depends_on:
+      - portalbackend
+    ports:
+      - '80:80'
+    environment:
+      WORKER_PROCESSES: 1
+      ERROR_LOG_LEVEL: warn
+      PORTAL_VIRTUAL_HOST: frontend
+      PORTAL_BACKEND_SERVER: portalbackend:8080
+      PORTAL_BACKEND_CONTEXT: services
+      INSTANCE_NAME: 'MIP 6.0.0'
+      VERSION: 'Frontend: 6.0.0, Backend: 6.0.0, Exareme: dev_v16, Galaxy: v1.3.1'
+      TRACKER_ID: UA-80660232-5
+      GALAXY_URL: 'http://galaxy/nativeGalaxy'
+      KEYCLOAK_AUTH_URL: "http://127.0.0.1/auth/"
+      KEYCLOAK_LOGIN_URL: "http://127.0.0.1/auth/realms/MIP/protocol/openid-connect/auth"
+    restart: on-failure
+    networks:
+      - frontend
+      - backend
+
+  keycloak_db:
+    image: postgres
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+    command: -p 5433
+    expose:
+      - 5433
+    networks:
+      - backend
+
+  keycloak:
+    image: jboss/keycloak
+    command:
+      -Djboss.http.port=8095 
+    volumes:
+      - ./config/keycloak.json:/tmp/mip.json
+      - ./tmp:/tmp
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: keycloak_db
+      DB_PORT: 5433
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_SCHEMA: public
+      DB_PASSWORD: password
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: Pa55w0rd
+      KEYCLOAK_IMPORT: /tmp/mip.json
+    ports:
+      - '8095:8095'
+      - '8443:8443'
+    depends_on:
+      - keycloak_db
+    networks:
+      - backend
