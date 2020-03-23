@@ -116,7 +116,7 @@ services:
       - frontend
 
   frontend:
-    image: hbpmip/portal-frontend:6.0.0
+    image: hbpmip/portal-frontend:6.0.1
     depends_on:
       - portalbackend
     ports:
