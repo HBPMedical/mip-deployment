@@ -5,8 +5,9 @@ Following the instructions below you will be able to deploy the whole stack of M
 The stack of MIP consists of:
 
 0. Federated Exareme
-1. Web-Analytics-Pack
-2. Galaxy
+1. Frontend
+2. Backend
+3. Galaxy
 
 ## Requirements
 
@@ -30,8 +31,12 @@ You can install Federated Exareme by following this guide:
 
 FYI: The one thing that you *must* remember is the IP where Exareme master will run. You will be prompted to enter that IP in the next steps.
 
-### 2. Install Web-Analytics-Pack and Galaxy
+### 2. Install Frontend, Backend and Galaxy
 
-Clone this repository and under folder ```Federation/``` run ```sudo ./run.sh```. You will be prompted to enter the IP of the Exareme master from <a href="#1-install-exareme">1. Install Exareme</a> . You can also create an ```.env``` file inside folder ```Federation/``` and place
-the IP at the end of the file like this: ```EXAREME_IP=X.X.X.X```.
+Clone this repository and under folder ```Federation/``` run ```sudo ./run.sh```. You will be prompted to enter the IP of the Exareme master from <a href="#1-install-exareme">1. Install Exareme</a> as long as the PUBLIC_MIP_IP which is the IP where MIP will be visible from. If you only want to install it on your local machine, you can enter the IP:127.0.0.1. You can also create an ```.env``` file and place
+the above IPs at the end of the file like this: <?br>
+```EXAREME_IP=X.X.X.X<?br>
+PUBLIC_MIP_IP=Y.Y.Y.Y
+```.
+
 
