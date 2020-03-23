@@ -5,7 +5,7 @@ echo -e "\nYou need to configure the 'EXAREME_IP' variable. It is the IP where E
 ../config/check_env_variabe_IP.sh .env EXAREME_IP
 
 # Checking the PUBLIC_MIP_IP env variable
-echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from. If you only want to install it on your local machine, you can initialize it with 127.0.0.1"
+echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from."
 ../config/check_env_variabe_IP.sh .env PUBLIC_MIP_IP
 
 . ../.env

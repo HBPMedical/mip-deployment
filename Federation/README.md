@@ -33,10 +33,8 @@ FYI: The one thing that you *must* remember is the IP where Exareme master will 
 
 ### 2. Install Frontend, Backend and Galaxy
 
-Clone this repository and under folder ```Federation/``` run ```sudo ./run.sh```. You will be prompted to enter the IP of the Exareme master from <a href="#1-install-exareme">1. Install Exareme</a> as long as the PUBLIC_MIP_IP which is the IP where MIP will be visible from. If you only want to install it on your local machine, you can enter the IP:127.0.0.1. You can also create an ```.env``` file and place
+Clone this repository and under folder ```Federation/``` run ```sudo ./run.sh```. You will be prompted to enter the IP of the Exareme master from <a href="#1-install-exareme">1. Install Exareme</a> as long as the PUBLIC_MIP_IP which is the IP where MIP will be visible from. You can also create an ```.env``` file and place
 the above IPs at the end of the file like this: <?br>
 ```EXAREME_IP=X.X.X.X<?br>
 PUBLIC_MIP_IP=Y.Y.Y.Y
 ```.
-
-
