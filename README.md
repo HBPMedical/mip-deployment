@@ -31,6 +31,17 @@ You can follow this <a href="./documentation/NewDataRequirements.md">guide</a>.
 Clone this repository.
 Execute `sudo ./run.sh` script to install all the components.
 
+*If at any point during the creation of docker networks (mip_backend,mip_frontend) encounter this error:*
+```Creating network "mip_*" with the default driver
+ERROR: Failed to program FILTER chain: iptables failed: * DOCKER: iptables v1.6.1: Couldn't load target `DOCKER':No such file or directory
+
+Try `iptables -h' or 'iptables --help' for more information.
+ (exit status 2)
+```
+
+*try restarting docker as so:*
+```sudo systemctl restart docker```
+
 ## Test
 
 After the installation is done, MIP will be visible on localhost. To verify everything is working properly go to http://localhost and
