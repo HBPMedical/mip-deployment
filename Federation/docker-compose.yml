@@ -85,7 +85,7 @@ services:
       - create_dbs
     restart: on-failure
     volumes:
-      - ./config:/opt/portal/api
+      - ../config:/opt/portal/api
       - ./logs:/opt/portal/logs
     networks:
       - backend
@@ -133,7 +133,7 @@ services:
     command:
       -Djboss.http.port=8095 
     volumes:
-      - ./config/keycloak.json:/tmp/mip.json
+      - ../config/keycloak.json:/tmp/mip.json
     environment:
       DB_VENDOR: POSTGRES
       DB_ADDR: keycloak_db
