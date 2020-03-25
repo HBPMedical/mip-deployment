@@ -8,7 +8,7 @@ echo -e "\nYou need to configure the 'EXAREME_IP' variable. It is the IP where E
 echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from."
 ../config/check_env_variabe_IP.sh .env PUBLIC_MIP_IP
 
-. ./.env
+. .env
 
 # Creating logs folder
 if [ ! -d "logs" ]; then
