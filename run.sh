@@ -67,11 +67,11 @@ echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP wher
 
 source .env # Load the env variables
 
-
+echo "" >> .versions_env ; cat .env >> .versions_env
 
 # Removing previous services
 echo -e "\nRemoving previous services..."
-docker-compose --project-name mip down
+docker-compose --project-name mip --env-file ./.versions_env down
 docker_compose_down=$?
 if [[ ${docker_compose_down} -ne 0 ]]; then
     echo -e "\nAn error has occurred while removing services and networks.Exiting.." >&2
@@ -83,7 +83,7 @@ fi
 
 # Deploying MIP services
 echo -e "\nDeploy Services..."
-docker-compose --project-name mip up -d
+docker-compose --project-name mip --env-file ./.versions_env up -d
 docker_compose_up=$?
 if [[ ${docker_compose_up} -ne 0 ]]; then
     echo -e "\nAn error has occurred while deploying services.Exiting.." >&2
@@ -126,4 +126,5 @@ docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keyclo
 
 echo -e "\nMIP is up and running you can access it on: http://${PUBLIC_MIP_IP}"
 
-
+sed -i "/EXAREME_IP/d" ./.versions_env
+sed -i "/PUBLIC_MIP_IP/d" ./.versions_env
