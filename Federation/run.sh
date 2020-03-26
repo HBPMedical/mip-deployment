@@ -43,5 +43,5 @@ else
     :
 fi
 
-rm .env #one point of reference
+rm .env .versions_env #one point of reference
 echo -e "\nMIP is up and running you can access it on: http://${PUBLIC_MIP_IP}"
