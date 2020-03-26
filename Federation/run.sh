@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+SCRIPTDIR=`dirname "$0"`
+
+cd $SCRIPTDIR
 
 # Checking the EXAREME_IP env variable
 echo -e "\nYou need to configure the 'EXAREME_IP' variable. It is the IP where Exareme master is currently running."
