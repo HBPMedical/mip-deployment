@@ -89,7 +89,7 @@ services:
       - frontend
 
   frontend:
-    image: hbpmip/portal-frontend:6.0.0
+    image: hbpmip/portal-frontend:6.0.1
     depends_on:
       - portalbackend
     ports:
@@ -101,7 +101,7 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       INSTANCE_NAME: 'MIP 6.0.0'
-      VERSION: 'Frontend: 6.0.0, Backend: 6.0.0, Exareme: dev_v16, Galaxy: 1.3.1'
+      VERSION: 'Frontend: 6.0.1, Backend: 6.0.0, Exareme: 22.0.0, Galaxy: 1.3.1'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
       KEYCLOAK_AUTH_URL: "https://iam.humanbrainproject.eu/auth/"
