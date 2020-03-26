@@ -21,6 +21,10 @@
             {
               "code": "desd-synthdata",
               "label": "DESD-synthdata"
+            },
+            {
+              "code": "fake_longitudinal",
+              "label": "Longitudinal"
             }
           ],
           "label": "Dataset",
@@ -2428,6 +2432,10 @@
       {
         "code": "ppmi",
         "label": "PPMI"
+      },
+      {
+        "code": "fake_longitudinal",
+        "label": "Longitudinal"
       }
     ]
   },
