@@ -61,5 +61,5 @@ do
 done
 
 # Store IP to the env file
-echo "$variable_name="${answer} >> $env_variables_file
+echo -e -n "\n$variable_name="${answer} >> $env_variables_file
 

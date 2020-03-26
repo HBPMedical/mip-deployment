@@ -6,7 +6,7 @@ networks:
 
 services:
   galaxy:
-    image: hbpmip/galaxy:1.3.1
+    image: ${GALAXY}
     environment:
       - EXAREME_IP=${EXAREME_IP}
       - EXAREME_PORT=9090
@@ -20,7 +20,7 @@ services:
       - backend
 
   portalbackend_db:
-    image: postgres:11.3-alpine
+    image: ${PORTALBACKEND_DB}
     hostname: portalbackend_db
     environment:
       POSTGRES_PASSWORD: test
@@ -28,7 +28,7 @@ services:
       - backend
 
   create_dbs:
-    image: hbpmip/create-databases:1.1.0
+    image: ${CREATE_DBS}
     environment:
       DB_HOST: portalbackend_db
       DB_PORT: 5432
@@ -44,7 +44,7 @@ services:
       - backend
 
   portalbackend:
-    image: hbpmip/portal-backend:6.0.0
+    image: ${PORTALBACKEND}
     ports:
       - '8080:8080'
       - '8089:8089'
@@ -89,7 +89,7 @@ services:
       - frontend
 
   frontend:
-    image: hbpmip/portal-frontend:6.0.0
+    image: ${FRONTEND}
     depends_on:
       - portalbackend
     ports:
