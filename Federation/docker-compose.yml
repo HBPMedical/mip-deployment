@@ -82,7 +82,7 @@ services:
       - create_dbs
     restart: on-failure
     volumes:
-      - ../config:/opt/portal/api
+      - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
     networks:
       - backend
