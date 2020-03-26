@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 SCRIPTDIR=`dirname "$0"`
 
 cd $SCRIPTDIR
@@ -11,7 +12,7 @@ echo -e "\nYou need to configure the 'EXAREME_IP' variable. It is the IP where E
 echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from."
 ../config/check_env_variabe_IP.sh ../.env PUBLIC_MIP_IP
 
-. ../.env
+echo "" >> ../.versions_env ; cat ../.env >> ../.versions_env
 
 # Creating logs folder
 if [ ! -d "logs" ]; then
@@ -31,7 +32,7 @@ fi
 
 echo -e "\nDeploy Services..."
 
-docker-compose --project-name mip_federation up --env-file ../.versions_env -d
+docker-compose --project-name mip_federation --env-file ../.versions_env up -d
 docker_compose_up=$?
 if [[ ${docker_compose_up} -ne 0 ]]; then
     echo -e "\nAn error has occurred while deploying services.Exiting.." >&2
@@ -41,3 +42,6 @@ else
 fi
 
 echo -e "\nMIP is up and running you can access it on: http://${PUBLIC_MIP_IP}"
+
+sed -i "/EXAREME_IP/d" ../.versions_env
+sed -i "PUBLIC_MIP_IP/d" ../.versions_env
