@@ -2,4 +2,5 @@
 tmp/
 logs/
 *.db
+.env
 Federation/logs
