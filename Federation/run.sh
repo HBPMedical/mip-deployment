@@ -11,10 +11,7 @@ echo -e "\nYou need to configure the 'EXAREME_IP' variable. It is the IP where E
 echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from."
 ../config/check_env_variabe_IP.sh ../.env PUBLIC_MIP_IP
 
-#docker-compose up / down only works when .env is in the same folder with docker-compose files
-cp ../.env ../.versions_env .
-. .env
-. .versions_env
+. ../.env
 
 # Creating logs folder
 if [ ! -d "logs" ]; then
@@ -23,7 +20,7 @@ fi
 chmod a+rwx logs
 
 echo -e "\nRemoving previous services..."
-docker-compose --project-name mip_federation down
+docker-compose --project-name mip_federation --env-file ../.versions_env down
 docker_compose_down=$?
 if [[ ${docker_compose_down} -ne 0 ]]; then
     echo -e "\nAn error has occurred while removing services and networks.Exiting.." >&2
@@ -34,7 +31,7 @@ fi
 
 echo -e "\nDeploy Services..."
 
-docker-compose --project-name mip_federation up -d
+docker-compose --project-name mip_federation up --env-file ../.versions_env -d
 docker_compose_up=$?
 if [[ ${docker_compose_up} -ne 0 ]]; then
     echo -e "\nAn error has occurred while deploying services.Exiting.." >&2
@@ -43,5 +40,4 @@ else
     :
 fi
 
-rm .env .versions_env #one point of reference
 echo -e "\nMIP is up and running you can access it on: http://${PUBLIC_MIP_IP}"
