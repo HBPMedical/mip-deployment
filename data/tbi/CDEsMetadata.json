@@ -13,11 +13,11 @@
 			],
 			"label": "Dataset",
 			"units": "",
-			"type": "polynominal",
+			"type": "multinomial",
 			"methodology": ""
 		}
 	],
-	"code": "tbiv2",
+	"code": "tbi",
 	"label": "Traumatic Brain Injury",
 	"groups": [
 		{
@@ -95,7 +95,7 @@
                         }
 					],
 					"units": "",
-					"type": "polynominal",
+					"type": "multinomial",
 					"methodology": "",
 					"comments": "",
 					"isCategorical": true,
@@ -141,7 +141,7 @@
 						}
 					],
 					"units": "",
-					"type": "polynominal",
+					"type": "multinomial",
 					"methodology": "",
 					"comments": "",
 					"isCategorical": true,
@@ -183,7 +183,7 @@
 						}
 					],
 					"units": "",
-					"type": "polynominal",
+					"type": "multinomial",
 					"methodology": "",
 					"comments": "",
 					"isCategorical": true,
@@ -217,7 +217,7 @@
                         }
 					],
 					"units": "",
-					"type": "polynominal",
+					"type": "multinomial",
 					"methodology": "",
 					"comments": "",
 					"isCategorical": true,
@@ -251,7 +251,7 @@
                         }
 					],
 					"units": "",
-					"type": "polynominal",
+					"type": "multinomial",
 					"methodology": "",
 					"comments": "",
 					"isCategorical": true,
@@ -325,7 +325,7 @@
                         }
                     ],
 					"units": "",
-					"type": "polynominal",
+					"type": "multinomial",
 					"methodology": "",
 					"comments": "",
 					"isCategorical": true,
@@ -361,7 +361,7 @@
 								}
 							],
 							"units": "",
-							"type": "polynominal",
+							"type": "multinomial",
 							"methodology": "",
 							"comments": "",
 							"isCategorical": true,
@@ -387,7 +387,7 @@
 								}
 							],
 							"units": "",
-							"type": "polynominal",
+							"type": "multinomial",
 							"methodology": "",
 							"comments": "",
 							"isCategorical": true,
@@ -413,7 +413,7 @@
 								}
 							],
 							"units": "",
-							"type": "polynominal",
+							"type": "multinomial",
 							"methodology": "",
 							"comments": "",
 							"isCategorical": true,
@@ -447,7 +447,7 @@
 								}
 							],
 							"units": "",
-							"type": "polynominal",
+							"type": "multinomial",
 							"methodology": "",
 							"comments": "",
 							"isCategorical": true,
@@ -489,7 +489,7 @@
 								}
 							],
 							"units": "",
-							"type": "polynominal",
+							"type": "multinomial",
 							"methodology": "",
 							"comments": "",
 							"isCategorical": true,
@@ -519,7 +519,7 @@
 								}
 							],
 							"units": "",
-							"type": "polynominal",
+							"type": "multinomial",
 							"methodology": "",
 							"comments": "",
 							"isCategorical": true,
@@ -577,7 +577,7 @@
 								}
 							],
 							"units": "",
-							"type": "polynominal",
+							"type": "multinomial",
 							"methodology": "",
 							"comments": "",
 							"isCategorical": true,
