@@ -114,7 +114,7 @@ do
 	# Try 5 times and then throw error
 	count=`expr $count + 1`
 	if [[ ${count} -eq 5 ]]; then
-		echo -e "\nMIP is up and running on: http://${PUBLIC_MIP_IP} but Keycloak could not be configured properly. \nAs a result you can't access the Keycloak administration console." >&2
+		echo -e "\nMIP is up and running on: http://${PUBLIC_MIP_IP} but  could not be configured properly. \nAs a result you can't access the administration console. You can retry by runnining ./config/configure_keycloak.sh" >&2
 		exit 1
 	fi
 done
