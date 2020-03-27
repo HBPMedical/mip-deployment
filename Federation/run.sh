@@ -19,7 +19,7 @@ echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP wher
 
 . ../.IPs_env
 
-cat ../.IPs_env >> ./.combined_env ; echo "" >> ./.combined_env ; cat ../.versions_env >> ./.combined_env
+cat ../.IPs_env >> .env ; echo "" >> .env ; cat ../.versions_env >> .env
 
 # Creating logs folder
 if [ ! -d "logs" ]; then
@@ -28,7 +28,7 @@ fi
 chmod a+rwx logs
 
 echo -e "\nRemoving previous services..."
-docker-compose --project-name mip_federation --env-file ./.combined_env down
+docker-compose --project-name mip_federation down
 docker_compose_down=$?
 if [[ ${docker_compose_down} -ne 0 ]]; then
     echo -e "\nAn error has occurred while removing services and networks.Exiting.." >&2
@@ -39,7 +39,7 @@ fi
 
 echo -e "\nDeploy Services..."
 
-docker-compose --project-name mip_federation --env-file ./.combined_env up -d
+docker-compose --project-name mip_federation up -d
 docker_compose_up=$?
 if [[ ${docker_compose_up} -ne 0 ]]; then
     echo -e "\nAn error has occurred while deploying services.Exiting.." >&2
@@ -50,4 +50,4 @@ fi
 
 echo -e "\nMIP is up and running you can access it on: http://${PUBLIC_MIP_IP}"
 
-rm ./.combined_env
+rm .env
