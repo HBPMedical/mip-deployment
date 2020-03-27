@@ -28,7 +28,7 @@ services:
       - backend
 
   create_dbs:
-    image: hbpmip/create-databases:${CREATE_DBS}
+    image: hbpmip/create-databases:1.1.0
     environment:
       DB_HOST: portalbackend_db
       DB_PORT: 5432
