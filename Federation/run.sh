@@ -14,7 +14,7 @@ echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP wher
 
 . ../.env
 
-cat ./.env >> ./.env_file ; echo "" >> ./.env_file ; cat ./.versions_env >> ./.env_file
+cat ../.env >> ./.env_file ; echo "" >> ./.env_file ; cat ../.versions_env >> ./.env_file
 
 # Creating logs folder
 if [ ! -d "logs" ]; then
