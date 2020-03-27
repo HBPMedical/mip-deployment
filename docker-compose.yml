@@ -17,7 +17,6 @@ services:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
       - NODE_NAME=miplocal
-      - TAG=prod
       - ENVIRONMENT_TYPE=PROD
     depends_on:
       - exareme_keystore
