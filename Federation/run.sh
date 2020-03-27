@@ -4,6 +4,11 @@ SCRIPTDIR=`dirname "$0"`
 
 cd $SCRIPTDIR
 
+if [ `id -u` -ne 0 ]; then
+    echo "Please run this script with sudo"
+    exit 1
+fi
+
 # Checking the EXAREME_IP env variable
 echo -e "\nYou need to configure the 'EXAREME_IP' variable. It is the IP where Exareme master is currently running."
 ../config/check_env_variabe_IP.sh ../.env EXAREME_IP

@@ -4,6 +4,11 @@ SCRIPTDIR=`dirname "$0"`
 
 cd $SCRIPTDIR
 
+if [ `id -u` -ne 0 ]; then
+    echo "Please run this script with sudo"
+    exit 1
+fi
+
 if [[ -e ../.env ]]; then
     :
 else
