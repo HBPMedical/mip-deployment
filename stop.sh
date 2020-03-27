@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 
+SCRIPTDIR=`dirname "$0"`
+
+cd $SCRIPTDIR
+
 set -o pipefail # trace ERR through pipes
 set -o errtrace # trace ERR through 'time command' and other functions
-set -o errexit  ## set -e : exit the script if any statement returns a non-true return value
+
+if [[ -e ./.env ]]; then
+    :
+else
+    echo "You need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from. If you only want to install it on your local machine, you can initialize it with 127.0.0.1"
+    ./config/check_env_variabe_IP.sh ./.env PUBLIC_MIP_IP
+fi
 
 cat ./.env >> ./.env_file ; echo "" >> ./.env_file ; cat ./.versions_env >> ./.env_file
-return=$?
-if [[ ${return} -ne 0 ]]; then
-    echo -e "\nMake sure .env file exists.Exiting.." >&2
-    exit 1
-else
-    :
-fi
 
 echo -e "\nRemoving previous services..."
 docker-compose --project-name mip --env-file ./.env_file down
