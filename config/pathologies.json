@@ -31,26 +31,6 @@
           "units": "",
           "type": "multinominal",
           "methodology": "mip-cde"
-        },
-        {
-          "isCategorical": false,
-          "code": "subjectvisitid",
-          "sql_type": "text",
-          "description": "The ID of the Patient’s Visit",
-          "label": "Visit ID",
-          "units": "",
-          "type": "text",
-          "methodology": ""
-        },
-        {
-          "isCategorical": false,
-          "code": "subjectvisitdate",
-          "sql_type": "text",
-          "description": "The date of the Patient’s Visit",
-          "label": "Visit Date",
-          "units": "",
-          "type": "date",
-          "methodology": ""
         }
       ],
       "code": "dementia",
