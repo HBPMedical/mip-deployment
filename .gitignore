@@ -3,6 +3,6 @@ tmp/
 logs/
 *.db
 .IPs_env
-.combined_env
+.env
 Federation/logs
 Federation/.combined_env
