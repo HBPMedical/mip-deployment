@@ -2,7 +2,7 @@
 tmp/
 logs/
 *.db
-.env
+.IPs_env
+.combined_env
 Federation/logs
-.env_file
-Federation/.env_file
+Federation/.combined_env

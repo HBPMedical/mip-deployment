@@ -12,7 +12,7 @@ services:
       - backend
 
   exareme_master:
-    image: hbpmip/exareme:${EXAREME_MASTER}
+    image: hbpmip/exareme:${EXAREME}
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
@@ -52,7 +52,7 @@ services:
       - backend
 
   create_dbs:
-    image: hbpmip/create-databases:${CREATE_DBS}
+    image: hbpmip/create-databases:1.1.0
     environment:
       DB_HOST: portalbackend_db
       DB_PORT: 5432
@@ -128,7 +128,7 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       INSTANCE_NAME: 'MIP ${FRONTEND}'
-      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME_MASTER}, Galaxy: ${GALAXY}'
+      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
       KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
