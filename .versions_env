@@ -1,10 +1,5 @@
-###### Image Versions #######
-EXAREME_KEYSTORE=progrium/consul
-EXAREME_MASTER=hbpmip/exareme:22.0.0
-GALAXY=hbpmip/galaxy:1.3.1
-CREATE_DBS=hbpmip/create-databases:1.1.0
-PORTALBACKEND=hbpmip/portal-backend:6.0.0
-FRONTEND=hbpmip/portal-frontend:6.0.1
-PORTALBACKEND_DB=postgres:11.3-alpine
-KEYCLOACK=jboss/keycloak:8.0.1
-KEYCLOACK_DB=postgres:12.2
+EXAREME_MASTER=22.0.0
+CREATE_DBS=1.1.0
+PORTALBACKEND=6.0.0
+FRONTEND=6.0.1
+GALAXY=1.3.1

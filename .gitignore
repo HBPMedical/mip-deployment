@@ -4,3 +4,5 @@ logs/
 *.db
 .env
 Federation/logs
+.env_file
+Federation/.env_file

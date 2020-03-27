@@ -6,13 +6,13 @@ networks:
 
 services:
   exareme_keystore:
-    image: ${EXAREME_KEYSTORE}
+    image: progrium/consul
     command: -server -bootstrap
     networks:
       - backend
 
   exareme_master:
-    image: ${EXAREME_MASTER}
+    image: hbpmip/exareme:${EXAREME_MASTER}
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
@@ -28,7 +28,7 @@ services:
       - backend
 
   galaxy:
-    image: ${GALAXY}
+    image: hbpmip/galaxy:${GALAXY}
     environment:
       - EXAREME_IP=exareme_master
       - EXAREME_PORT=9090
@@ -44,7 +44,7 @@ services:
       - backend
 
   portalbackend_db:
-    image: ${PORTALBACKEND_DB}
+    image: postgres:11.3-alpine
     hostname: portalbackend_db
     environment:
       POSTGRES_PASSWORD: test
@@ -52,7 +52,7 @@ services:
       - backend
 
   create_dbs:
-    image: ${CREATE_DBS}
+    image: hbpmip/create-databases:${CREATE_DBS}
     environment:
       DB_HOST: portalbackend_db
       DB_PORT: 5432
@@ -68,7 +68,7 @@ services:
       - backend
 
   portalbackend:
-    image: ${PORTALBACKEND}
+    image: hbpmip/portal-backend:${PORTALBACKEND}
     ports:
       - '8080:8080'
       - '8089:8089'
@@ -116,7 +116,7 @@ services:
       - frontend
 
   frontend:
-    image: ${FRONTEND}
+    image: hbpmip/portal-frontend:${FRONTEND}
     depends_on:
       - portalbackend
     ports:
@@ -139,7 +139,7 @@ services:
       - backend
 
   keycloak_db:
-    image: ${KEYCLOACK_DB}
+    image: postgres:12.2
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
     environment:
@@ -153,7 +153,7 @@ services:
       - backend
 
   keycloak:
-    image: ${KEYCLOACK}
+    image: jboss/keycloak:8.0.1
     command:
       -Djboss.http.port=8095 
     volumes:
