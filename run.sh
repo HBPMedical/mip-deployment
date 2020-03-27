@@ -63,11 +63,11 @@ fi
 
 # Checking the PUBLIC_MIP_IP env variable
 echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from. If you only want to install it on your local machine, you can initialize it with 127.0.0.1"
-./config/check_env_variabe_IP.sh .env PUBLIC_MIP_IP
+./config/check_env_variabe_IP.sh .IPs_env PUBLIC_MIP_IP
 
-source ./.env # Load the env variables
+source ./.IPs_env # Load the env variables
 
-cat ./.env >> ./.combined_env ; echo "" >> ./.combined_env ; cat ./.versions_env >> ./.combined_env
+cat ./.IPs_env >> ./.combined_env ; echo "" >> ./.combined_env ; cat ./.versions_env >> ./.combined_env
 
 # Removing previous services
 echo -e "\nRemoving previous services..."
