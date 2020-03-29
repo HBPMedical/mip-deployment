@@ -8,8 +8,9 @@ ENV="local"
 DOCKER_DOWNLOAD_HOST="download.docker.com"
 CONFLICTING_PACKAGES="docker docker-engine docker.io containerd runc"
 CONFLICTING_SNAP_PACKAGES="docker"
-PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates curl gnupg-agent software-properties-common net-tools lsof"
+PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates curl gnupg-agent software-properties-common net-tools lsof python3-pip"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
+REQUIRED_PIP3_PACKAGES="chardet"
 MIP_GITHUB_OWNER="HBPMedical"
 MIP_GITHUB_PROJECT="mip-deployment"
 MIP_BRANCH="master"
@@ -22,8 +23,19 @@ _get_docker_main_ip(){
 	fi
 }
 
+_has_minimum_version(){
+	local current=$1
+	local required=$2
+	local version_check=`(echo $required; echo $current)|sort -Vk3|tail -1`
+	if [ "$version_check" = "$required" -a "$required" != "$current" ]; then
+		return 1
+	fi
+	return 0
+}
+
 check_os(){
-	if [ "$(lsb_release -si)" != "$REQUIRED_OS_DISTRIBUTOR_ID" -o "$(lsb_release -sr)" != "$REQUIRED_OS_RELEASE" ]; then
+	_has_minimum_version $(lsb_release -sr) $REQUIRED_OS_RELEASE
+	if [ $? -ne 0 -o "$(lsb_release -si)" != "$REQUIRED_OS_DISTRIBUTOR_ID" ]; then
 		echo "Required OS version: $REQUIRED_OS_DISTRIBUTOR_ID $REQUIRED_OS_RELEASE!"
 		exit 1
 	fi
@@ -94,7 +106,7 @@ uninstall_conflicting_packages(){
 }
 
 install_required_packages(){
-	if [ "$1" = "prerequired" -o "$1" = "required" ]; then
+	if [ "$1" = "prerequired" -o "$1" = "required" -o "$1" = "pip3" ]; then
 		local required_packages=""
 		case "$1" in
 			"prerequired")
@@ -103,6 +115,9 @@ install_required_packages(){
 			"required")
 				required_packages=$REQUIRED_PACKAGES
 				;;
+			"pip3")
+				required_packages=$REQUIRED_PIP3_PACKAGES
+				;;
 		esac
 
 		local next=0
@@ -110,7 +125,12 @@ install_required_packages(){
 			local packages=""
 			next=1
 			for package in $required_packages; do
-				local match=$(dpkg --list|grep "^ii.*$package ")
+				local match=""
+				if [ "$1" = "pip3" ]; then
+					match=$(pip3 list --format=columns|grep "^$package "|awk '{print $1}')
+				else
+					match=$(dpkg --list|grep "^ii.*$package ")
+				fi
 				if [ "$match" = "" ]; then
 					packages="$packages $package"
 					next=0
@@ -121,7 +141,11 @@ install_required_packages(){
 				install_option=$2
 			fi
 			if [ $next -eq 0 ]; then
-				apt install $install_option $packages
+				if [ "$1" = "pip3" ]; then
+					pip3 install $packages
+				else
+					apt install $install_option $packages
+				fi
 			fi
 		done
 	fi
@@ -153,11 +177,25 @@ check_docker(){
 		exit 1
 	fi
 
-	local dockerversion=$(docker --version|awk '{print $3}'|cut -d',' -f1)
-	local dockercheck=`(echo $REQUIRED_DOCKER_VERSION; echo $dockerversion)|sort -Vk3|tail -1`
-	if [ "$dockercheck" = "$REQUIRED_DOCKER_VERSION" -a "$REQUIRED_DOCKER_VERSION" != "$dockerversion" ]; then
+	local dockerversion=$(docker --version|awk '{print $3}'|cut -d, -f1)
+	_has_minimum_version $dockerversion $REQUIRED_DOCKER_VERSION
+	if [ $? -ne 0 ]; then
 		echo "docker version $REQUIRED_DOCKER_VERSION is required!"
 		exit 1
+	fi
+}
+
+ensure_running_dockerd(){
+	check_docker
+	if [ "$(pgrep -x dockerd)" = "" ]; then
+		enabled=$(systemctl status docker|grep 'Loaded:'|awk '{print $4}'|cut -d\; -f1)
+		status=$(systemctl status docker|grep 'Active:'|awk '{print $2}')
+		if [ "$enabled" != "disabled" ]; then
+			systemctl --quiet enable docker
+		fi
+		if [ "$status" = "inactive" ]; then
+			systemctl --quiet start docker
+		fi
 	fi
 }
 
@@ -285,7 +323,17 @@ download_mip(){
 	cd $path
 }
 
+prepare_mip_env(){
+	local ip=$(hostname -I|awk '{print $1}')
+	cat << EOF > $INSTALL_PATH/$ENV/$MIP_GITHUB_PROJECT/.env
+PUBLIC_MIP_IP=$ip
+EOF
+}
+
 run_mip(){
+	ensure_running_dockerd
+	prepare_mip_env
+
 	local images_list="mip_frontend_1 mip_portalbackend_1 mip_portalbackend_db_1 mip_galaxy_1 mip_keycloak_1 mip_keycloak_db_1 mip_exareme_master_1 mip_exareme_keystore_1"
 	local ko_list=""
 	for image in $images_list; do
@@ -424,6 +472,7 @@ main(){
 			install_required_packages prerequired $2
 			prepare_docker_apt_sources
 			install_required_packages required $2
+			install_required_packages pip3 $2
 			check_exareme_required_ports
 			download_mip $2
 			if [ "$2" = "-y" ]; then
@@ -432,7 +481,7 @@ main(){
 				echo -n "Run MIP [y/n]? "
 				read answer
 			fi
-			if [ "$answer" = "y" ]; then
+			if [ "$answer" = "y" -a "$3" != "--no-run" ]; then
 				run_mip
 			fi
 			;;
