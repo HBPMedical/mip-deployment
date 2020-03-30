@@ -21,11 +21,8 @@ Here you will find the minimum requirements that *had been tested* with the `dat
 - Docker version: 19.03
 - Docker-compose version: 1.25.4
 
-Please *mind* that with the above requirements If you need to re-deploy because of *new Software versions*, there is an extra step you need to make in order for some Disk space to clean up since it is limited.
+Please *mind* that with the above requirements, if you need to re-deploy because of *new Software versions*, there is an extra step you need to make if your disk space is very limited.
 Execute ```sudo ./cleanUp.sh``` before ```sudo ./run.sh```
-
-The script ```cleanUp.sh``` will *stop* every container running for MIP Local, *remove* every ```hbpmip``` image that had been stored in the machine to make space for newer images that will be stored with
-the re-deploy of new Software versions. This is needed because Docker will not remove any images automatically even if it will run newer versions of the existing images.
 
 ### How to add Custom Data
 
