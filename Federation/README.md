@@ -24,10 +24,9 @@ The data management team is responsible for creating and maintaining ```patholog
 
 ## Minimum Requirements
 
-For the server in which Frontend, Backend and Galaxy will be deployed you may consider <a href="../README.md#minimum-requirements">this</a> minimum requirements. IN case of having a server respecting thore requirements
-you need to do a clean up before re-deploying with new new versios of Software available, whenever that in mandatory:
+For the server in which Frontend, Backend and Galaxy will be deployed you may consider <a href="../README.md#minimum-requirements">this</a> minimum requirements. In case of having a server respecting thore requirements
+you need to do a clean up before re-deploying with new new versios of Software available, whenever that is mandatory:
 ```
-cd ..
 sudo ./cleanUP.sh
 ```
 
