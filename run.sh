@@ -106,7 +106,7 @@ do
 
 	# Login to the docker container
 	{
-		docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://${PUBLIC_MIP_IP}:8095/auth --realm master --user admin --password Pa55w0rd
+		docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://${PUBLIC_MIP_IP}g/auth --realm master --user admin --password Pa55w0rd
 	} &> /dev/null
 	# Get the status code from previous command
 	docker_login_worked=$?
