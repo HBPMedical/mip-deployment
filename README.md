@@ -50,17 +50,6 @@ If you want your MIP installation to be accessible externally you should follow 
 Clone this repository.
 Execute `sudo ./run.sh` script to install all the components.
 
-*If at any point during the execution of the script, while docker networks (mip_backend,mip_frontend) are created, encounter this error:*</br>
-```Creating network "mip_*" with the default driver
-ERROR: Failed to program FILTER chain: iptables failed: * DOCKER: iptables v1.6.1: Couldn't load target `DOCKER':No such file or directory
-
-Try `iptables -h' or 'iptables --help' for more information.
- (exit status 2)
-```
-
-*try restarting docker as so:*</br>
-```sudo systemctl restart docker```
-
 ## Test
 
 After the installation is done, MIP will be visible on localhost. To verify everything is working properly go to http://localhost and
@@ -76,3 +65,17 @@ password: password
 If everything is working properly you should configure the users following this <a href="./documentation/UsersConfiguration.md">guide</a>.
 
 Enjoy!
+
+## Troubleshooting
+
+<b>Problem:</b> </br>
+*If at any point during the execution of the script, while docker networks (mip_backend,mip_frontend) are created, encounter this error:*</br>
+```Creating network "mip_*" with the default driver
+ERROR: Failed to program FILTER chain: iptables failed: * DOCKER: iptables v1.6.1: Couldn't load target `DOCKER':No such file or directory
+
+Try `iptables -h' or 'iptables --help' for more information.
+ (exit status 2)
+```
+
+<b>Solution:</b> </br>
+```sudo systemctl restart docker```

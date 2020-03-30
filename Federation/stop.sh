@@ -9,13 +9,11 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-set -o pipefail # trace ERR through pipes
-set -o errtrace # trace ERR through 'time command' and other functions
-
-cat ./.versions_env >> .env
+cat ../.versions_env >> .env
 
 echo -e "\nRemoving previous services..."
-docker-compose --project-name mip --log-level ERROR down
+
+docker-compose --project-name mip_federation --log-level ERROR down
 docker_compose_down=$?
 if [[ ${docker_compose_down} -ne 0 ]]; then
     echo -e "\nAn error has occurred while removing services and networks.Exiting.." >&2
