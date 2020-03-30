@@ -24,11 +24,11 @@
         {
           "isCategorical": true,
           "code": "Mortality",
-          "sql_type": "text",
+          "sql_type": "int",
           "description": "Six Month Mortality",
           "label": "Six Month Mortality",
           "units": "",
-          "type": "multinominal",
+          "type": "integer",
           "methodology": "creactive",
           "enumerations": [
             {
