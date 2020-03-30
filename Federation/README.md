@@ -22,6 +22,16 @@ For the rest of the pack of MIP you will need:
 ## Pathologies
 The data management team is responsible for creating and maintaining ```pathologies.json``` file for Federated MIP. Place the file inside ```Federation/config/``` folder.
 
+## Minimum Requirements
+
+For the server in which Frontend, Backend and Galaxy will be deployed you may consider <a href="../README.md#minimum-requirements">these</a> minimum requirements.
+
+If the disk space on the machine is limited consider cleaning up the old versions when they are updated, using this script:
+```
+sudo ./cleanUp.sh
+```
+
+
 ## Deployment
 
 ### 1. Install Exareme
