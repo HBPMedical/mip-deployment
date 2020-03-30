@@ -106,15 +106,15 @@ do
 
 	# Login to the docker container
 	{
-		docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://${PUBLIC_MIP_IP}g/auth --realm master --user admin --password Pa55w0rd
+		docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://keycloak:8095/auth --realm master --user admin --password Pa55w0rd
 	} &> /dev/null
 	# Get the status code from previous command
 	docker_login_worked=$?
 	
-	# Try 10 times and then throw error
+	# Try 5 times and then throw error
 	count=`expr $count + 1`
-	if [[ ${count} -eq 10 ]]; then
-		echo -e "\nCould not configure Keycloak properly. Please try running the script again." >&2
+	if [[ ${count} -eq 5 ]]; then
+		echo -e "\nMIP is up and running on: http://${PUBLIC_MIP_IP} but  could not be configured properly. \nAs a result you can't access the administration console. You can retry by runnining ./config/configure_keycloak.sh" >&2
 		exit 1
 	fi
 done
