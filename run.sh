@@ -63,11 +63,11 @@ fi
 
 # Checking the PUBLIC_MIP_IP env variable
 echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from. If you only want to install it on your local machine, you can initialize it with 127.0.0.1"
-./config/check_env_variabe_IP.sh .env PUBLIC_MIP_IP
+./config/check_env_variabe_IP.sh .IPs_env PUBLIC_MIP_IP
 
-source .env # Load the env variables
+source ./.IPs_env # Load the env variables
 
-
+cat ./.IPs_env >> .env ; echo "" >> .env ; cat ./.versions_env >> .env
 
 # Removing previous services
 echo -e "\nRemoving previous services..."
@@ -75,6 +75,7 @@ docker-compose --project-name mip down
 docker_compose_down=$?
 if [[ ${docker_compose_down} -ne 0 ]]; then
     echo -e "\nAn error has occurred while removing services and networks.Exiting.." >&2
+    rm .env
     exit 1
 else
     :
@@ -87,6 +88,7 @@ docker-compose --project-name mip up -d
 docker_compose_up=$?
 if [[ ${docker_compose_up} -ne 0 ]]; then
     echo -e "\nAn error has occurred while deploying services.Exiting.." >&2
+    rm .env
     exit 1
 else
     :
@@ -115,6 +117,7 @@ do
 	count=`expr $count + 1`
 	if [[ ${count} -eq 5 ]]; then
 		echo -e "\nMIP is up and running on: http://${PUBLIC_MIP_IP} but  could not be configured properly. \nAs a result you can't access the administration console. You can retry by runnining ./config/configure_keycloak.sh" >&2
+		rm .env
 		exit 1
 	fi
 done
@@ -126,4 +129,4 @@ docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keyclo
 
 echo -e "\nMIP is up and running you can access it on: http://${PUBLIC_MIP_IP}"
 
-
+rm .env
