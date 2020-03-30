@@ -75,6 +75,7 @@ docker-compose --project-name mip down
 docker_compose_down=$?
 if [[ ${docker_compose_down} -ne 0 ]]; then
     echo -e "\nAn error has occurred while removing services and networks.Exiting.." >&2
+    rm .env
     exit 1
 else
     :
@@ -87,6 +88,7 @@ docker-compose --project-name mip up -d
 docker_compose_up=$?
 if [[ ${docker_compose_up} -ne 0 ]]; then
     echo -e "\nAn error has occurred while deploying services.Exiting.." >&2
+    rm .env
     exit 1
 else
     :
@@ -115,6 +117,7 @@ do
 	count=`expr $count + 1`
 	if [[ ${count} -eq 5 ]]; then
 		echo -e "\nMIP is up and running on: http://${PUBLIC_MIP_IP} but  could not be configured properly. \nAs a result you can't access the administration console. You can retry by runnining ./config/configure_keycloak.sh" >&2
+		rm .env
 		exit 1
 	fi
 done

@@ -43,6 +43,7 @@ docker-compose --project-name mip_federation up -d
 docker_compose_up=$?
 if [[ ${docker_compose_up} -ne 0 ]]; then
     echo -e "\nAn error has occurred while deploying services.Exiting.." >&2
+    rm .env
     exit 1
 else
     :

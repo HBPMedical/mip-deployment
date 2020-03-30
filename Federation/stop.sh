@@ -27,6 +27,7 @@ docker-compose --project-name mip_federation down
 docker_compose_down=$?
 if [[ ${docker_compose_down} -ne 0 ]]; then
     echo -e "\nAn error has occurred while removing services and networks.Exiting.." >&2
+    rm .env
     exit 1
 else
     :
