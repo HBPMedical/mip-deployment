@@ -29,7 +29,17 @@
           "label": "Six Month Mortality",
           "units": "",
           "type": "integer",
-          "methodology": "creactive"
+          "methodology": "creactive",
+          "enumerations": [
+            {
+              "code": "0",
+              "label": "Alive"
+            },
+            {
+              "code": "1",
+              "label": "Deceased"
+            }
+		  ]
         },
         {
           "isCategorical": false,
