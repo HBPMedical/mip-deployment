@@ -50,8 +50,8 @@ Execute `sudo ./run.sh` script to install all the components.
 ## Test
 
 After the installation is done, MIP will be visible on localhost. To verify everything is working properly go to http://localhost and
-  - Check that 2 medical conditions (dementia and TBI) are visible,
-  - and that 5 datasets are accessible (4 in dementia and 1 in TBI).
+  - Check that 3 medical conditions (dementia, TBI and Mental Health) are visible,
+  - and that 5 datasets are accessible (3 in dementia, 1 in TBI and 1 in Mental Health).
 
 You can login with the default user:
 ```
