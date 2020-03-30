@@ -10,7 +10,27 @@ This pack contains two sets of metadata and data for the following medical condi
 
 This pack does not contain the data pre-processing tools (Data Factory) that are used to prepare your data and metadata.
 
-## System Requirements
+### Minimum Requirements
+
+Here you will find the minimum requirements that *had been tested* with the `data` folder existing in that repo:
+
+- 2 Core CPU
+- 4 GB RAM
+- 16 GB Disk
+- Ubuntu 18.04 Ubuntu
+- Docker version: 19.03
+- Docker-compose version: 1.25.4
+
+Please *mind* that with the above requirements, if you need to re-deploy because of *new Software versions*, there is an extra step you need to make if your disk space is very limited.
+Execute ```sudo ./cleanUp.sh``` before ```sudo ./run.sh```
+
+### How to add Custom Data
+
+You can follow this <a href="./documentation/NewDataRequirements.md">guide</a>.
+
+*You should consider adjusting the above <a href="README.md#minimum-requirements">requirements</a> with respect to your additional data size.*
+
+### System Requirements
 
 The server must be set up according to the MIP Technical Requirements and must be in a clean state.
 
@@ -21,10 +41,6 @@ It should also have:
   - python (2.7)
 
 If you want your MIP installation to be accessible externally you should follow this ports configuration <a href="./documentation/PortsConfiguration.md">guide</a>.
-
-## How to add Custom Data
-
-You can follow this <a href="./documentation/NewDataRequirements.md">guide</a>.
 
 ## Deploy
 
@@ -43,11 +59,9 @@ username: user
 password: password
 ```
 
-
 If everything is working properly you should configure the users following this <a href="./documentation/UsersConfiguration.md">guide</a>.
 
 Enjoy!
-
 
 ## Troubleshooting
 
@@ -62,4 +76,3 @@ Try `iptables -h' or 'iptables --help' for more information.
 
 <b>Solution:</b> </br>
 ```sudo systemctl restart docker```
-
