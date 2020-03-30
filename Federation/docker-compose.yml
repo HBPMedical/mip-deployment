@@ -101,7 +101,7 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       INSTANCE_NAME: 'MIP ${MIP}'
-      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME_MASTER}, Galaxy: ${GALAXY}'
+      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
       KEYCLOAK_AUTH_URL: "https://iam.humanbrainproject.eu/auth/"
