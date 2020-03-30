@@ -6,4 +6,4 @@ cd $SCRIPTDIR
 
 ./stop.sh
 
-docker image rm $(docker images --filter=reference='hbpmip/*' -q)
+docker image rm -f $(docker images --filter=reference='hbpmip/*' -q)
