@@ -4,6 +4,10 @@
 valid_IP () {
     IP=$1
 	
+	if [[ $IP = "127.0.0.1" ]]; then
+		return 0
+	fi
+	
 	if [[ $IP =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
 		for i in 1 2 3 4; do
 			if [[ $(echo "${IP}" | cut -d "." -f$i) -gt 255 ]]; then
@@ -15,6 +19,11 @@ valid_IP () {
 		return 0
 	fi
 }
+
+
+
+echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from. If you only want to install it on your local machine, you can initialize it with your internal IP. IP 127.0.0.1 is NOT allowed."
+
 
 
 env_variables_file=$1

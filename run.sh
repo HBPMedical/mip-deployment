@@ -62,8 +62,7 @@ fi
 
 
 # Checking the PUBLIC_MIP_IP env variable
-echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from. If you only want to install it on your local machine, you can initialize it with 127.0.0.1"
-./config/check_env_variabe_IP.sh .IPs_env PUBLIC_MIP_IP
+./config/get_env_variable_IP.sh .IPs_env PUBLIC_MIP_IP
 
 source ./.IPs_env # Load the env variables
 

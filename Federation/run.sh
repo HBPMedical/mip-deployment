@@ -11,11 +11,11 @@ fi
 
 # Checking the EXAREME_IP env variable
 echo -e "\nYou need to configure the 'EXAREME_IP' variable. It is the IP where Exareme master is currently running."
-../config/check_env_variabe_IP.sh ../.IPs_env EXAREME_IP
+../config/get_env_variable_IP.sh ../.IPs_env EXAREME_IP
 
 # Checking the PUBLIC_MIP_IP env variable
 echo -e "\nYou need to configure the 'PUBLIC_MIP_IP' variable. It is the IP where MIP will be visible from."
-../config/check_env_variabe_IP.sh ../.IPs_env PUBLIC_MIP_IP
+../config/get_env_variable_IP.sh ../.IPs_env PUBLIC_MIP_IP
 
 . ../.IPs_env
 
