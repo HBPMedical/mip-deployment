@@ -49,7 +49,7 @@ Execute `sudo ./run.sh` script to install all the components.
 
 ## Test
 
-After the installation is done, MIP will be visible on localhost. To verify everything is working properly go to http://localhost and
+After the installation is done, MIP will be visible on your machine's IP. To verify everything is working properly go to http://MACHINE_IP and
   - Check that 2 medical conditions (dementia and TBI) are visible,
   - and that 5 datasets are accessible (4 in dementia and 1 in TBI).
 
