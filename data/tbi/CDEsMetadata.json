@@ -22,14 +22,24 @@
     {
       "variables": [
         {
-          "isCategorical": false,
+          "isCategorical": true,
           "code": "Mortality",
           "sql_type": "int",
           "description": "Six Month Mortality",
           "label": "Six Month Mortality",
           "units": "",
           "type": "integer",
-          "methodology": "creactive"
+          "methodology": "creactive",
+          "enumerations": [
+            {
+              "code": "0",
+              "label": "Alive"
+            },
+            {
+              "code": "1",
+              "label": "Deceased"
+            }
+		  ]
         },
         {
           "isCategorical": false,
