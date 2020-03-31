@@ -51,7 +51,7 @@ Execute `sudo ./run.sh` script to install all the components.
 
 After the installation is done, MIP will be visible on your machine's IP. To verify everything is working properly go to http://MACHINE_IP and
   - Check that 3 medical conditions (dementia, TBI and Mental Health) are visible,
-  - and that 5 datasets are accessible (4 in dementia, 1 in TBI and 1 in Mental Health).
+  - and that 6 datasets are accessible (4 in dementia, 1 in TBI and 1 in Mental Health).
 
 You can login with the default user:
 ```
