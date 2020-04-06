@@ -68,7 +68,7 @@ services:
       - backend
 
   portalbackend:
-    image: hbpmip/portal-backend:${PORTALBACKEND}
+    image: thanasulas/portal-backend:latest
     ports:
       - '8080:8080'
       - '8089:8089'
@@ -153,7 +153,7 @@ services:
       - backend
 
   keycloak:
-    image: jboss/keycloak:8.0.1
+    image: jboss/keycloak:9.0.2
     command:
       -Djboss.http.port=8095 
     volumes:
