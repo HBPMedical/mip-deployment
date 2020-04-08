@@ -96,10 +96,11 @@ services:
 
     depends_on:
       - create_dbs
-    restart: on-failure
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
+    restart: on-failure
+   
 
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
@@ -124,7 +125,7 @@ services:
   keycloak_db:
     image: postgres:12.2
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ./data/keycloak:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
