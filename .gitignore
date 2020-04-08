@@ -2,7 +2,7 @@
 .IPs_env
 .env
 *.db
-data/
+./.stored_data/
 logs/
 Federation/data
 Federation/logs

@@ -125,7 +125,7 @@ services:
   keycloak_db:
     image: postgres:12.2
     volumes:
-      - ./data/keycloak:/var/lib/postgresql/data
+      - ./.stored_data/keycloak:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
