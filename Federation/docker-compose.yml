@@ -26,6 +26,8 @@ services:
       POSTGRES_PASSWORD: test
     networks:
       - backend
+    volumes:
+      - ./data:/var/lib/postgresql/data
 
   create_dbs:
     image: hbpmip/create-databases:1.1.0
