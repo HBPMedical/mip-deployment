@@ -6,7 +6,7 @@ A user can be authorized on two different aspects:
 
 ### Authorize User to access MIP
 
-1) Select a user: `MIP` -> `Users` -> select the user
+1) Select a user: `MIP` -> `Users` -> Select the user
 
 2) Join the appropriate group for that user.
 ![img1](images/joinGroup.png)
@@ -17,7 +17,7 @@ There are 2 available groups right now:
 
 ### Authorize User to access Datasets
 
-1) Select a user: `MIP` -> `Users` -> select the user
+1) Select a user: `MIP` -> `Users` -> Select the user
 
 2) Add the appropriate dataset permissions (roles).
 ![img1](images/addRole.png)
