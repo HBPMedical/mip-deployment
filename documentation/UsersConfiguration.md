@@ -16,4 +16,4 @@ Follow this <a href="./CreateLocalUser.md">guide</a>.
 
 ### User Authorizations
 
-Follow this <a href="./AuthorizeUser.md">guide</a>.
+Follow this <a href="./UserAuthorizations.md">guide</a>.
