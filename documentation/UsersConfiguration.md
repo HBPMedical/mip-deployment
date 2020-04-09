@@ -4,7 +4,7 @@ By default MIP has 2 users, one is an administrator and one is a mip user.
 
 First of all, you should change the administrator credentials, from this url: http://{MIP_IP}/auth/realms/master/account/password
 
-The administrator credentials are the following:
+The default administrator credentials are the following:
 ```
 username: admin
 password: Pa55w0rd
@@ -14,6 +14,6 @@ password: Pa55w0rd
 
 Follow this <a href="./CreateLocalUser.md">guide</a>.
 
-### Add Role to Existing User
+### User Authorizations
 
-Follow this <a href="./AddRoleToUser.md">guide</a>.
+Follow this <a href="./AuthorizeUser.md">guide</a>.
