@@ -57,7 +57,7 @@ services:
     restart: on-failure
 
   portalbackend:
-    image: thanasulas/portal-backend:latest
+    image: hbpmip/portal-backend:${PORTALBACKEND}
     ports:
       - '8080:8080'
       - '8089:8089'
