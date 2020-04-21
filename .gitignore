@@ -1,8 +1,9 @@
 .idea
-tmp/
-logs/
-*.db
 .IPs_env
 .env
+*.db
+./.stored_data/
+logs/
+Federation/data
 Federation/logs
 Federation/.combined_env

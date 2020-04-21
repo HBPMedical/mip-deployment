@@ -1,9 +1,5 @@
 version: '3.2'
 
-networks:
-  frontend:
-  backend:
-
 services:
   galaxy:
     image: hbpmip/galaxy:${GALAXY}
@@ -16,16 +12,12 @@ services:
       - '80'
     ports:
       - '8090:80'
-    networks:
-      - backend
 
   portalbackend_db:
     image: postgres:11.3-alpine
     hostname: portalbackend_db
     environment:
       POSTGRES_PASSWORD: test
-    networks:
-      - backend
 
   create_dbs:
     image: hbpmip/create-databases:1.1.0
@@ -40,8 +32,6 @@ services:
     depends_on:
       - portalbackend_db
     restart: on-failure
-    networks:
-      - backend
 
   portalbackend:
     image: hbpmip/portal-backend:${PORTALBACKEND}
@@ -84,9 +74,6 @@ services:
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
-    networks:
-      - backend
-      - frontend
 
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
@@ -107,6 +94,3 @@ services:
       KEYCLOAK_AUTH_URL: "https://iam.humanbrainproject.eu/auth/"
       KEYCLOAK_LOGIN_URL: "https://iam.humanbrainproject.eu/auth/realms/MIP/protocol/openid-connect/auth"
     restart: on-failure
-    networks:
-      - frontend
-      - backend
