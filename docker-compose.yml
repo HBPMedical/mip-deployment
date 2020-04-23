@@ -68,7 +68,7 @@ services:
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
       AUTHENTICATION: 1
-      CLIENT_ID: medical-informatics-platform
+      CLIENT_ID: MIP
       CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
       FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_IP}/
@@ -136,7 +136,8 @@ services:
     command:
       -Djboss.http.port=8095 
     volumes:
-      - ./config/keycloak.json:/tmp/mip.json
+      - ./config/keycloak/keycloak.json:/tmp/mip.json
+      - ./config/keycloak/HBPTheme:/opt/jboss/keycloak/themes/HBPTheme
     environment:
       DB_VENDOR: POSTGRES
       DB_ADDR: keycloak_db
