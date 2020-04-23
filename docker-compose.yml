@@ -35,6 +35,8 @@ services:
 
   portalbackend_db:
     image: postgres:11.3-alpine
+    volumes:
+      - ./.stored_data/portalbackenddb:/var/lib/postgresql/data
     hostname: portalbackend_db
     environment:
       POSTGRES_PASSWORD: test
