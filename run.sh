@@ -26,7 +26,7 @@ fi
 chmod a+rwx logs
 
 
-
+<< 'COMMENT'
 # Running the pathologies.json generator
 echo -e "\nDo you want to auto-generate the config files? ( Y/N )"
 read answer
@@ -64,9 +64,12 @@ fi
 # Checking the PUBLIC_MIP_IP env variable
 ./config/get_env_variable_IP.sh .IPs_env PUBLIC_MIP_IP
 
+COMMENT
+
 source ./.IPs_env # Load the env variables
 
 cat ./.IPs_env >> .env ; echo "" >> .env ; cat ./.versions_env >> .env
+
 
 # Removing previous services
 echo -e "\nRemoving previous services..."
