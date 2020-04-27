@@ -13,7 +13,7 @@
       ],
       "label": "Dataset",
       "units": "",
-      "type": "multinominal",
+      "type": "multinomial",
       "methodology": "mip-cde"
     }
   ],
@@ -92,7 +92,7 @@
           ],
           "label": "Glasgow Outcome Scale Extended",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -136,7 +136,7 @@
           ],
           "label": "Hypotension",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -160,7 +160,7 @@
           ],
           "label": "Hypoxia",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -180,7 +180,7 @@
           ],
           "label": "Epidural Hematoma",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -200,7 +200,7 @@
           ],
           "label": "Traumatic subarachnoid haemorrhage",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -220,7 +220,7 @@
           ],
           "label": "Not Evacuated Hematoma",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -256,7 +256,7 @@
           ],
           "label": "Marshall",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -276,7 +276,7 @@
           ],
           "label": "shift",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -300,7 +300,7 @@
           ],
           "label": "Cistern",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -330,7 +330,7 @@
           ],
           "label": "Petechiae",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -358,7 +358,7 @@
           ],
           "label": "Pupils on admission",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -434,7 +434,7 @@
           ],
           "label": "GCS total score",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -470,7 +470,7 @@
           ],
           "label": "GCS Best verbal response",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -510,7 +510,7 @@
           ],
           "label": "GCS: Best motor response",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         },
         {
@@ -542,7 +542,7 @@
           ],
           "label": "GCS: Best eyes response",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "creactive"
         }
       ],
@@ -580,7 +580,7 @@
           ],
           "label": "Gender",
           "units": "",
-          "type": "multinominal",
+          "type": "multinomial",
           "methodology": "mip-cde"
         }
       ],

@@ -7,6 +7,8 @@ The main objective of this pack is to provide you with the information and guida
 This pack contains two sets of metadata and data for the following medical conditions:
   - Dementia
   - Trauma Brain Injury
+  - Mental Health
+  - Epilepsy
 
 This pack does not contain the data pre-processing tools (Data Factory) that are used to prepare your data and metadata.
 
@@ -49,9 +51,7 @@ Execute `sudo ./run.sh` script to install all the components.
 
 ## Test
 
-After the installation is done, MIP will be visible on your machine's IP. To verify everything is working properly go to http://MACHINE_IP and
-  - Check that 3 medical conditions (dementia, TBI and Mental Health) are visible,
-  - and that 6 datasets are accessible (4 in dementia, 1 in TBI and 1 in Mental Health).
+After the installation is done, MIP will be visible on your machine's IP. To verify everything is working properly go to http://MACHINE_IP and check if the pathologies and the datasets are visible.
 
 You can login with the default user:
 ```
