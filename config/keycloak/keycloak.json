@@ -308,7 +308,7 @@
         "containerId" : "0cea3fc7-c621-44ad-8cad-af506c8a23c4",
         "attributes" : { }
       } ],
-      "medical-informatics-platform" : [ ],
+      "MIP" : [ ],
       "security-admin-console" : [ ],
       "admin-cli" : [ ],
       "account-console" : [ ],
@@ -582,7 +582,7 @@
     "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
   }, {
     "id" : "0da65703-773f-4d23-83ca-f2bac241cbad",
-    "clientId" : "medical-informatics-platform",
+    "clientId" : "MIP",
     "surrogateAuthRequired" : false,
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
