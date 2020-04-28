@@ -30,6 +30,7 @@
     <meta name="robots" content="noindex, nofollow">
 
     <link rel="shortcut icon" href="welcome-content/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="welcome-content/favicon-32x32.png" />
 
     <#if properties.styles?has_content>
         <#list properties.styles?split(' ') as style>
