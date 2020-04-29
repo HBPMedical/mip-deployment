@@ -308,7 +308,7 @@
         "containerId" : "0cea3fc7-c621-44ad-8cad-af506c8a23c4",
         "attributes" : { }
       } ],
-      "medical-informatics-platform" : [ ],
+      "MIP" : [ ],
       "security-admin-console" : [ ],
       "admin-cli" : [ ],
       "account-console" : [ ],
@@ -582,7 +582,7 @@
     "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
   }, {
     "id" : "0da65703-773f-4d23-83ca-f2bac241cbad",
-    "clientId" : "medical-informatics-platform",
+    "clientId" : "MIP",
     "surrogateAuthRequired" : false,
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
@@ -1162,6 +1162,10 @@
     "strictTransportSecurity" : "max-age=31536000; includeSubDomains"
   },
   "smtpServer" : { },
+  "loginTheme" : "HBPTheme",
+  "accountTheme" : "HBPTheme",
+  "adminTheme" : "HBPTheme",
+  "emailTheme" : "HBPTheme",
   "eventsEnabled" : false,
   "eventsListeners" : [ "jboss-logging" ],
   "enabledEventTypes" : [ ],
@@ -1272,7 +1276,7 @@
     } ]
   },
   "internationalizationEnabled" : false,
-  "supportedLocales" : [ ],
+  "supportedLocales" : [ "" ],
   "authenticationFlows" : [ {
     "id" : "360ca0c5-727f-43a9-89c7-39e2b753c9e0",
     "alias" : "Account verification options",
