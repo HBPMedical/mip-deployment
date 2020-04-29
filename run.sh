@@ -26,7 +26,6 @@ fi
 chmod a+rwx logs
 
 
-<< 'COMMENT'
 # Running the pathologies.json generator
 echo -e "\nDo you want to auto-generate the config files? ( Y/N )"
 read answer
@@ -50,7 +49,7 @@ done
 # CSVs and metadata validation
 echo -e "\nValidating if the CSVs match with the metadata..."
 rm -rf data/**/*.db	# Removing previous .db files
-python config/convert-csv-dataset-to-db.py -f data/ -t "master" # Running the database creation script
+config/convert-csv-dataset-to-db.py -f data/ -t "master" # Running the database creation script
 py_script=$?
 if [[ ${py_script} -ne 0 ]]; then
     echo -e "\nThe CSVs could not be parsed using the metadata. Exiting..." >&2
@@ -63,8 +62,6 @@ fi
 
 # Checking the PUBLIC_MIP_IP env variable
 ./config/get_env_variable_IP.sh .IPs_env PUBLIC_MIP_IP
-
-COMMENT
 
 source ./.IPs_env # Load the env variables
 
