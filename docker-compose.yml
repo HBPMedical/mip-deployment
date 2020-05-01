@@ -151,7 +151,7 @@ services:
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: Pa55w0rd
       KEYCLOAK_IMPORT: /tmp/mip.json
-      PROXY_ADDRESS_FORWARDING: 'true'
+      KEYCLOAK_HOSTNAME: ${PUBLIC_MIP_IP}
     ports:
       - '8095:8095'
       - '8443:8443'
