@@ -89,7 +89,7 @@ services:
       GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-      
+
       KEYCLOAK_URL: ${PUBLIC_MIP_IP}
       AUTH_URI: http://${PUBLIC_MIP_IP}/auth/realms/MIP/protocol/openid-connect/auth
       USER_INFO_URI: http://${PUBLIC_MIP_IP}/auth/realms/MIP/protocol/openid-connect/userinfo
@@ -102,7 +102,6 @@ services:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
     restart: on-failure
-   
 
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
@@ -135,8 +134,7 @@ services:
 
   keycloak:
     image: jboss/keycloak:9.0.2
-    command:
-      -Djboss.http.port=8095 
+    command: -Djboss.http.port=8095
     volumes:
       - ./config/keycloak/keycloak.json:/tmp/mip.json
       - ./config/keycloak/HBPTheme:/opt/jboss/keycloak/themes/HBPTheme
@@ -158,46 +156,3 @@ services:
     depends_on:
       - keycloak_db
     restart: on-failure
-
-  datacatalogue_backend:
-    image: hbpmip/datacatalogue_spring_boot_backend:latest
-    ports:
-      - 8086
-    depends_on:
-      - datacatalogue_postgres
-    links:
-      - datacatalogue_postgres
-    environment:
-      - spring.datasource.url=jdbc:postgresql://datacatalogue_postgres:5432/datacatalog
-      - spring.datasource.username=andy
-      - spring.datasource.password=password
-      - keycloak.client.clientId=Mipqa
-      - keycloak.client.clientSecret=a67c7ae8-e8f2-444b-a0a4-bd0b783adb47
-      - keycloak.client.accessTokenUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/token
-      - keycloak.resource.userInfoUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/userinfo
-      - keycloak.client.userAuthorizationUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/auth
-      - keycloak.client.redirect_uri=http://localhost:4200/pathologies
-    restart: on-failure
-
-  datacatalogue_frontend:
-    image: hbpmip/datacatalogue_angular_frontend:latest
-    ports:
-      - 4200:4200
-    depends_on:
-      - datacatalogue_backend
-    links:
-      - datacatalogue_backend
-    restart: on-failure
-
-  datacatalogue_postgres:
-    image: postgres:9.5
-    environment:
-      - POSTGRES_DB=datacatalog
-      - POSTGRES_USER=andy
-      - POSTGRES_PASSWORD=password
-
-    volumes:
-      - ./postgres_data:/var/lib/postgresql/data
-
-    restart: on-failure
-    
