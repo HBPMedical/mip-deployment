@@ -6,7 +6,8 @@ services:
     command: -server -bootstrap
 
   exareme_master:
-    image: hbpmip/exareme:${EXAREME}
+          # image: hbpmip/exareme:${EXAREME}
+    image:  jassak/exareme:latest
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
@@ -69,7 +70,7 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 1
+      AUTHENTICATION: 0
       CLIENT_ID: MIP
       CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
       FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
