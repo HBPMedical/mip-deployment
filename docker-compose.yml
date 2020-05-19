@@ -11,6 +11,8 @@ services:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
       - NODE_NAME=miplocal
+      - TEMP_FILES_CLEANUP_TIME=30
+      - NODE_COMMUNICATION_TIMEOUT=30000        # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
       - ENVIRONMENT_TYPE=PROD
     depends_on:
       - exareme_keystore
