@@ -46,7 +46,7 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 1
+      AUTHENTICATION: 0
       FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_IP}/
       FRONTEND_AFTER_LOGOUT_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
@@ -79,11 +79,11 @@ services:
     image: hbpmip/portal-frontend:${FRONTEND}
     depends_on:
       - portalbackend
-      - datacatalogue_frontend
+      - datacataloguefrontend
     ports:
       - '80:80'
     links:
-      - datacatalogue_frontend
+      - datacataloguefrontend
     environment:
       WORKER_PROCESSES: 1
       ERROR_LOG_LEVEL: warn
@@ -94,7 +94,7 @@ services:
       VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
-      DATACATALOGUE_SERVER: datacatalogue_frontend:4200
+      DATACATALOGUE_SERVER: datacataloguefrontend:4200
       KEYCLOAK_AUTH_URL: 'https://iam.humanbrainproject.eu/auth/'
       KEYCLOAK_LOGIN_URL: 'https://iam.humanbrainproject.eu/auth/realms/MIP/protocol/openid-connect/auth'
     restart: on-failure
@@ -117,9 +117,9 @@ services:
       - keycloak.resource.userInfoUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/userinfo
       - keycloak.client.userAuthorizationUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/auth
       - keycloak.client.redirect_uri=http://localhost:4200/pathologies
-    restart: on-failure
 
-  datacatalogue_frontend:
+
+  datacataloguefrontend:
     image: hbpmip/datacatalogue_angular_frontend:latest
     ports:
       - 4200:4200
