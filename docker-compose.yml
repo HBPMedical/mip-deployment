@@ -6,7 +6,8 @@ services:
     command: -server -bootstrap
 
   exareme_master:
-    image: hbpmip/exareme:${EXAREME}
+    # image: hbpmip/exareme:${EXAREME}
+    image: jassak/exareme:latest
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
