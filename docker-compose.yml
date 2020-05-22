@@ -6,14 +6,14 @@ services:
     command: -server -bootstrap
 
   exareme_master:
-          # image: hbpmip/exareme:${EXAREME}
-    image:  jassak/exareme:latest
+    # image: hbpmip/exareme:${EXAREME}
+    image: jassak/exareme:latest
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
       - NODE_NAME=miplocal
       - TEMP_FILES_CLEANUP_TIME=30
-      - NODE_COMMUNICATION_TIMEOUT=30000        # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
+      - NODE_COMMUNICATION_TIMEOUT=30000 # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
       - ENVIRONMENT_TYPE=PROD
     depends_on:
       - exareme_keystore
@@ -72,7 +72,7 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 0
+      AUTHENTICATION: 1
       CLIENT_ID: MIP
       CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
       FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
@@ -92,7 +92,7 @@ services:
       GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-      
+
       KEYCLOAK_URL: ${PUBLIC_MIP_IP}
       AUTH_URI: http://${PUBLIC_MIP_IP}/auth/realms/MIP/protocol/openid-connect/auth
       USER_INFO_URI: http://${PUBLIC_MIP_IP}/auth/realms/MIP/protocol/openid-connect/userinfo
@@ -105,7 +105,6 @@ services:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
     restart: on-failure
-   
 
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
@@ -138,8 +137,7 @@ services:
 
   keycloak:
     image: jboss/keycloak:9.0.2
-    command:
-      -Djboss.http.port=8095 
+    command: -Djboss.http.port=8095
     volumes:
       - ./config/keycloak/keycloak.json:/tmp/mip.json
       - ./config/keycloak/HBPTheme:/opt/jboss/keycloak/themes/HBPTheme
@@ -161,4 +159,3 @@ services:
     depends_on:
       - keycloak_db
     restart: on-failure
-    
