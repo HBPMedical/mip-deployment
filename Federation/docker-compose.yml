@@ -46,7 +46,7 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 0
+      AUTHENTICATION: 1
       FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_IP}/
       FRONTEND_AFTER_LOGOUT_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
