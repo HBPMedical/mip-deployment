@@ -12,7 +12,7 @@ services:
       - FEDERATION_ROLE=master
       - NODE_NAME=miplocal
       - TEMP_FILES_CLEANUP_TIME=30
-      - NODE_COMMUNICATION_TIMEOUT=30000        # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
+      - NODE_COMMUNICATION_TIMEOUT=30000 # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
       - ENVIRONMENT_TYPE=PROD
     depends_on:
       - exareme_keystore
@@ -91,7 +91,7 @@ services:
       GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-      
+
       KEYCLOAK_URL: ${PUBLIC_MIP_IP}
       AUTH_URI: http://${PUBLIC_MIP_IP}/auth/realms/MIP/protocol/openid-connect/auth
       USER_INFO_URI: http://${PUBLIC_MIP_IP}/auth/realms/MIP/protocol/openid-connect/userinfo
@@ -104,7 +104,6 @@ services:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
     restart: on-failure
-   
 
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
@@ -137,8 +136,7 @@ services:
 
   keycloak:
     image: jboss/keycloak:9.0.2
-    command:
-      -Djboss.http.port=8095 
+    command: -Djboss.http.port=8095
     volumes:
       - ./config/keycloak/keycloak.json:/tmp/mip.json
       - ./config/keycloak/HBPTheme:/opt/jboss/keycloak/themes/HBPTheme
@@ -160,4 +158,3 @@ services:
     depends_on:
       - keycloak_db
     restart: on-failure
-    
