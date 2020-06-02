@@ -60,7 +60,7 @@ args_parser(){
 		key="$1"
 
 		case $key in
-			check-required|install|uninstall|start|stop|status|status-details|restart|logs)
+			check-required|install|uninstall|start|stop|status|status-details|restart)
 				ACTION=$1
 				shift
 				;;
@@ -1463,7 +1463,7 @@ _prepare_logs(){
 	fi
 	local parentdir=$(dirname $LOGS_PATH)
 	local lastdir=$(basename $LOGS_PATH)
-	local lsline=`ls -l $parentdir|grep ' ${lastdir}$'`
+	local lsline=`ls -l $parentdir|grep " ${lastdir}$"`
 	local rights=$(echo $lsline|awk '{print $1}')
 	if [[ "$rights" != "drwxrwxrwx" ]]; then
 		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "UNIX rights on $LOGS_PATH. Fixing..."; fi
@@ -1826,7 +1826,9 @@ logs(){
 				image=$image"_exareme-master"
 				;;
 			ui)
-				logfile=$LOGS_PATH/portal-backend.db
+				if [[ -f $LOGS_PATH/portal-backend.txt ]]; then
+					logfile=$LOGS_PATH/portal-backend.txt
+				fi
 				;;
 			wk)
 				image=$image"_exareme"
@@ -1834,6 +1836,7 @@ logs(){
 		esac
 		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "image=<$image>"; fi
 	elif [[ -n $logpart ]]; then
+		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"; fi
 		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"; fi
 		image=$DOCKER_PROJECT_NAME"_"$logpart"_1"
 		case $MIP_ENV_NODE_TYPE in
@@ -1846,15 +1849,23 @@ logs(){
 				containers="exareme"
 				;;
 		esac
+		if [[ "$MIP_ENV_MIP_TYPE" = "local" && "$LOGS_PART" = "portalbackend" ]]; then
+			if [[ -f $LOGS_PATH/portal-backend.txt ]]; then
+				logfile=$LOGS_PATH/portal-backend.txt
+			fi
+		fi
 		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "image=<$image>"; fi
 		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "containers=<$containers>"; fi
-		_contains $containers $image
+		_contains "$containers" $image
 		local ret=$?
 		if [[ $ret -ne 0 ]]; then
-			__red -n "Usage: $0 logs [$MIP_COMPONENTS_LIST] "
+			__red "Usage: $0 logs [$MIP_COMPONENTS_LIST]"
 			if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 			exit 1
 		fi
+	else
+		__red "Usage: $0 logs [$MIP_COMPONENTS_LIST]"
+		exit 1
 	fi
 
 	local follow=""
@@ -1863,18 +1874,19 @@ logs(){
 		follow="-f"
 	fi
 
-	if [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+	if [[ -n $logfile ]]; then
 		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "MIP_ENV_NODE_TYPE=<ui>. Getting 100000 last lines of $logfile"; fi
 		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "tail -100000 $follow $logfile"; fi
-		tail -100000 $follow $logfile
+		tail -n100000 $follow $logfile
 		if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
 		return 0
 	fi
 
 	local status=""
+	if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "docker ps -a --filter name=$image|grep $image|awk '{print $1}'"; fi
 	local process_ids=$(docker ps -a --filter name=$image|grep $image|awk '{print $1}')
-	if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "docker process ids=<$process_ids>"; fi
-	for id in process_ids; do
+	if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "docker process_ids=<$process_ids>"; fi
+	for id in $process_ids; do
 		status=$(docker inspect $id --format {{.State.Status}})
 		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "status=<$status>"; fi
 		case $status in
@@ -1890,6 +1902,7 @@ logs(){
 		for id in $running; do
 			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "docker logs $follow $id"; fi
 			docker logs $follow $id
+			echo -n ${reset}
 			break
 		done
 	elif [[ "$exited" != "" ]]; then
@@ -1897,6 +1910,7 @@ logs(){
 		for id in $exited; do
 			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "docker logs $follow $id"; fi
 			docker logs $follow $id
+			echo -n ${reset}
 			break
 		done
 	fi
