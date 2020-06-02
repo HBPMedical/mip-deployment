@@ -46,10 +46,10 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 1
-      FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
-      FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_IP}/
-      FRONTEND_AFTER_LOGOUT_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
+      AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
+      FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
+      FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_HOST}/
+      FRONTEND_AFTER_LOGOUT_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
       LOGGING_LEVEL_WEB: INFO
       LOGGING_LEVEL_HIBERNATE: INFO
       SESSION_TIMEOUT: 2592000
@@ -62,12 +62,12 @@ services:
       GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-      CLIENT_ID: vanilla
-      CLIENT_SECRET: SaNJbC2YFHPhPM-tGiJ1b7tmAA
-      AUTH_URI: 'https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/auth'
-      USER_INFO_URI: 'https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/userinfo'
-      TOKEN_URI: 'https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/token'
-      LOGOUT_URI: 'https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/logout'
+      CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      AUTH_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
+      USER_INFO_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
+      TOKEN_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      LOGOUT_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout
     depends_on:
       - create_dbs
     restart: on-failure
@@ -95,8 +95,8 @@ services:
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
       DATACATALOGUE_SERVER: datacataloguefrontend:4200
-      KEYCLOAK_AUTH_URL: 'https://iam.humanbrainproject.eu/auth/'
-      KEYCLOAK_LOGIN_URL: 'https://iam.humanbrainproject.eu/auth/realms/MIP/protocol/openid-connect/auth'
+      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      KEYCLOAK_LOGIN_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
     restart: on-failure
 
   datacatalogue_backend:
@@ -111,11 +111,11 @@ services:
       - spring.datasource.url=jdbc:postgresql://datacatalogue_postgres:5432/datacatalog
       - spring.datasource.username=andy
       - spring.datasource.password=password
-      - keycloak.client.clientId=Mipqa
-      - keycloak.client.clientSecret=a67c7ae8-e8f2-444b-a0a4-bd0b783adb47
-      - keycloak.client.accessTokenUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/token
-      - keycloak.resource.userInfoUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/userinfo
-      - keycloak.client.userAuthorizationUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/auth
+      - keycloak.client.clientId=${KEYCLOAK_CLIENT_ID}
+      - keycloak.client.clientSecret=${KEYCLOAK_CLIENT_SECRET}
+      - keycloak.client.accessTokenUri=${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      - keycloak.resource.userInfoUri=${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
+      - keycloak.client.userAuthorizationUri=${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
       - keycloak.client.redirect_uri=http://localhost:4200/pathologies
 
 
