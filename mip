@@ -1725,9 +1725,12 @@ _services_up(){
 		_prepare_mip_env set
 		# Deploying MIP services
 		echo -e "\nDeploying Services..."
-		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "docker-compose --file $DOCKER_COMPOSE_PATH/docker-compose.yml --project-name $DOCKER_PROJECT_NAME up -d"; fi
-		docker-compose --file $DOCKER_COMPOSE_PATH/docker-compose.yml --project-name $DOCKER_PROJECT_NAME up -d
+		local path=$(pwd)
+		cd $DOCKER_COMPOSE_PATH
+		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "docker-compose --project-name $DOCKER_PROJECT_NAME up -d"; fi
+		docker-compose --project-name $DOCKER_PROJECT_NAME up -d
 		ret=$?
+		cd $path
 		if [[ $ret -ne 0 ]]; then
 			echo
 			__red -n "An error has occurred while deploying services! " >&2
@@ -1749,9 +1752,12 @@ _services_down(){
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
 		echo -e "\nRemoving previous services..."
-		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "docker-compose --file $DOCKER_COMPOSE_PATH/docker-compose.yml --project-name $DOCKER_PROJECT_NAME --log-level ERROR down"; fi
-		docker-compose --file $DOCKER_COMPOSE_PATH/docker-compose.yml --project-name $DOCKER_PROJECT_NAME --log-level ERROR down
+		local path=$(pwd)
+		cd $DOCKER_COMPOSE_PATH
+		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "docker-compose --project-name $DOCKER_PROJECT_NAME down"; fi
+		docker-compose --project-name $DOCKER_PROJECT_NAME down
 		ret=$?
+		cd $path
 		_prepare_mip_env unset
 		if [[ $ret -ne 0 ]]; then
 			echo
