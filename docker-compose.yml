@@ -72,8 +72,8 @@ services:
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
       AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
-      +      CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
-      +      CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
       FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_HOST}/
       FRONTEND_AFTER_LOGOUT_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
@@ -89,7 +89,7 @@ services:
       GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-      KEYCLOAK_URL: ${PUBLIC_MIP_IP}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
       AUTH_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
       USER_INFO_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
       TOKEN_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
@@ -148,7 +148,7 @@ services:
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: Pa55w0rd
       KEYCLOAK_IMPORT: /tmp/mip.json
-      KEYCLOAK_HOSTNAME: ${PUBLIC_MIP_IP}
+      KEYCLOAK_HOSTNAME: ${PUBLIC_MIP_HOST}
     ports:
       - '8095:8095'
       - '8443:8443'
