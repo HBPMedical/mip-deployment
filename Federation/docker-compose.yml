@@ -91,7 +91,7 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       INSTANCE_NAME: 'MIP ${MIP}'
-      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
+      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}, DataCatalogue: ${DATACATALOGUE}'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
       DATACATALOGUE_SERVER: datacataloguefrontend:4200
@@ -100,7 +100,7 @@ services:
     restart: on-failure
 
   datacatalogue_backend:
-    image: hbpmip/datacatalogue_spring_boot_backend:latest
+    image: hbpmip/datacatalogue_spring_boot_backend:${DATACATALOGUE}
     ports:
       - 8086
     depends_on:
@@ -120,7 +120,7 @@ services:
 
 
   datacataloguefrontend:
-    image: hbpmip/datacatalogue_angular_frontend:latest
+    image: hbpmip/datacatalogue_angular_frontend:${DATACATALOGUE}
     ports:
       - 4200:4200
     depends_on:
