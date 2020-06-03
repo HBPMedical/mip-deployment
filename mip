@@ -8,7 +8,6 @@ REQUIRED_OS_DISTRIBUTOR_ID="Ubuntu"
 REQUIRED_OS_RELEASE="18.04"
 REQUIRED_DOCKER_VERSION="19.03.6"
 ###########################################################################################
-#INSTALL_PATH="/home/vagrant"
 INSTALL_PATH="/opt/mip"
 ###########################################################################################
 DOCKER_DOWNLOAD_HOST="download.docker.com"
@@ -60,7 +59,7 @@ args_parser(){
 		key="$1"
 
 		case $key in
-			check-required|install|uninstall|start|stop|status|status-details|restart)
+			check-required|install|uninstall|start|stop|restart|status|status-details|cleanup)
 				ACTION=$1
 				shift
 				;;
@@ -74,6 +73,10 @@ args_parser(){
 				ACTION=$1
 				LOGS_PART=$2
 				shift
+				shift
+				;;
+			cleanup)
+				ACTION=$1
 				shift
 				;;
 			--debug-level)
@@ -109,6 +112,39 @@ args_parser(){
 				shift
 				shift
 				;;
+			--with-keycloak-authentication)
+				ARG_KEYCLOAK_AUTHENTICATION=1
+				shift
+				;;
+			--without-keycloak-authentication)
+				ARG_KEYCLOAK_AUTHENTICATION=0
+				shift
+				;;
+			--keycloak-protocol)
+				ARG_KEYCLOAK_PROTOCOL=$2
+				shift
+				shift
+				;;
+			--keycloak-url)
+				ARG_KEYCLOAK_URL=$2
+				shift
+				shift
+				;;
+			--keycloak-realm)
+				ARG_KEYCLOAK_REALM=$2
+				shift
+				shift
+				;;
+			--keycloak-client-id)
+				ARG_KEYCLOAK_CLIENT_ID=$2
+				shift
+				shift
+				;;
+			--keycloak-client-secret)
+				ARG_KEYCLOAK_CLIENT_SECRET=$2
+				shift
+				shift
+				;;
 			-f|--follow)
 				ARG_FOLLOW=1
 				shift
@@ -130,7 +166,7 @@ args_parser(){
 				shift
 				;;
 			-h|--help)
-				echo "HELP"
+				_help
 				shift
 				;;
 			*)
@@ -186,9 +222,92 @@ __check_return(){
 	fi
 }
 
+_help(){
+	cat <<EOF
+Usage: $0 [OPTION]... [ACTION] (ACTION PART)...
+Operate the Human Brain Project MIP, whether it's a local setup or a federation node, in all its different aspects.
+
+		ACTION
+		======
+		check-required							Check if the required packages and conditions are met
+											to run the MIP.
+		install								Just install everything to be able to run the MIP.
+											Commonly used with "--no-run", "--quiet" and "--yes".
+		uninstall							Stop and uninstall the MIP. Note it doesn't uninstall
+											the required components.
+		configure [CONFIGURE_PART]
+			user							Create system user account to use to operate the MIP.
+			host							Configure the host on which the MIP ("local" MIP or "ui" federation node) will listen.
+			logs							Prepare logs directory used in "local" MIP or "ui" federation node.
+			data							Generate databases from datasets available.
+			pathologies						Consolidate CDEs in pathologies and (re)generate "pathologies.json".
+			keycloak						Configure Keycloak required parameters for authentication.
+			exareme-ip						Configure the IP address of the "master" federation node to connect to. Only on a "ui" node.
+			ssh							Create SSH identity used from a "pusher" federation node. Only in --pusher mode.
+			pusher							Configure the list of federation nodes and deploy SSH identity there. Only in --pusher mode.
+			all							Go through all configuration steps applicable to the current node type or MIP setup.
+		start								Start the MIP components. Used in "local" MIP or "ui" federation node.
+		stop								Stop the MIP components. Used in "local" MIP or "ui" federation node.
+		restart								Restart the MIP components. Used in "local" MIP or "ui" federation node.
+		status								Print the status of the different MIP components.
+											Used in "local" MIP or "ui" federation node.
+		status-details							Same than status, but with much detailed output on Docker
+											containers.
+		logs (MIP_COMPONENT)						Get logs of the passed component. The MIP_COMPONENT parameter
+											is MANDATORY for the "local" MIP, but for a federation
+											node, no MIP_COMPONENT will output the logs for
+											the main component related to the node type.
+											Can be used with "-f|--follow" flag, the "tail" way.
+					MIP_COMPONENT for "local" MIP:
+						[frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
+					MIP_COMPONENT for "ui" federation node:
+						[frontend|portalbackend|portalbackend_db|galaxy|create_dbs|datacataloguefrontend|datacatalogue_backend|datacatalogue_postgres]
+		cleanup								Clean the unused/old MIP Docker images.
+
+		OPTION
+		======
+		--no-run							Don't automatically start the MIP after install.		
+	-f,	--follow							Used with logs, exactly the same way than in "tail".
+		--force								May be used at least with configure, to force reconfigure.
+	-q,	--quiet								Just strive to print as less things as possible.
+	-y,	--yes								Force confirmation to any asked [yes/no] question.
+	-v,	--verbose							Be verbose.
+		--debug-level [1..6]						Debug level (1 will generate quite a fancy output).
+		--node-type [local (default)|ms/master|ui/frontend|wk/worker]
+										Type of node, typically in a federation. The
+											script will react differently and adapt to the
+											node-type related context.
+		--pusher							With this option, the script can act as a pusher.
+											Any type of federated node can be a pusher as well,
+											as it doesn't conflict with any MIP component.
+											Requires --federation parameter to be set as well.
+		--federation [FEDERATION_NAME]					Federation name (mipfed1, mipqa1...). This is
+											kind of arbitrary, but then, you'll have to stick
+											to this name everytime you want to administrate
+											the federation. Il also means that a pusher can
+											manage many different federations.
+
+		Next parameters may be used mainly with "configure" action, but not exclusively.
+		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen.
+		--exareme-ip [EXAREME_IP]					Set the exareme IP. Basically, the IP of the "master" node
+											of the federation. Only usable on a "ui" federation node.
+		--with-keycloak-authentication					Use Keycloak authentication. Complementary keycloak
+											parameters may be set, or they may be asked at configuration
+											step.
+		--without-keycloak-authentication				Deactivate Keycloak authentication.
+		--keycloak-protocol [KEYCLOAK_PROTOCOL]				Set the Keycloak protocol [http/https] to use.
+		--keycloak-url [KEYCLOAK_URL]					Set the Keycloak URL to connect to.
+		--keycloak-realm [KEYCLOAK_REALM]				Set the Keycloak Realm (MIP/MIPTEST...) to connect to.
+		--keycloak-client-id [KEYCLOAK_CLIENT_ID]			Set the Keycloak Client ID to use for connection.
+		--keycloak-client-secret [KEYCLOAK_CLIENT_SECRET]		Set the Keycloak Client Secret of the Keycloak client.
+EOF
+	exit 0
+}
+
 load_mip_env(){
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then echo -n "Loading MIP environment..."; fi
 	if [[ $DEBUG_LEVEL -ge 4 ]]; then echo "load_mip_env($@)"; fi
+	local envvar_changes=0
 	local envvar=""
 	local envval=""
 
@@ -228,7 +347,7 @@ load_mip_env(){
 		fi
 		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_PUBLIC_MIP_HOST=<$ARG_HOST>"; fi
 		export MIP_ENV_PUBLIC_MIP_HOST=$ARG_HOST
-		_write_mip_env
+		envvar_changes=1
 	fi
 
 	if [[ -n $ARG_EXAREME_IP ]]; then
@@ -241,7 +360,7 @@ load_mip_env(){
 		fi
 		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_EXAREME_IP=<$ARG_EXAREME_IP>"; fi
 		export MIP_ENV_EXAREME_IP=$ARG_EXAREME_IP
-		_write_mip_env
+		envvar_changes=1
 	fi
 
 	if [[ -n $MIP_TYPE ]]; then
@@ -255,7 +374,7 @@ load_mip_env(){
 		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_NODE_TYPE=<$(echo $MIP_TYPE|cut -c 5-)>"; fi
 		export MIP_ENV_MIP_TYPE="fed"
 		export MIP_ENV_NODE_TYPE=$(echo $MIP_TYPE|cut -c 5-)
-		_write_mip_env
+		envvar_changes=1
 	fi
 
 	if [[ ! -n $MIP_ENV_MIP_TYPE ]]; then
@@ -264,7 +383,48 @@ load_mip_env(){
 		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_NODE_TYPE=<>"; fi
 		export MIP_ENV_MIP_TYPE="local"
 		export MIP_ENV_NODE_TYPE=""
-		_write_mip_env
+		envvar_changes=1
+	fi
+
+	if [[ (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) && (( -n $ARG_KEYCLOAK_AUTHENTICATION || -n $ARG_KEYCLOAK_PROTOCOL || -n $ARG_KEYCLOAK_URL || -n $ARG_KEYCLOAK_REALM || -n $ARG_KEYCLOAK_CLIENT_ID || -n $ARG_KEYCLOAK_CLIENT_SECRET )) ]]; then
+		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"; fi
+		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"; fi
+		if [[ -n $ARG_KEYCLOAK_AUTHENTICATION ]]; then
+			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "ARG_KEYCLOAK_AUTHENTICATION=<$ARG_KEYCLOAK_AUTHENTICATION>"; fi
+			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_KEYCLOAK_AUTHENTICATION=<$ARG_KEYCLOAK_AUTHENTICATION>"; fi
+			export MIP_ENV_KEYCLOAK_AUTHENTICATION=$ARG_KEYCLOAK_AUTHENTICATION
+			envvar_changes=1
+		fi
+		if [[ -n $ARG_KEYCLOAK_PROTOCOL && (( "$ARG_KEYCLOAK_PROTOCOL" = "http" || "$ARG_KEYCLOAK_PROTOCOL" = "https" )) ]]; then
+			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "ARG_KEYCLOAK_PROTOCOL=<$ARG_KEYCLOAK_PROTOCOL>"; fi
+			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_KEYCLOAK_PROTOCOL=<$ARG_KEYCLOAK_PROTOCOL>"; fi
+			export MIP_ENV_KEYCLOAK_PROTOCOL=$ARG_KEYCLOAK_PROTOCOL
+			envvar_changes=1
+		fi
+		if [[ -n $ARG_KEYCLOAK_URL ]]; then
+			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "ARG_KEYCLOAK_URL=<$ARG_KEYCLOAK_URL>"; fi
+			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_KEYCLOAK_URL=<$ARG_KEYCLOAK_URL>"; fi
+			export MIP_ENV_KEYCLOAK_URL=$ARG_KEYCLOAK_URL
+			envvar_changes=1
+		fi
+		if [[ -n $ARG_KEYCLOAK_REALM ]]; then
+			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "ARG_KEYCLOAK_REALM=<$ARG_KEYCLOAK_REALM>"; fi
+			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_KEYCLOAK_REALM=<$ARG_KEYCLOAK_REALM>"; fi
+			export MIP_ENV_KEYCLOAK_REALM=$ARG_KEYCLOAK_REALM
+			envvar_changes=1
+		fi
+		if [[ -n $ARG_KEYCLOAK_CLIENT_ID ]]; then
+			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "ARG_KEYCLOAK_CLIENT_ID=<$ARG_KEYCLOAK_CLIENT_ID>"; fi
+			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_KEYCLOAK_CLIENT_ID=<$ARG_KEYCLOAK_CLIENT_ID>"; fi
+			export MIP_ENV_KEYCLOAK_CLIENT_ID=$ARG_KEYCLOAK_CLIENT_ID
+			envvar_changes=1
+		fi
+		if [[ -n $ARG_KEYCLOAK_CLIENT_SECRET ]]; then
+			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "ARG_KEYCLOAK_CLIENT_SECRET=<$ARG_KEYCLOAK_CLIENT_SECRET>"; fi
+			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_KEYCLOAK_CLIENT_SECRET=<$ARG_KEYCLOAK_CLIENT_SECRET>"; fi
+			export MIP_ENV_KEYCLOAK_CLIENT_SECRET=$ARG_KEYCLOAK_CLIENT_SECRET
+			envvar_changes=1
+		fi
 	fi
 
 	if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting global var: SSH_PATH=</home/$DOCKER_USER>"; fi
@@ -353,6 +513,11 @@ load_mip_env(){
 		SSH_PATH=$MIP_PATH
 		DOCKER_COMPOSE_PATH=$MIP_PATH/Federated-Deployment/Compose-Files
 	fi
+
+	if [[ $envvar_changes -eq 1 ]]; then
+		_write_mip_env
+	fi
+
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __green "done"; fi
 }
 
@@ -990,7 +1155,10 @@ _cleanup(){
 		__red -n "Docker not installed! "
 		result=1
 	fi
-	docker image rm -f $(docker images --filter=reference='hbpmip/*' -q)
+	local images=$(docker images --filter=reference='hbpmip/*' -q)
+	if [[ -n $images ]]; then
+		docker image rm -f $images
+	fi
 
 	if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "result=<$result>"; fi
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
@@ -2013,10 +2181,14 @@ main(){
 			_check_docker
 			logs
 			;;
+		cleanup)
+			_cleanup
+			;;
 		uninstall)
 			_check_os
 			stop_mip
 			delete_mip
+			_cleanup
 			;;
 		install)
 			_check_os
@@ -2064,7 +2236,7 @@ main(){
 			esac
 			;;
 		*)
-			echo "Usage: $0 [check-required|install|configure|uninstall|start|stop|status|status-details|restart|logs]"
+			echo "Usage: $0 [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
 	esac
 }
 
