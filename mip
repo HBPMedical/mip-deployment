@@ -8,7 +8,7 @@ REQUIRED_OS_DISTRIBUTOR_ID="Ubuntu"
 REQUIRED_OS_RELEASE="18.04"
 REQUIRED_DOCKER_VERSION="19.03.6"
 ###########################################################################################
-INSTALL_PATH="/opt/mip"
+INSTALL_PATH="/opt"
 ###########################################################################################
 DOCKER_DOWNLOAD_HOST="download.docker.com"
 DOCKER_USER="mipadmin"
@@ -46,6 +46,7 @@ DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_ID="mipqa"
 DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_SECRET="a67c7ae8-e8f2-444b-a0a4-bd0b783adb47"
 
 MIP_PATH="$INSTALL_PATH/$MIP_GITHUB_PROJECT"
+MIPENVFILENAME=.mipenv
 DISTRIB_ID=""
 DISTRIB_RELEASE=""
 DISTRIB_CODENAME=""
@@ -59,7 +60,7 @@ args_parser(){
 		key="$1"
 
 		case $key in
-			check-required|install|uninstall|start|stop|restart|status|status-details|cleanup)
+			check-required|install|uninstall|start|stop|restart|status|status-details|cleanup|test)
 				ACTION=$1
 				shift
 				;;
@@ -95,6 +96,10 @@ args_parser(){
 				;;
 			--no-run)
 				ARG_NORUN=1
+				shift
+				;;
+			--purge)
+				ARG_PURGE=1
 				shift
 				;;
 			--federation)
@@ -269,6 +274,7 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--no-run							Don't automatically start the MIP after install.		
 	-f,	--follow							Used with logs, exactly the same way than in "tail".
 		--force								May be used at least with configure, to force reconfigure.
+		--purge								In case of MIP uninstall, also remove all Docker images.
 	-q,	--quiet								Just strive to print as less things as possible.
 	-y,	--yes								Force confirmation to any asked [yes/no] question.
 	-v,	--verbose							Be verbose.
@@ -311,9 +317,37 @@ load_mip_env(){
 	local envvar=""
 	local envval=""
 
-	if [[ -f $MIP_PATH/.env ]]; then
-		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "$MIP_PATH/.env exists. Loading variables from it..."; fi
-		for line in $(cat $MIP_PATH/.env); do
+	if [[ ! -d $INSTALL_PATH ]]; then
+		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "INSTALL_PATH '$INSTALL_PATH' does not exist. Creating..."; fi
+		mkdir -p $INSTALL_PATH
+	fi
+
+	if [[ $ARG_PUSHER -eq 1 && -n $ARG_FEDERATION ]]; then
+		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "ARG_PUSHER set. ARG_FEDERATION=<$ARG_FEDERATION>"; fi
+		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting global var: MIP_PATH=<$INSTALL_PATH/$ARG_FEDERATION/exareme>"; fi
+		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting global var: MIPENVFILE=<$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME>"; fi
+		MIP_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
+		MIPENVFILE=$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME
+	fi
+
+	if [[ $ARG_PUSHER -ne 1 || ! -n $ARG_FEDERATION ]]; then
+		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "Not in 'pusher' mode."; fi
+		if [[ -d $MIP_PATH ]]; then
+			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "MIP_PATH '$MIP_PATH' exists. Setting global var: MIPENVFILE=<$MIP_PATH/$MIPENVFILENAME>"; fi
+			MIPENVFILE=$MIP_PATH/$MIPENVFILENAME
+			if [[ -f $INSTALL_PATH/$MIPENVFILENAME ]]; then
+				if [[ $DEBUG_LEVEL -ge 1 ]]; then echo "Previous env file '$INSTALL_PATH/$MIPENVFILENAME' exists. Moving it as '$MIP_PATH/$MIPENVFILENAME' (when not in 'pusher' mode, we must have only one source of truth!)."; fi
+				mv $INSTALL_PATH/$MIPENVFILENAME $MIP_PATH/
+			fi
+		else
+			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "MIP_PATH '$MIP_PATH' does not exist. Setting global var: MIPENVFILE=<$INSTALL_PATH/$MIPENVFILENAME>"; fi
+			MIPENVFILE=$INSTALL_PATH/$MIPENVFILENAME
+		fi
+	fi
+
+	if [[ -f $MIPENVFILE ]]; then
+		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "$MIPENVFILE exists. Loading variables from it..."; fi
+		for line in $(cat $MIPENVFILE); do
 			envvar=$(echo $line|awk -F '=' '{print $1}')
 			envval=$(echo $line|awk -F '=' '{print $2}')
 			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting env var: MIP_ENV_$envvar=<$envval>"; fi
@@ -506,10 +540,8 @@ load_mip_env(){
 			__red "Federation name required!"
 			exit 1
 		fi
-		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting global var: MIP_PATH=<$INSTALL_PATH/$ARG_FEDERATION/exareme>"; fi
 		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting global var: SSH_PATH=<$MIP_PATH>"; fi
 		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Setting global var: DOCKER_COMPOSE_PATH=<$MIP_PATH/Federated-Deployment/Compose-Files>"; fi
-		MIP_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
 		SSH_PATH=$MIP_PATH
 		DOCKER_COMPOSE_PATH=$MIP_PATH/Federated-Deployment/Compose-Files
 	fi
@@ -539,29 +571,28 @@ load_mip_versions(){
 				if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "$mipenvvar set, which comes as an override for $envvar, with value <${!mipenvvar}>"; fi
 				envval=${!mipenvvar}
 			fi
-			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "Setting Docker Compose env var: $envvar=<$envval>"; fi
-			export $envvar=$envval
+			if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "Setting env var: MIP_ENV_$envvar=<$envval>"; fi
+			export MIP_ENV_$envvar=$envval
 		done
 	fi
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __green "done"; fi
 }
 
 _write_mip_env(){
-	if [[ $DEBUG_LEVEL -eq 1 ]]; then echo -n "Saving (if possible) MIP environment..."; fi
+	if [[ $DEBUG_LEVEL -eq 1 ]]; then echo -n "Saving MIP environment..."; fi
 	if [[ $DEBUG_LEVEL -ge 4 ]]; then echo "_write_mip_env($@)"; fi
 	local result=0
-	local envfile=$MIP_PATH/.env
 	local envvar=""
 	local envval=""
 
-	if [[ -d $MIP_PATH ]]; then
-		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "Folder $MIP_PATH exists. Writing file .env in it"; fi
-		cat /dev/null > $envfile
+	if [[ -n $MIPENVFILE ]]; then
+		if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "Erasing env file '$MIPENVFILE'"; fi
+		cat /dev/null > $MIPENVFILE
 		for line in $(env|grep "^MIP_ENV_"|sort); do
 			envvar=$(echo $line|awk -F '=' '{print $1}'|awk -F 'MIP_ENV_' '{print $2}')
 			envval=$(echo $line|awk -F '=' '{print $2}')
-			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Writing var in $MIP_PATH/.env: $envvar=<$envval>"; fi
-			echo "$envvar=$envval" >> $envfile
+			if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "Writing env var in $MIPENVFILE: $envvar=<$envval>"; fi
+			echo "$envvar=$envval" >> $MIPENVFILE
 		done
 	else
 		result=1
@@ -1328,6 +1359,8 @@ download_mip(){
 				cd $MIP_PATH
 				if [[ "$MIP_BRANCH" != "" ]]; then
 					git checkout $MIP_BRANCH
+					load_mip_env
+					load_mip_versions
 				fi
 			else
 				break
@@ -1822,7 +1855,7 @@ _prepare_mip_env(){
 				envvar="MIP_ENV_$var"
 				if [[ -n ${!envvar} ]]; then
 					if [[ $DEBUG_LEVEL -ge 5 ]]; then echo "Current env var '$var' matches '$envvar', and set with <${!envvar}>. Unsetting $var..."; fi
-					env -u $var
+					unset $var
 				fi
 			done
 			;;
@@ -1890,14 +1923,15 @@ _services_up(){
 	_check_installed_mip
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
-		_prepare_mip_env set
 		# Deploying MIP services
 		echo -e "\nDeploying Services..."
 		local path=$(pwd)
 		cd $DOCKER_COMPOSE_PATH
 		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "docker-compose --project-name $DOCKER_PROJECT_NAME up -d"; fi
+		_prepare_mip_env set
 		docker-compose --project-name $DOCKER_PROJECT_NAME up -d
 		ret=$?
+		_prepare_mip_env unset
 		cd $path
 		if [[ $ret -ne 0 ]]; then
 			echo
@@ -1923,10 +1957,11 @@ _services_down(){
 		local path=$(pwd)
 		cd $DOCKER_COMPOSE_PATH
 		if [[ $DEBUG_LEVEL -ge 6 ]]; then echo "docker-compose --project-name $DOCKER_PROJECT_NAME down"; fi
+		_prepare_mip_env set
 		docker-compose --project-name $DOCKER_PROJECT_NAME down
 		ret=$?
-		cd $path
 		_prepare_mip_env unset
+		cd $path
 		if [[ $ret -ne 0 ]]; then
 			echo
 			__red -n "An error has occurred while removing services and networks! " >&2
@@ -2134,6 +2169,9 @@ delete_mip(){
 			rm -rf $MIP_PATH
 		fi
 	fi
+	if [[ ! -d $MIP_PATH && $ARG_PURGE -eq 1 ]]; then
+		_cleanup
+	fi
 }
 
 main(){
@@ -2188,7 +2226,6 @@ main(){
 			_check_os
 			stop_mip
 			delete_mip
-			_cleanup
 			;;
 		install)
 			_check_os
@@ -2234,6 +2271,8 @@ main(){
 					echo "Usage: $0 configure [$CONFIGURE_PARTS_LIST]"
 					exit 1
 			esac
+			;;
+		test)
 			;;
 		*)
 			echo "Usage: $0 [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
