@@ -117,7 +117,7 @@ services:
       - keycloak.resource.userInfoUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/userinfo
       - keycloak.client.userAuthorizationUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/auth
       - keycloak.client.redirect_uri=http://localhost:4200/pathologies
-
+    restart: on-failure
 
   datacataloguefrontend:
     image: hbpmip/datacatalogue_angular_frontend:${DATACATALOGUE}
