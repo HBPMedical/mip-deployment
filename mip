@@ -1508,6 +1508,13 @@ _configure_ssh(){
 		if [[ "$user" != "$DOCKER_USER" || "$group" != "$DOCKER_USER" ]]; then
 			chown $DOCKER_USER.$DOCKER_USER $SSH_PATH/.ssh
 		fi
+		if [[ "$(cat /etc/ssh/sshd_config|grep '^PasswordAuthentication no')" != "" ]]; then
+			__debug --level 2 "SSH configuration doesn't accept password connections. Fixing..."
+			__debug --level 6 "sed --in-place 's/^PasswordAuthentication no/#PasswordAuthentication no/g' /etc/ssh/sshd_config"
+			sed --in-place 's/^PasswordAuthentication no/#PasswordAuthentication no/g' /etc/ssh/sshd_config
+			__debug --level 2 "Restarting SSH..."
+			systemctl restart ssh
+		fi
 	fi
 }
 
