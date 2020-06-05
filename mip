@@ -1131,7 +1131,7 @@ _check_exareme_required_ports(){
 	local result=0
 
 	if [[ "$(command -v netstat)" = "" ]]; then
-		__red -n "netstat missing!"
+		__red -n "netstat missing! "
 		result=1
 	fi
 
@@ -1165,7 +1165,7 @@ _check_installed_mip(){
 		fi
 	fi
 
-	if [[ $result -eq 0 && ! -d $MIP_PATH ]]; then
+	if [[ $result -eq 0 && "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" && ! -d $MIP_PATH ]]; then
 		__debug --level 5 "Federation folder $MIP_PATH does not exist"
 		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
 			if [[ $ARG_PUSHER -eq 1 ]]; then
@@ -2335,15 +2335,17 @@ main(){
 			if [[ $ret -ne 0 ]]; then
 				exit $ret
 			fi
-			download_mip
-			if [[ $ARG_YES -eq 1 ]]; then
-				answer="y"
-			else
-				echo -n "Run MIP [y/n]? "
-				read answer && answer=$(echo $answer|awk '{print tolower($0)}')
-			fi
-			if [[ "$answer" = "y" && $ARG_NORUN -ne 1 ]]; then
-				run_mip
+			if [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+				download_mip
+				if [[ $ARG_YES -eq 1 ]]; then
+					answer="y"
+				else
+					echo -n "Run MIP [y/n]? "
+					read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+				fi
+				if [[ "$answer" = "y" && $ARG_NORUN -ne 1 ]]; then
+					run_mip
+				fi
 			fi
 			;;
 		configure)
