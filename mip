@@ -1767,10 +1767,34 @@ _prepare_logs(){
 
 _prepare_data(){
 	__debug --level 4 "_prepare_data($@)"
+	__debug --level 1 --levelcompare "eq" -n "Preparing data..."
+
+	if [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+		if [[ ! -d $DATA_PATH ]]; then
+			__debug --level 2 "Data path '$DATA_PATH' missing. Creating it..."
+			mkdir -p $DATA_PATH
+		fi
+		local parentdir=$(dirname $DATA_PATH)
+		local lastdir=$(basename $DATA_PATH)
+		local lsline=$(ls -la $parentdir/|grep $lastdir)
+		local rights=$(echo $lsline|awk '{print $1}')
+		local user=$(echo $lsline|awk '{print $3}')
+		local group=$(echo $lsline|awk '{print $4}')
+		if [[ "$rights" != "drwxrwx---" ]]; then
+			__debug --level 3 "UNIX rights on $DATA_PATH=<$rights>. Fixing..."
+			__debug --level 6 "chmod 770 $DATA_PATH"
+			chmod 770 $DATA_PATH
+		fi
+		if [[ "$user" != "$DOCKER_USER" || "$group" != "$DOCKER_USER" ]]; then
+			__debug --level 3 "User and/or group not ok on $DATA_PATH. Fixing..."
+			__debug --level 6 "chown $DOCKER_USER.$DOCKER_USER $DATA_PATH"
+			chown $DOCKER_USER.$DOCKER_USER $DATA_PATH
+		fi
+	fi
+
 	if [[ "$MIP_ENV_MIP_TYPE" != "local" ]]; then
 		return 0
 	fi
-	__debug --level 1 --levelcompare "eq" -n "Preparing data..."
 
 	local dbok=1
 	for pathology in $(ls -l $DATA_PATH|awk '/^d/ {print $NF}'); do
