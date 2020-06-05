@@ -1129,15 +1129,23 @@ _check_exareme_required_ports(){
 	__debug --level 1 --levelcompare "eq" -n "Checking required ports are free..."
 	__debug --level 4 "_check_exareme_required_ports($@)"
 	local result=0
-	local check=$(netstat -atun | awk '(($1~/^tcp/) && (($4~/:2377$/) || ($4~/:7946/)) && ($NF~/LISTEN$/)) || (($1~/^udp/) && ($4~/:7946/))')
-	if [[ "$check" != "" ]]; then
-		__debug --level 5 "Ports are in use"
-		__debug --level 6 "$check"
-		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
-			__red -n "Exareme: required ports currently in use"
-			echo "$check"
-		fi
+
+	if [[ "$(command -v netstat)" = "" ]]; then
+		__red -n "netstat missing!"
 		result=1
+	fi
+
+	if [[ $result -eq 0 ]]; then
+		local check=$(netstat -atun | awk '(($1~/^tcp/) && (($4~/:2377$/) || ($4~/:7946/)) && ($NF~/LISTEN$/)) || (($1~/^udp/) && ($4~/:7946/))')
+		if [[ "$check" != "" ]]; then
+			__debug --level 5 "Ports are in use"
+			__debug --level 6 "$check"
+			if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
+				__red -n "Exareme: required ports currently in use"
+				echo "$check"
+			fi
+			result=1
+		fi
 	fi
 
 	__debug --level 5 "result=<$result>"
