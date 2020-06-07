@@ -60,7 +60,7 @@ args_parser(){
 		key="$1"
 
 		case $key in
-			check-required|install|uninstall|start|stop|restart|status|status-details|cleanup|test)
+			check-required|install|uninstall|start|stop|restart|status|status-details|cleanup)
 				ACTION=$1
 				shift
 				;;
@@ -78,6 +78,12 @@ args_parser(){
 				;;
 			cleanup)
 				ACTION=$1
+				shift
+				;;
+			fedtask)
+				ACTION=$1
+				FEDTASK=$2
+				shift
 				shift
 				;;
 			--debug-level)
@@ -1979,6 +1985,77 @@ _prepare_mip_env(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
+_federation_task(){
+	__debug --level 4 "_federation_task($@)"
+	if [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+		case $FEDTASK in
+			datasamples)
+				if [[ ! -n $ARG_FEDERATION ]]; then
+					__red "Federation not set!"
+					exit 1
+				fi
+				local pathologies=$(ls -l $DATA_PATH/$ARG_FEDERATION|awk '/^d/ {print $NF}')
+				local dataset=""
+				local total_columns=0
+				local column_count=0
+				local dataset_column=0
+				local dataline=""
+				for pathology in $pathologies; do
+					__debug --level 5 "Analysing datasets in pathology <$pathology>..."
+					for dataset in $(ls $DATA_PATH/$ARG_FEDERATION/$pathology/*.csv); do
+						dataset=$(basename $dataset)
+						__debug --level 5 "dataset: <$dataset>"
+						if [[ ! -d /tmp/miptmpfeddata/$pathology ]]; then
+							__debug --level 5 "Directory '/tmp/miptmpfeddata/$pathology' does not exist. Creating..."
+							mkdir -p /tmp/miptmpfeddata/$pathology
+						fi
+						if [[ -f $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json && ! -f /tmp/miptmpfeddata/$pathology/CDEsMetadata.json ]]; then
+							__debug --level 5 "Copying CDEsMetadata.json from $DATA_PATH/$ARG_FEDERATION/$pathology/ to /tmp/miptmpfeddata/$pathology/"
+							cp $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/
+						elif [[ "$(diff $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/CDEsMetadata.json)" != "" ]]; then
+							__debug --level 5 "/tmp/miptmpfeddata/$pathology/CDEsMetadata.json different from source $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json. Copying from source..."
+							cp $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/
+						fi
+						__debug --level 5 "Adding header line in sample dataset file: </tmp/miptmpfeddata/$pathology/$dataset>"
+						head -1 $DATA_PATH/$ARG_FEDERATION/$pathology/$dataset > /tmp/miptmpfeddata/$pathology/$dataset
+						sed --in-place 's/\r//g' /tmp/miptmpfeddata/$pathology/$dataset
+						total_columns=$(cat /tmp/miptmpfeddata/$pathology/$dataset|sed 's/,/\n/g'|nl|tail -1|awk '{print $1}')
+						dataset_column=$(cat /tmp/miptmpfeddata/$pathology/$dataset|sed 's/,/\n/g'|nl|awk '/\d?[ \t]?dataset$/ {print $1}')
+						dataset_name=$(head -2 $DATA_PATH/$ARG_FEDERATION/$pathology/$dataset|tail -1|sed 's/,/\n/g'|head -$dataset_column|tail -1)
+						__debug --level 5 "total_columns=<$total_columns>"
+						__debug --level 5 "dataset_column=<$dataset_column>"
+						__debug --level 5 "dataset_name=<$dataset_name>"
+						__debug --level 5 "Generating empty data line in /tmp/miptmpfeddata/$pathology/$dataset..."
+						dataline=""
+						column_count=1
+						while [[ $column_count -le $total_columns ]]; do
+							if [[ $column_count -eq $dataset_column ]]; then
+								dataline=${dataline}${dataset_name}
+							fi
+							if [[ $column_count -lt $total_columns ]]; then
+								dataline=$dataline","
+							fi
+							column_count=$(expr $column_count + 1)
+						done
+						echo $dataline >> /tmp/miptmpfeddata/$pathology/$dataset
+					done
+				done
+				if [[ -d /tmp/miptmpfeddata ]]; then
+					local path=$(pwd)
+					cd /tmp/miptmpfeddata
+					__debug --level 5 "Creating $DATA_PATH/$ARG_FEDERATION/$(hostname).tar.gz from the content of /tmp/miptmpfeddata..."
+					tar czf $DATA_PATH/$ARG_FEDERATION/$(hostname).tar.gz *
+					cd $path
+					__debug --level 5 "Removing /tmp/miptmpfeddata..."
+					rm -rf /tmp/miptmpfeddata
+				fi
+				;;
+			getlogs)
+				;;
+		esac
+	fi
+}
+
 _run_keycloak(){
 	__debug --level 4 "_run_keycloak($@)"
 	if [[ "$MIP_ENV_MIP_TYPE" != "local" || $MIP_ENV_KEYCLOAK_AUTHENTICATION -ne 1 ]]; then
@@ -2389,7 +2466,8 @@ main(){
 					exit 1
 			esac
 			;;
-		test)
+		fedtask)
+			_federation_task $@
 			;;
 		*)
 			echo "Usage: $0 [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
@@ -2398,4 +2476,4 @@ main(){
 
 args_parser $@
 set -- "${POSITIONAL[@]}"
-main
+main $@
