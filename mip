@@ -18,9 +18,9 @@ CONFLICTING_SNAP_PACKAGES="docker"
 PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates curl gnupg-agent software-properties-common net-tools whois lsof python3-pip"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
 REQUIRED_PIP3_PACKAGES="chardet"
-MIP_GITHUB_OWNER="HBPMedical"
-MIP_GITHUB_PROJECT="mip-deployment"
-MIP_BRANCH="dev_systemd"
+DEFAULT_MIP_GITHUB_OWNER="HBPMedical"
+DEFAULT_MIP_GITHUB_PROJECT="mip-deployment"
+DEFAULT_MIP_BRANCH="dev_systemd"
 EXAREME_GITHUB_OWNER="madgik"
 EXAREME_GITHUB_PROJECT="exareme"
 EXAREME_BRANCH="master"
@@ -45,7 +45,6 @@ DEFAULT_FED_MIP_ENV_KEYCLOAK_REALM="MIPTEST"
 DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_ID="mipqa"
 DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_SECRET="a67c7ae8-e8f2-444b-a0a4-bd0b783adb47"
 
-MIP_PATH="$INSTALL_PATH/$MIP_GITHUB_PROJECT"
 MIPENVFILENAME=.mipenv
 DISTRIB_ID=""
 DISTRIB_RELEASE=""
@@ -83,6 +82,11 @@ args_parser(){
 			fedtask)
 				ACTION=$1
 				FEDTASK=$2
+				shift
+				shift
+				;;
+			--install-path)
+				ARG_INSTALL_PATH=$2
 				shift
 				shift
 				;;
@@ -186,6 +190,9 @@ args_parser(){
 				;;
 		esac
 	done
+	#if [[ $ARG_QUIET -eq 1 && $DEBUG_LEVEL -gt 0 ]]; then
+	#	ARG_QUIET=0
+	#fi
 }
 
 if [[ $(command -v tput) ]]; then
@@ -195,19 +202,27 @@ if [[ $(command -v tput) ]]; then
 fi
 
 __red(){
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		return 0
+	fi
+
 	local arg=""
 	if [[ "$1" = "-n" ]]; then
 		arg=$1
 		shift
 	fi
 	if [[ $(command -v tput) ]]; then
-		echo $arg "${red}$@${reset}"
+		echo $arg "${red}$@${reset}" >&2
 	else
-		echo $arg "$@"
+		echo $arg "$@" >&2
 	fi
 }
 
 __green(){
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		return 0
+	fi
+
 	local arg=""
 	if [[ "$1" = "-n" ]]; then
 		arg=$1
@@ -221,6 +236,10 @@ __green(){
 }
 
 __debug(){
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		return 0
+	fi
+
 	local positional=()
 	local level=0
 	local compare="ge"
@@ -297,6 +316,10 @@ __debug(){
 }
 
 __check_return(){
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		return 0
+	fi
+
 	local arg=""
 	if [[ "$1" = "-n" ]]; then
 		arg=$1
@@ -360,6 +383,10 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 	-q,	--quiet								Just strive to print as less things as possible.
 	-y,	--yes								Force confirmation to any asked [yes/no] question.
 	-v,	--verbose							Be verbose.
+		--install-path [INSTALL_PATH]					Change the default installation path (/opt).
+											Don't use it except if you know exactly what your
+											doing. It will "corrupt" this file from git POV by changing
+											the corresponding variable in it for good!
 		--debug-level [1..6]						Debug level (1 will generate quite a fancy output).
 		--node-type [local (default)|ms/master|ui/frontend|wk/worker]
 										Type of node, typically in a federation. The
@@ -399,17 +426,27 @@ load_mip_env(){
 	local envvar=""
 	local envval=""
 
+	if [[ -n $ARG_INSTALL_PATH ]]; then
+		__debug --level 2 "Install path changed to <$ARG_INSTALL_PATH>"
+		__debug --level 6 "Setting global var: INSTALL_PATH=<$ARG_INSTALL_PATH>"
+		INSTALL_PATH=$ARG_INSTALL_PATH
+		sed --in-place "s@^INSTALL_PATH.*@INSTALL_PATH=\"$ARG_INSTALL_PATH\"@" $0
+	fi
+
+	__debug --level 6 "Setting global var: MIP_GITHUB_OWNER=<$DEFAULT_MIP_GITHUB_OWNER>"
+	MIP_GITHUB_OWNER=$DEFAULT_MIP_GITHUB_OWNER
+	__debug --level 6 "Setting global var: MIP_GITHUB_PROJECT=<$DEFAULT_MIP_GITHUB_PROJECT>"
+	MIP_GITHUB_PROJECT=$DEFAULT_MIP_GITHUB_PROJECT
+	__debug --level 6 "Setting global var: MIP_BRANCH=<$DEFAULT_MIP_BRANCH>"
+	MIP_BRANCH=$DEFAULT_MIP_BRANCH
+	__debug --level 6 "Setting global var: MIP_PATH=<$INSTALL_PATH/$MIP_GITHUB_PROJECT>"
+	MIP_PATH="$INSTALL_PATH/$MIP_GITHUB_PROJECT"
+	__debug --level 6 "Setting global var: SSH_PATH=</home/$DOCKER_USER>"
+	SSH_PATH=/home/$DOCKER_USER
+
 	if [[ ! -d $INSTALL_PATH ]]; then
 		__debug --level 5 "INSTALL_PATH '$INSTALL_PATH' does not exist. Creating..."
 		mkdir -p $INSTALL_PATH
-	fi
-
-	if [[ $ARG_PUSHER -eq 1 && -n $ARG_FEDERATION ]]; then
-		__debug --level 5 "ARG_PUSHER set. ARG_FEDERATION=<$ARG_FEDERATION>"
-		__debug --level 6 "Setting global var: MIP_PATH=<$INSTALL_PATH/$ARG_FEDERATION/exareme>"
-		__debug --level 6 "Setting global var: MIPENVFILE=<$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME>"
-		MIP_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
-		MIPENVFILE=$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME
 	fi
 
 	if [[ $ARG_PUSHER -ne 1 || ! -n $ARG_FEDERATION ]]; then
@@ -437,22 +474,53 @@ load_mip_env(){
 		done
 	fi
 
+	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST && "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+		__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
+		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$MIP_ENV_PUBLIC_MIP_HOST>"
+		DEFAULT_MIP_ENV_KEYCLOAK_URL=$MIP_ENV_PUBLIC_MIP_HOST
+	fi
+
 	if [[ -n $ARG_NODE_TYPE ]]; then
 		__debug --level 5 "ARG_NODE_TYPE=<$ARG_NODE_TYPE>"
 		case $ARG_NODE_TYPE in
 			local)
-				MIP_TYPE="local"
+				__debug --level 6 "Setting env var: MIP_ENV_MIP_TYPE=<local>"
+				export MIP_ENV_MIP_TYPE="local"
+				__debug --level 6 "Setting env var: MIP_ENV_NODE_TYPE=<>"
+				export MIP_ENV_NODE_TYPE=""
+				envvar_changes=1
 				;;
 			master|ms)
-				MIP_TYPE="fed-ms"
+				__debug --level 6 "Setting env var: MIP_ENV_MIP_TYPE=<fed>"
+				export MIP_ENV_MIP_TYPE="fed"
+				__debug --level 6 "Setting env var: MIP_ENV_NODE_TYPE=<ms>"
+				export MIP_ENV_NODE_TYPE="ms"
+				envvar_changes=1
 				;;
 			ui|frontend)
-				MIP_TYPE="fed-ui"
+				__debug --level 6 "Setting env var: MIP_ENV_MIP_TYPE=<fed>"
+				export MIP_ENV_MIP_TYPE="fed"
+				__debug --level 6 "Setting env var: MIP_ENV_NODE_TYPE=<ui>"
+				export MIP_ENV_NODE_TYPE="ui"
+				envvar_changes=1
 				;;
 			worker|wk)
-				MIP_TYPE="fed-wk"
+				__debug --level 6 "Setting env var: MIP_ENV_MIP_TYPE=<fed>"
+				export MIP_ENV_MIP_TYPE="fed"
+				__debug --level 6 "Setting env var: MIP_ENV_NODE_TYPE=<wk>"
+				export MIP_ENV_NODE_TYPE="wk"
+				envvar_changes=1
 				;;
 		esac
+	fi
+
+	if [[ ! -n $MIP_ENV_MIP_TYPE ]]; then
+		__debug --level 5 "MIP_ENV_MIP_TYPE not set. Setting default to <local>"
+		__debug --level 6 "Setting env var: MIP_ENV_MIP_TYPE=<local>"
+		export MIP_ENV_MIP_TYPE="local"
+		__debug --level 6 "Setting env var: MIP_ENV_NODE_TYPE=<>"
+		export MIP_ENV_NODE_TYPE=""
+		envvar_changes=1
 	fi
 
 	if [[ -n $ARG_HOST ]]; then
@@ -463,6 +531,11 @@ load_mip_env(){
 		fi
 		__debug --level 6 "Setting env var: MIP_ENV_PUBLIC_MIP_HOST=<$ARG_HOST>"
 		export MIP_ENV_PUBLIC_MIP_HOST=$ARG_HOST
+		if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+			__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
+			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$ARG_HOST>"
+			DEFAULT_MIP_ENV_KEYCLOAK_URL=$ARG_HOST
+		fi
 		envvar_changes=1
 	fi
 
@@ -476,29 +549,6 @@ load_mip_env(){
 		fi
 		__debug --level 6 "Setting env var: MIP_ENV_EXAREME_IP=<$ARG_EXAREME_IP>"
 		export MIP_ENV_EXAREME_IP=$ARG_EXAREME_IP
-		envvar_changes=1
-	fi
-
-	if [[ -n $MIP_TYPE ]]; then
-		__debug --level 5 "MIP_TYPE=<$MIP_TYPE>"
-		__debug --level 6 "Setting env var: MIP_ENV_MIP_TYPE=<$MIP_TYPE>"
-		export MIP_ENV_MIP_TYPE=$MIP_TYPE
-	fi
-
-	if [[ -n $MIP_ENV_MIP_TYPE && "$(echo $MIP_TYPE|cut -c -4)" = "fed-" ]]; then
-		__debug --level 6 "Setting env var: MIP_ENV_MIP_TYPE=<fed>"
-		__debug --level 6 "Setting env var: MIP_ENV_NODE_TYPE=<$(echo $MIP_TYPE|cut -c 5-)>"
-		export MIP_ENV_MIP_TYPE="fed"
-		export MIP_ENV_NODE_TYPE=$(echo $MIP_TYPE|cut -c 5-)
-		envvar_changes=1
-	fi
-
-	if [[ ! -n $MIP_ENV_MIP_TYPE ]]; then
-		__debug --level 5 "MIP_ENV_MIP_TYPE not set. Setting default to <local>"
-		__debug --level 6 "Setting env var: MIP_ENV_MIP_TYPE=<local>"
-		__debug --level 6 "Setting env var: MIP_ENV_NODE_TYPE=<>"
-		export MIP_ENV_MIP_TYPE="local"
-		export MIP_ENV_NODE_TYPE=""
 		envvar_changes=1
 	fi
 
@@ -543,28 +593,25 @@ load_mip_env(){
 		fi
 	fi
 
-	__debug --level 6 "Setting global var: SSH_PATH=</home/$DOCKER_USER>"
-	SSH_PATH=/home/$DOCKER_USER
-
 	if [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
 		__debug --level 5 "MIP_ENV_NODE_TYPE=<ui>"
 		__debug --level 6 "Setting global var: DOCKER_PROJECT_NAME=<$DOCKER_FEDERATION_PROJECT_NAME>"
-		__debug --level 6 "Setting global var: MIP_COMPONENTS=<$MIP_FEDERATION_UI_COMPONENTS>"
-		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=<$DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL>"
-		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$DEFAULT_MIP_ENV_KEYCLOAK_URL>"
-		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_REALM=<$DEFAULT_MIP_ENV_KEYCLOAK_REALM>"
-		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_ID=<$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_ID>"
-		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_SECRET=<$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_SECRET>"
-		__debug --level 6 "Setting global var: LOGS_PATH=<$MIP_PATH/Federation/logs>"
-		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$MIP_PATH/Federation>"
 		DOCKER_PROJECT_NAME=$DOCKER_FEDERATION_PROJECT_NAME
+		__debug --level 6 "Setting global var: MIP_COMPONENTS=<$MIP_FEDERATION_UI_COMPONENTS>"
 		MIP_COMPONENTS=$MIP_FEDERATION_UI_COMPONENTS
+		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=<$DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL>"
 		DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=$DEFAULT_FED_MIP_ENV_KEYCLOAK_PROTOCOL
+		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$DEFAULT_MIP_ENV_KEYCLOAK_URL>"
 		DEFAULT_MIP_ENV_KEYCLOAK_URL=$DEFAULT_FED_MIP_ENV_KEYCLOAK_URL
+		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_REALM=<$DEFAULT_MIP_ENV_KEYCLOAK_REALM>"
 		DEFAULT_MIP_ENV_KEYCLOAK_REALM=$DEFAULT_FED_MIP_ENV_KEYCLOAK_REALM
+		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_ID=<$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_ID>"
 		DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_ID=$DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_ID
+		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_SECRET=<$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_SECRET>"
 		DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_SECRET=$DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_SECRET
+		__debug --level 6 "Setting global var: LOGS_PATH=<$MIP_PATH/Federation/logs>"
 		LOGS_PATH=$MIP_PATH/Federation/logs
+		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$MIP_PATH/Federation>"
 		DOCKER_COMPOSE_PATH=$MIP_PATH/Federation
 	elif [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 		__debug --level 5 "MIP_ENV_NODE_TYPE=<ms> or <wk>"
@@ -575,15 +622,15 @@ load_mip_env(){
 		if [[ -n $MIP_ENV_PUBLIC_MIP_HOST ]]; then
 			__debug --level 5 "MIP_ENV_PUBLIC_MIP_HOST=<$MIP_ENV_PUBLIC_MIP_HOST>"
 			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=<http>"
-			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$MIP_ENV_PUBLIC_MIP_HOST>"
 			DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=http
+			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$MIP_ENV_PUBLIC_MIP_HOST>"
 			DEFAULT_MIP_ENV_KEYCLOAK_URL=$MIP_ENV_PUBLIC_MIP_HOST
 		fi
 		__debug --level 6 "Setting global var: LOGS_PATH=<$MIP_PATH/logs>"
-		__debug --level 6 "Setting global var: DATA_PATH=<$MIP_PATH/data>"
-		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$MIP_PATH>"
 		LOGS_PATH=$MIP_PATH/logs
+		__debug --level 6 "Setting global var: DATA_PATH=<$MIP_PATH/data>"
 		DATA_PATH=$MIP_PATH/data
+		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$MIP_PATH>"
 		DOCKER_COMPOSE_PATH=$MIP_PATH
 	fi
 
@@ -610,22 +657,35 @@ load_mip_env(){
 	__debug --level 6 "Setting global var: CONFIGURE_PARTS_TABLE=<@($CONFIGURE_PARTS_LIST)>"
 	CONFIGURE_PARTS_TABLE="@($CONFIGURE_PARTS_LIST)"
 
-	if [[ $ARG_PUSHER -eq 1 ]]; then
-		__debug --level 5 "ARG_PUSHER=<1>"
+	if [[ $ARG_PUSHER -eq 1 && -n $ARG_FEDERATION ]]; then
+		__debug --level 5 "ARG_PUSHER set. ARG_FEDERATION=<$ARG_FEDERATION>"
 		__debug --level 6 "Setting global var: MIP_GITHUB_OWNER=<$EXAREME_GITHUB_OWNER>"
-		__debug --level 6 "Setting global var: MIP_GITHUB_PROJECT=<$EXAREME_GITHUB_PROJECT>"
-		__debug --level 6 "Setting global var: MIP_BRANCH=<$EXAREME_BRANCH>"
 		MIP_GITHUB_OWNER=$EXAREME_GITHUB_OWNER
+		__debug --level 6 "Setting global var: MIP_GITHUB_PROJECT=<$EXAREME_GITHUB_PROJECT>"
 		MIP_GITHUB_PROJECT=$EXAREME_GITHUB_PROJECT
+		__debug --level 6 "Setting global var: MIP_BRANCH=<$EXAREME_BRANCH>"
 		MIP_BRANCH=$EXAREME_BRANCH
-		if [[ ! -n $ARG_FEDERATION ]]; then
-			__red "Federation name required!"
-			exit 1
-		fi
+		__debug --level 6 "Setting global var: MIP_PATH=<$INSTALL_PATH/$ARG_FEDERATION/exareme>"
+		MIP_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
+		__debug --level 6 "Setting global var: MIPENVFILE=<$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME>"
+		MIPENVFILE=$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME
+		__debug --level 6 "Setting global var: CONFLICTING_PACKAGES=<>"
+		CONFLICTING_PACKAGES=""
+		__debug --level 6 "Setting global var: CONFLICTING_SNAP_PACKAGES=<>"
+		CONFLICTING_SNAP_PACKAGES="docker"
+		__debug --level 6 "Setting global var: PREREQUIRED_PACKAGES=<$PREREQUIRED_PACKAGES ansible>"
+		PREREQUIRED_PACKAGES=$PREREQUIRED_PACKAGES" ansible"
+		__debug --level 6 "Setting global var: REQUIRED_PACKAGES=<>"
+		REQUIRED_PACKAGES=""
+		__debug --level 6 "Setting global var: REQUIRED_PIP3_PACKAGES=<chardet paramiko>"
+		REQUIRED_PIP3_PACKAGES="chardet paramiko"
 		__debug --level 6 "Setting global var: SSH_PATH=<$MIP_PATH>"
-		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$MIP_PATH/Federated-Deployment/Compose-Files>"
 		SSH_PATH=$MIP_PATH
+		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$MIP_PATH/Federated-Deployment/Compose-Files>"
 		DOCKER_COMPOSE_PATH=$MIP_PATH/Federated-Deployment/Compose-Files
+	elif [[ $ARG_PUSHER -eq 1 && ! -n $ARG_FEDERATION ]]; then
+		__red "Federation name required!"
+		exit 1
 	fi
 
 	if [[ $envvar_changes -eq 1 ]]; then
@@ -668,14 +728,20 @@ _write_mip_env(){
 	local envval=""
 
 	if [[ -n $MIPENVFILE ]]; then
-		__debug --level 5 "Erasing env file '$MIPENVFILE'"
-		cat /dev/null > $MIPENVFILE
-		for line in $(env|grep "^MIP_ENV_"|sort); do
-			envvar=$(echo $line|awk -F '=' '{print $1}'|awk -F 'MIP_ENV_' '{print $2}')
-			envval=$(echo $line|awk -F '=' '{print $2}')
-			__debug --level 6 "Writing env var in $MIPENVFILE: $envvar=<$envval>"
-			echo "$envvar=$envval" >> $MIPENVFILE
-		done
+		local parentdir=$(dirname $MIPENVFILE)
+		if [[ -d $parentdir ]]; then
+			__debug --level 5 "Erasing env file '$MIPENVFILE'"
+			cat /dev/null > $MIPENVFILE
+			for line in $(env|grep "^MIP_ENV_"|sort); do
+				envvar=$(echo $line|awk -F '=' '{print $1}'|awk -F 'MIP_ENV_' '{print $2}')
+				envval=$(echo $line|awk -F '=' '{print $2}')
+				__debug --level 6 "Writing env var in $MIPENVFILE: $envvar=<$envval>"
+				echo "$envvar=$envval" >> $MIPENVFILE
+			done
+		else
+			__debug --level 5 "Directory '$parentdir' does not exist! Cannot write $MIPENVFILE..."
+			result=1
+		fi
 	else
 		result=1
 	fi
@@ -686,6 +752,10 @@ _write_mip_env(){
 
 _get_docker_main_ip(){
 	__debug --level 4 "_get_docker_main_ip($@)"
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return 1
+	fi
+
 	local dockerip=$(ip address show|grep 'inet.*docker0'|awk '{print $2}'|awk -F '/' '{print $1}')
 	if [[ "$dockerip" != "" ]]; then
 		__debug --level 6 "Setting global var: DOCKER_MAIN_IP=<$dockerip>"
@@ -852,21 +922,12 @@ install_required_packages(){
 	local required_packages=""
 	case $1 in
 		prerequired)
-			if [[ $ARG_PUSHER -eq 1 ]]; then
-				__debug --level 5 "ARG_PUSHER=<1>"
-				__debug --level 6 "Setting global var: PREREQUIRED_PACKAGES=<$PREREQUIRED_PACKAGES ansible>"
-				PREREQUIRED_PACKAGES=$PREREQUIRED_PACKAGES" ansible"
-			fi
 			required_packages=$PREREQUIRED_PACKAGES
 			;;
 		required)
 			required_packages=$REQUIRED_PACKAGES
 			;;
 		pip3)
-			if [[ $ARG_PUSHER -eq 1 ]]; then
-				__debug --level 6 "Setting global var: REQUIRED_PIP3_PACKAGES=<$REQUIRED_PIP3_PACKAGES paramiko>"
-				REQUIRED_PIP3_PACKAGES=$REQUIRED_PIP3_PACKAGES" paramiko"
-			fi
 			required_packages=$REQUIRED_PIP3_PACKAGES
 			;;
 		*)
@@ -913,7 +974,7 @@ _check_python2(){
 	__debug --level 4 "_check_python2($@)"
 	local result=0
 	if [[ ! $(command -v python2) ]]; then
-		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
+		if [[ "$1" != "-q" ]]; then
 			__red -n "Python 2 is missing! "
 		fi
 		result=1
@@ -953,8 +1014,12 @@ install_python2(){
 	if [[ $ret -ne 0 ]]; then
 		install_pyenv
 		if [[ "$(pyenv versions|grep 2.7.)" = "" ]]; then
+			local aptoption=""
+			if [[ $ARG_YES -eq 1 ]]; then
+				aptoption="-y"
+			fi
 			__debug --level 6 "Python 2.7 not found in pyenv environments. apt-get install build-essential zlib1g-dev libreadline-dev libbz2-dev libsqlite3-dev libssl-dev"
-			apt-get install build-essential zlib1g-dev libreadline-dev libbz2-dev libsqlite3-dev libssl-dev
+			apt-get install $aptoption build-essential zlib1g-dev libreadline-dev libbz2-dev libsqlite3-dev libssl-dev
 			echo "Installing Python 2.7. This may take a while..."
 			__debug --level 6 "pyenv install 2.7.17"
 			pyenv install 2.7.17
@@ -986,6 +1051,10 @@ install_python2(){
 prepare_docker_apt_sources(){
 	__debug --level 1 --levelcompare "eq" -n "Preparing Docker APT sources..."
 	__debug --level 4 "prepare_docker_apt_sources($@)"
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return 0
+	fi
+
 	local next=0
 	while [[ $next -eq 0 ]]; do
 		next=1
@@ -1031,7 +1100,7 @@ _manage_sudo_user(){
 _manage_docker_user(){
 	__debug --level 1 --levelcompare "eq" -n "Adding user in docker group..."
 	__debug --level 4 "_manage_docker_user($@)"
-	if [[ "$DOCKER_USER" != "" ]]; then
+	if [[ "$DOCKER_USER" != "" && "$DOCKER_USER" != "root" ]]; then
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ "$(cat /etc/group|grep docker:)" != "" ]]; then
 			__debug --level 5 "Group docker exists."
@@ -1044,6 +1113,16 @@ _manage_docker_user(){
 			else
 				__debug --level 6 "Setting global var: DOCKER_USER=<root>"
 				DOCKER_USER="root"
+			fi
+		fi
+		if [[ -d $MIP_PATH ]]; then
+			local lsline=$(ls -la $SSH_PATH/|awk '/\.ssh$/')
+			local user=$(echo $lsline|awk '{print $3}')
+			local group=$(echo $lsline|awk '{print $4}')
+			if [[ $ARG_FORCE -eq 1 || "$user" != "$DOCKER_USER" || "$group" != "$DOCKER_USER" ]]; then
+				__debug --level 5 "Chowning MIP install '$MIP_PATH' with $DOCKER_USER.$DOCKER_USER"
+				__debug --level 6 "chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH"
+				chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH
 			fi
 		fi
 	fi
@@ -1079,9 +1158,13 @@ _check_docker(){
 	__debug --level 1 --levelcompare "eq" -n "Checking Docker version..."
 	__debug --level 4 "_check_docker($@)"
 	local result=0
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return $result
+	fi
+
 	if [[ "$(command -v docker)" = "" ]]; then
 		__debug --level 5 "Docker not installed"
-		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
+		if [[ "$1" != "-q" ]]; then
 			__red -n "Docker not installed! "
 		fi
 		result=1
@@ -1093,7 +1176,7 @@ _check_docker(){
 		local ret=$?
 		if [[ $ret -ne 0 ]]; then
 			__debug --level 5 "Docker version $REQUIRED_DOCKER_VERSION not installed"
-			if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
+			if [[ "$1" != "-q" ]]; then
 				__red -n "Docker version $REQUIRED_DOCKER_VERSION is required! "
 			fi
 			result=1
@@ -1108,6 +1191,10 @@ _check_docker(){
 ensure_running_dockerd(){
 	__debug --level 1 --levelcompare "eq" -n "Making sure Docker is running..."
 	__debug --level 4 "ensure_running_dockerd($@)"
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return 0
+	fi
+
 	_check_docker -q
 	local ret=$?
 	if [[ $ret -ne 0 ]]; then
@@ -1135,6 +1222,9 @@ _check_exareme_required_ports(){
 	__debug --level 1 --levelcompare "eq" -n "Checking required ports are free..."
 	__debug --level 4 "_check_exareme_required_ports($@)"
 	local result=0
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return $result
+	fi
 
 	if [[ "$(command -v netstat)" = "" ]]; then
 		__red -n "netstat missing! "
@@ -1163,17 +1253,9 @@ _check_installed_mip(){
 	__debug --level 1 --levelcompare "eq" -n "Checking if the MIP is installed..."
 	__debug --level 4 "_check_installed_mip($@)"
 	local result=0
-	if [[ $ARG_PUSHER -eq 1 ]]; then
-		__debug --level 5 "ARG_PUSHER=<1>"
-		if [[ ! -n $ARG_FEDERATION ]]; then
-			__red -n "Federation name required! "
-			result=1
-		fi
-	fi
-
-	if [[ $result -eq 0 && "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" && ! -d $MIP_PATH ]]; then
+	if [[ (( $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) )) && ! -d $MIP_PATH ]]; then
 		__debug --level 5 "Federation folder $MIP_PATH does not exist"
-		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
+		if [[ "$1" != "-q" ]]; then
 			if [[ $ARG_PUSHER -eq 1 ]]; then
 				__red -n "Federation $ARG_FEDERATION exareme not found! "
 			else
@@ -1190,7 +1272,14 @@ _check_installed_mip(){
 
 _check_docker_container(){
 	__debug --level 4 "_check_docker_container($@)"
-	local result=""
+	local result=1
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return $result
+	fi
+
+	if [[ "$(command -v docker)" = "" ]]; then
+		return 0
+	fi
 
 	local process_id=$(docker ps|grep $1|awk '{print $1}')
 	__debug --level 6 "process_id=<$process_id>"
@@ -1198,7 +1287,7 @@ _check_docker_container(){
 		local process_state=$(docker inspect $process_id --format '{{.State.Status}}')
 		__debug --level 6 "process_state=<$process_state>"
 		if [[ "$process_state" = "running" ]]; then
-			result="ok"
+			result=0
 			if [[ $ARG_VERBOSE -eq 1 || $DEBUG_LEVEL -ge 6 ]]; then
 				local startdate=$(docker inspect $process_id --format '{{.State.StartedAt}}')
 				__debug --level 6 "startdate=<$startdate>"
@@ -1211,7 +1300,11 @@ _check_docker_container(){
 		result="NOT RUNNING!"
 	fi
 
-	echo $result
+	if [[ "$result" != "0" && "$result" != "1" ]]; then
+		echo $result
+	else
+		__check_return $result
+	fi
 }
 
 check_required(){
@@ -1272,13 +1365,19 @@ _cleanup(){
 	__debug --level 1 --levelcompare "eq" -n "Cleaning Docker containers..."
 	__debug --level 4 "_cleanup($@)"
 	local result=0
-	if [[ ! $(command -v docker) ]]; then
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return $result
+	fi
+
+	if [[ "$(command -v docker)" = "" ]]; then
 		__red -n "Docker not installed! "
 		result=1
 	fi
-	local images=$(docker images --filter=reference='hbpmip/*' -q)
-	if [[ -n $images ]]; then
-		docker image rm -f $images
+	if [[ $result -eq 0 ]]; then
+		local images=$(docker images --filter=reference='hbpmip/*' -q)
+		if [[ -n $images ]]; then
+			docker image rm -f $images
+		fi
 	fi
 
 	__debug --level 5 "result=<$result>"
@@ -1287,8 +1386,13 @@ _cleanup(){
 
 check_running_swarm(){
 	__debug --level 4 "check_running_swarm($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+	if [[ "$MIP_ENV_NODE_TYPE" = "ms" && $ARG_PUSHER -ne 1 ]]; then
 		__debug --level 1 --levelcompare "eq" "Checking Docker Swarm services..."
+		if [[ "$(command -v docker)" = "" ]]; then
+			__red "Docker is not installed!"
+			return 1
+		fi
+
 		local docker_services=$(docker service ls|grep "replicated")
 		local service_id=""
 		local service_name=""
@@ -1298,6 +1402,9 @@ check_running_swarm(){
 		local status=""
 		local startdate=""
 		if [[ "$docker_services" != "" ]]; then
+			if [[ $ARG_QUIET -eq 1 ]]; then
+				return 0
+			fi
 			echo "Nodes:"
 			for service in $docker_services; do
 				service_id=$(echo $service|awk '{print $1}')
@@ -1335,6 +1442,11 @@ check_running(){
 		return 0
 	fi
 
+	if [[ "$(command -v docker)" = "" ]]; then
+		__red "Docker is not installed!"
+		return 1
+	fi
+
 	local docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
 	local parts=""
 	if [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
@@ -1342,6 +1454,9 @@ check_running(){
 	else
 		docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
 		if [[ "$docker_ps" != "" ]]; then
+			if [[ $ARG_QUIET -eq 1 ]]; then
+				return 0
+			fi
 			if [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
 				echo -n "Portal Frontend							"
 				echo $(_check_docker_container mip_federation_frontend_1 -v)
@@ -1390,6 +1505,7 @@ check_running(){
 				return 1
 			else
 				__red "No docker container is currently running!"
+				return 1
 			fi
 		fi
 	fi
@@ -1400,9 +1516,20 @@ check_running(){
 check_running_details(){
 	__debug --level 1 --levelcompare "eq" "Checking running components (with details)..."
 	__debug --level 4 "check_running_details($@)"
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return 0
+	fi
+
+	if [[ "$(command -v docker)" = "" ]]; then
+		__red "Docker is not installed!"
+		return 1
+	fi
+
 	local docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
 	if [[ "$docker_ps" != "" ]]; then
-		docker ps
+		if [[ $ARG_QUIET -ne 1 ]]; then
+			echo $docker_ps
+		fi
 	else
 		_check_exareme_required_ports -q
 		local ret=$?
@@ -1437,6 +1564,10 @@ download_mip(){
 			if [[ $ARG_YES -eq 1 ]]; then
 				answer="y"
 			else
+				if [[ $ARG_QUIET -eq 1 ]]; then
+					return 1
+				fi
+
 				if [[ $ARG_PUSHER -eq 1 ]]; then
 					echo -n "EXAREME not found. Download it [y/n]? "
 				elif [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
@@ -1450,7 +1581,15 @@ download_mip(){
 				if [[ "$MIP_BRANCH" != "" ]]; then
 					git checkout $MIP_BRANCH
 					load_mip_env
-					load_mip_versions
+				fi
+				if [[ $ARG_PUSHER -eq 1 ]]; then
+					local branch="master"
+					if [[ "$DEFAULT_MIP_BRANCH" != "" ]]; then
+						branch=$DEFAULT_MIP_BRANCH
+					fi
+					__debug --level 5 "Downloading pathologies_generator..."
+					__debug --level 6 "curl https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py"
+					curl https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py
 				fi
 			else
 				break
@@ -1467,28 +1606,28 @@ _configure_user(){
 	if [[ "$DOCKER_USER" != "" && "$DOCKER_USER" != "root" ]]; then
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ "$(cat /etc/passwd|grep $DOCKER_USER:)" = "" ]]; then
-			__debug --level 5 "User $DOCKER_USER exists."
-			if [[ $ARG_QUIET -ne 1 ]]; then
+			__debug --level 5 "User $DOCKER_USER does not exist!"
+			if [[ $ARG_YES -eq 1 || $ARG_QUIET -eq 1 ]]; then
+				answer="y"
+			else
 				echo -n "Do you want the system to create the user '$DOCKER_USER' to manage this host? [y/n] "
 				read answer && answer=$(echo $answer|awk '{print tolower($0)}')
-			else
-				answer="y"
 			fi
 			if [[ "$answer" = "y" ]]; then
 				__debug --level 6 "useradd $DOCKER_USER --create-home --password $DOCKER_USER_PASSWD --shell /bin/bash --user-group"
 				useradd $DOCKER_USER --create-home --password $DOCKER_USER_PASSWD --shell /bin/bash --user-group
-				_manage_sudo_user
-				_manage_docker_user
 			fi
 		fi
+		_manage_sudo_user
+		_manage_docker_user
 	fi
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
 _configure_ssh(){
 	__debug --level 1 --levelcompare "eq" -n "Configuring SSH..."
-	__debug --level 4 "configure_ssh($@)"
-	if [[ "$MIP_ENV_MIP_TYPE" != "local" && "$DOCKER_USER" != "root" ]]; then
+	__debug --level 4 "_configure_ssh($@)"
+	if [[ "$DOCKER_USER" != "root" && (( "$MIP_ENV_MIP_TYPE" != "local" || $ARG_PUSHER -eq 1 )) ]]; then
 		__debug --level 5 "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ ! -d $SSH_PATH/.ssh ]]; then
@@ -1530,6 +1669,10 @@ _configure_pusher(){
 		__debug --level 1 --levelcompare "eq" "Configuring pusher..."
 		_configure_user
 		_configure_ssh
+		if [[ $ARG_QUIET -eq 1 ]]; then
+			return 1
+		fi
+
 		if [[ ! -f $SSH_PATH/.ssh/id_rsa ]]; then
 			__debug --level 5 "$SSH_PATH/.ssh/id_rsa not found. Generating key pair..."
 			__debug --level 6 "su $DOCKER_USER bash -c 'ssh-keygen -f $SSH_PATH/.ssh/id_rsa -t rsa -q -P ´´'"
@@ -1567,8 +1710,8 @@ _configure_pusher(){
 				fi
 				if [[ $goahead -eq 1 ]]; then
 					__debug --level 1 -n "Copying SSH identity to $noderemoteuser@$nodehostname..."
-					__debug --level 6 "ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub $noderemoteuser@$nodehostname >/dev/null 2>&1"
-					ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub $noderemoteuser@$nodehostname >/dev/null 2>&1
+					__debug --level 6 "ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub $noderemoteuser@$nodehostname"
+					ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub $noderemoteuser@$nodehostname
 					ret=$?
 					if [[ $ret -eq 0 ]]; then
 						__debug --level 1 --color "green" "done"
@@ -1592,7 +1735,7 @@ EOF
 
 _configure_pathologies(){
 	__debug --level 4 "_configure_pathologies($@)"
-	if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+	if [[ "$MIP_ENV_MIP_TYPE" = "local" && $ARG_PUSHER -ne 1 ]]; then
 		# Running the pathologies.json generator
 		if [[ ! -f $MIP_PATH/config/pathologies.json || $ARG_FORCE -eq 1 ]]; then
 			__debug --level 1 --levelcompare "eq" -n "Configuring pathologies..."
@@ -1605,13 +1748,17 @@ _configure_pathologies(){
 
 _configure_host(){
 	__debug --level 4 "_configure_host($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
 	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST && $ARG_FORCE -ne 1 ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" "Configuring host..."
+
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		return 1
+	fi
 
 	# Checking the PUBLIC_MIP_HOST env variable
 	local first_int_ip=$(hostname -I|awk '{print $1}')
@@ -1651,13 +1798,17 @@ _configure_host(){
 
 _configure_exareme_ip(){
 	__debug --level 4 "_configure_exareme_ip($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" != "ui" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_NODE_TYPE" != "ui" ]]; then
 		return 0
 	fi
 	if [[ -n $MIP_ENV_EXAREME_IP && $ARG_FORCE -ne 1 ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" "Configuring exareme IP..."
+
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		return 1
+	fi
 
 	if [[ -n $MIP_ENV_EXAREME_IP ]]; then
 		echo -e "\n'EXAREME_IP' is set to value: $MIP_ENV_EXAREME_IP"
@@ -1748,7 +1899,7 @@ do_configure(){
 
 _prepare_logs(){
 	__debug --level 4 "_prepare_logs($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Preparing logs..."
@@ -1774,6 +1925,9 @@ _prepare_logs(){
 _prepare_data(){
 	__debug --level 4 "_prepare_data($@)"
 	__debug --level 1 --levelcompare "eq" -n "Preparing data..."
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return 0
+	fi
 
 	if [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 		if [[ ! -d $DATA_PATH ]]; then
@@ -1823,7 +1977,7 @@ _prepare_data(){
 	$MIP_PATH/config/convert-csv-dataset-to-db.py -f $datapath -t "master" # Running the database creation script
 	local ret=$?
 	if [[ $ret -ne 0 ]]; then
-		__red -n "The CSVs could not be parsed using the metadata. Exiting... " >&2
+		__red -n "The CSVs could not be parsed using the metadata. Exiting... "
 	fi
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
 	if [[ $ret -ne 0 ]]; then
@@ -1833,7 +1987,7 @@ _prepare_data(){
 
 _prepare_keycloak(){
 	__debug --level 4 "_prepare_keycloak($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Preparing keycloak..."
@@ -1857,6 +2011,37 @@ _prepare_keycloak(){
 
 	if [[ $keycloakok -eq 1 ]]; then
 		return 0
+	fi
+
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		if [[ $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 ]]; then
+			if [[ ! -n $MIP_ENV_KEYCLOAK_PROTOCOL ]]; then
+				__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_PROTOCOL=<$DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL>"
+				export MIP_ENV_KEYCLOAK_PROTOCOL=$DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL
+			fi
+			if [[ ! -n $MIP_ENV_KEYCLOAK_URL ]]; then
+				__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_URL=<$DEFAULT_MIP_ENV_KEYCLOAK_URL>"
+				export MIP_ENV_KEYCLOAK_URL=$DEFAULT_MIP_ENV_KEYCLOAK_URL
+			fi
+			if [[ ! -n $MIP_ENV_KEYCLOAK_REALM ]]; then
+				__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_REALM=<$DEFAULT_MIP_ENV_KEYCLOAK_REALM>"
+				export MIP_ENV_KEYCLOAK_REALM=$DEFAULT_MIP_ENV_KEYCLOAK_REALM
+			fi
+			if [[ ! -n $MIP_ENV_KEYCLOAK_CLIENT_ID ]]; then
+				__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_CLIENT_ID=<$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_ID>"
+				export MIP_ENV_KEYCLOAK_CLIENT_ID=$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_ID
+			fi
+			if [[ ! -n $MIP_ENV_KEYCLOAK_CLIENT_SECRET ]]; then
+				__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_CLIENT_SECRET=<$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_SECRET>"
+				export MIP_ENV_KEYCLOAK_CLIENT_SECRET=$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_SECRET
+			fi
+			_write_mip_env
+			return 0
+		elif [[ $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 0 ]]; then
+			return 0
+		else
+			return 1
+		fi
 	fi
 
 	echo -ne "\nEnable Keycloak authentication? [y/n] "
@@ -1922,9 +2107,104 @@ _prepare_keycloak(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
+_postinstall(){
+	__debug --level 4 "_postinstall($@)"
+	__debug --level 1 --levelcompare "eq" -n "Postinstall configuration..."
+	result=0
+	action=""
+
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		__debug --level 5 "ARG_PUSHER=<1>"
+		action="copy"
+	else
+		__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
+		case $MIP_ENV_NODE_TYPE in
+			ms|wk)
+				action="copy"
+				;;
+			ui)
+				action="link"
+				;;
+			*)
+				if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+					__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
+					action="link"
+				fi
+		esac
+	fi
+
+	if [[ ! -e /usr/local/bin/mip ]]; then
+		case $action in
+			copy)
+				__debug --level 5 "Copying self to /usr/local/bin/"
+				__debug --level 6 "cp $0 /usr/local/bin/"
+				cp $0 /usr/local/bin/
+				;;
+			link)
+				__debug --level 5 "Symlinking self to /usr/local/bin/"
+				__debug --level 6 "ln -s $MIP_PATH/mip /usr/local/bin/"
+				ln -s $MIP_PATH/mip /usr/local/bin/
+				;;
+			*)
+				__red "Something went wrong!"
+				result=1
+				;;
+		esac
+	else
+		__red "/usr/local/bin/mip already exists!"
+		result=1
+	fi
+
+	if [[ $result -eq 0 ]]; then
+		_remove_installer
+		_prepare_systemd
+	fi
+	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+	return $result
+}
+
+_remove_installer(){
+	__debug --level 4 "_remove_installer($@)"
+	__debug --level 1 --levelcompare "eq" "Removing installer..."
+	local result=0
+	local parentdir=$(dirname $0)
+	local answer=""
+
+	if [[ -d $parentdir && "$parentdir" = "mip-deployment" ]]; then
+		if [[ $ARG_YES -eq 1 ]]; then
+			answer="y"
+		else
+			if [[ $ARG_QUIET -eq 1 ]]; then
+				result=1
+			fi
+			echo "Remove installer [y/n]? "
+			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+		fi
+		if [[ "$answer" = "y" ]]; then
+			__debug --level 5 "Removing $parentdir"
+			__debug --level 6 "rm -rf $parentdir"
+			#rm -rf $parentdir
+		fi
+	fi
+	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+	return $result
+}
+
+_prepare_systemd(){
+	__debug --level 4 "_prepare_systemd($@)"
+	__debug --level 1 --levelcompare "eq" "Preparing Systemd Unit..."
+	local result=0
+	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_NODE_TYPE" = "wk" || "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+		return $result
+	fi
+
+	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+	return $result
+}
+
 _prepare_docker_compose(){
 	__debug --level 4 "_prepare_docker_compose($@)"
-	if [[ "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" != "local" ]]; then
 		return 0
 	fi
 
@@ -1950,7 +2230,7 @@ EOF
 
 _prepare_mip_env(){
 	__debug --level 4 "_prepare_mip_env($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Preparing MIP environment..."
@@ -1960,6 +2240,7 @@ _prepare_mip_env(){
 	case $1 in
 		set)
 			__debug --level 4 "ARG <set>"
+			load_mip_versions
 			vars=$(env|grep '^MIP_ENV_'|awk -F '=' '{print $1}')
 			__debug --level 5 "vars=<$vars>"
 			for var in $vars; do
@@ -1987,6 +2268,10 @@ _prepare_mip_env(){
 
 _federation_task(){
 	__debug --level 4 "_federation_task($@)"
+	if [[ $ARG_PUSHER -ne 1 || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+		return 0
+	fi
+
 	if [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 		case $FEDTASK in
 			datasamples)
@@ -2058,7 +2343,7 @@ _federation_task(){
 
 _run_keycloak(){
 	__debug --level 4 "_run_keycloak($@)"
-	if [[ "$MIP_ENV_MIP_TYPE" != "local" || $MIP_ENV_KEYCLOAK_AUTHENTICATION -ne 1 ]]; then
+	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" != "local" || $MIP_ENV_KEYCLOAK_AUTHENTICATION -ne 1 ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Running keycloak..."
@@ -2085,7 +2370,7 @@ _run_keycloak(){
 		__debug --level 6 "docker exec -it $(docker ps --filter name='mip_keycloak_1' -q) /opt/jboss/keycloak_bin/kcadm.sh config credentials --server http://keycloak:8095/auth --realm master --user admin --password Pa55w0rd"
 		{
 			docker exec -it $(docker ps --filter name="mip_keycloak_1" -q) /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://keycloak:8095/auth --realm master --user admin --password Pa55w0rd
-		} &> /dev/null
+		} &> /dev/null 2>&1
 		# Get the status code from previous command
 		docker_login_worked=$?
 
@@ -2093,7 +2378,7 @@ _run_keycloak(){
 		count=`expr $count + 1`
 		if [[ $count -eq 8 ]]; then
 			echo
-			__red -n "MIP seems to be up and running on http://${PUBLIC_MIP_HOST} but could not be configured properly. \nAs a result you can't access the administration console. You can retry by launching $0 configure keycloak " >&2
+			__red -n "MIP seems to be up and running on http://${PUBLIC_MIP_HOST} but could not be configured properly. \nAs a result you can't access the administration console. You can retry by launching $0 configure keycloak "
 			if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 			exit 1
 		fi
@@ -2107,7 +2392,7 @@ _run_keycloak(){
 
 _services_up(){
 	__debug --level 4 "_services_up($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" "Starting services..."
@@ -2127,7 +2412,7 @@ _services_up(){
 		cd $path
 		if [[ $ret -ne 0 ]]; then
 			echo
-			__red -n "An error has occurred while deploying services! " >&2
+			__red -n "An error has occurred while deploying services! "
 		fi
 	fi
 
@@ -2137,7 +2422,7 @@ _services_up(){
 
 _services_down(){
 	__debug --level 4 "_services_down($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Stopping services..."
@@ -2156,7 +2441,7 @@ _services_down(){
 		cd $path
 		if [[ $ret -ne 0 ]]; then
 			echo
-			__red -n "An error has occurred while removing services and networks! " >&2
+			__red -n "An error has occurred while removing services and networks! "
 		fi
 	fi
 
@@ -2166,7 +2451,7 @@ _services_down(){
 
 run_mip(){
 	__debug --level 4 "run_mip($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" "Running MIP..."
@@ -2319,15 +2604,23 @@ logs(){
 
 stop_mip(){
 	__debug --level 4 "stop_mip($@)"
-	if [[ "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Stopping MIP..."
 
 	if [[ $ARG_FORCE -eq 1 ]]; then
 		__debug --level 5 "ARG_FORCE=<1>"
-		echo -n "WARNING: This will kill any docker container, and finally kill any docker daemon running on this machine! Are you sure you want to continue? [y/n] "
-		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+		if [[ $ARG_YES -eq 1 ]]; then
+			answer="y"
+		else
+			if [[ $ARG_QUIET -eq 1 ]]; then
+				return 1
+			fi
+			echo -n "WARNING: This will kill any docker container, and finally kill any docker daemon running on this machine! Are you sure you want to continue? [y/n] "
+			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+		fi
+
 		if [[ "$answer" = "y" ]]; then
 			local docker_ps=$(docker ps -q 2>/dev/null)
 			if [[ "$docker_ps" != "" ]]; then
@@ -2353,11 +2646,28 @@ stop_mip(){
 delete_mip(){
 	__debug --level 1 --levelcompare "eq" "Deleting MIP..."
 	__debug --level 4 "delete_mip($@)"
-	if [[ -d $MIP_PATH ]]; then
-		echo -n "Delete full MIP [y/n]? "
+	if [[ $ARG_YES -eq 1 ]]; then
+		answer="y"
+	else
+		if [[ $ARG_QUIET -eq 1 ]]; then
+			return 1
+		fi
+		if [[ "$MIP_ENV_MIP_TYPE" = "local" || $ARG_PUSHER -eq 1 ]]; then
+			echo -n "Delete full MIP $MIP_PATH [y/n]? "
+		elif [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+			echo -n "Leave Docker Swarm [y/n]? "
+		fi
 		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
-		if [[ "$answer" = "y" ]]; then
-			docker swarm leave --force 2>/dev/null
+	fi
+
+	if [[ "$answer" = "y" ]]; then
+		if [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+			docker swarm leave --force
+		fi
+		if [[ -e /usr/local/bin/mip ]]; then
+			rm /usr/local/bin/mip
+		fi
+		if [[ -d $MIP_PATH ]]; then
 			rm -rf $MIP_PATH
 		fi
 	fi
@@ -2367,13 +2677,8 @@ delete_mip(){
 }
 
 main(){
-	if [[ "$(id -u)" != "0" ]]; then
-		echo "Call me with sudo!"
-		exit 1
-	fi
-
+	#if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
 	load_mip_env
-	load_mip_versions
 
 	case $ACTION in
 		start)
@@ -2390,6 +2695,7 @@ main(){
 			run_mip
 			;;
 		check-required)
+			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
 			check_required
 			local ret=$?
 			if [[ $ret -eq 0 ]]; then
@@ -2415,11 +2721,13 @@ main(){
 			_cleanup
 			;;
 		uninstall)
+			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
 			_check_os
 			stop_mip
 			delete_mip
 			;;
 		install)
+			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
 			_check_os
 			local ret=$?
 			if [[ $ret -ne 0 ]]; then
@@ -2443,11 +2751,17 @@ main(){
 			if [[ $ret -ne 0 ]]; then
 				exit $ret
 			fi
+			download_mip
+			_postinstall
 			if [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-				download_mip
-				if [[ $ARG_YES -eq 1 ]]; then
+				if [[ $ARG_NORUN -eq 1 ]]; then
+					answer="n"
+				elif [[ $ARG_YES -eq 1 ]]; then
 					answer="y"
 				else
+					if [[ $ARG_QUIET -eq 1 ]]; then
+						return 1
+					fi
 					echo -n "Run MIP [y/n]? "
 					read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 				fi
@@ -2457,12 +2771,13 @@ main(){
 			fi
 			;;
 		configure)
+			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
 			case $CONFIGURE_PART in
 				$CONFIGURE_PARTS_TABLE)
 					do_configure
 					;;
 				*)
-					echo "Usage: $0 configure [$CONFIGURE_PARTS_LIST]"
+					__red "Usage: $0 configure [$CONFIGURE_PARTS_LIST]"
 					exit 1
 			esac
 			;;
@@ -2470,7 +2785,7 @@ main(){
 			_federation_task $@
 			;;
 		*)
-			echo "Usage: $0 [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
+			__red "Usage: $0 [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
 	esac
 }
 
