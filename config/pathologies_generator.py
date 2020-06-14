@@ -8,6 +8,8 @@ import csv
 import json
 import copy
 import chardet
+import requests
+import re
 
 class gen_pathologies:
     __config = None
@@ -18,8 +20,6 @@ class gen_pathologies:
     __datasets = {}
 
     def __init__(self, args):
-        check = True
-
         args_dict = vars(args)
         config = {'data': {}, 'pathologies': {}}
         for key in args_dict:
@@ -52,10 +52,11 @@ class gen_pathologies:
             else:
                 sys.exit('Invalid directory: %s' % path)
 
-        if check:
-            self.__config = config
-        else:
-            sys.exit("configuration is not consistent! Can't go further...")
+        #config['data']['datacatalogue_host'] = 'http://dc.mip.ebrains.eu:8086'
+        config['data']['datacatalogue_host'] = 'http://195.251.252.222:2448'
+        config['data']['datacatalogue_headers'] = {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}
+        config['data']['datacatalogue_version'] = None
+        self.__config = config
 
     def __predict_encoding(self, file_path, n_lines=None):
         if n_lines is None:
@@ -86,6 +87,50 @@ class gen_pathologies:
 
     def __get_filtered_dict_list(self, dict_list, key_name):
         return [sub[key_name] for sub in dict_list]
+
+    def __replace_values(self, content, replacements = None, encoding = None):
+        new_content = None
+
+        if isinstance(content, dict):
+            new_content = {}
+            for k, v in content.items():
+                new_content[k] = self.__replace_values(v, replacements, encoding)
+        elif isinstance(content, list):
+            new_content = []
+            for i, item in enumerate(content):
+                new_content.append(self.__replace_values(item, replacements, encoding))
+        elif isinstance(content, str):
+            if replacements is not None:
+                for replacement in replacements:
+                    if new_content is None:
+                        new_content = content.replace(replacement['search_value'], replacement['replace_value'])
+                    else:
+                        new_content = new_content.replace(replacement['search_value'], replacement['replace_value'])
+            if encoding is not None and encoding == 'utf-8':
+                for match in re.findall(r"\\u[\da-f]{4}", content):
+                    code = match[2:]
+                    char = eval('u"\\u%s"' %(code))
+                    if new_content is None:
+                        new_content = content.replace(match, char)
+                    else:
+                        new_content = new_content.replace(match, char)
+                if new_content is None:
+                    new_content = content
+        else:
+            new_content = content
+
+        return new_content
+
+    def __relabel(self, label, text = None):
+        result = label
+        if self.__config['data']['force_relabel']:
+            if text is None:
+                text = "New label? [%s] " %(label)
+            newlabel = input(text)
+            if newlabel != '':
+                result = newlabel
+
+        return result
 
     def __json_file_writer(self, filepath, content, file_encoding, file_indent):
         if file_encoding is None:
@@ -122,7 +167,13 @@ class gen_pathologies:
             if item == 'code' and content[item] == 'root':
                 self.__pathologies[pathology_id]['code'] = pathology
             elif item == 'label' and content[item] == '/':
-                self.__pathologies[pathology_id]['label'] = pathology.capitalize()
+                label = pathology.capitalize()
+                label = self.__relabel(label, "Relabel pathology '%s'? [%s] " %(pathology, label))
+                self.__pathologies[pathology_id]['label'] = label
+            elif item == 'label':
+                label = content[item]
+                label = self.__relabel(label, "Relabel pathology '%s'? [%s] " %(pathology, label))
+                self.__pathologies[pathology_id][item] = label
             else:
                 self.__pathologies[pathology_id][item] = content[item]
 
@@ -140,10 +191,14 @@ class gen_pathologies:
         for dataset in self.__datasets_codes[pathology]:
             if dataset in self.__get_filtered_dict_list(metadata_datasets, 'code'):
                 dataset_id = self.__get_dict_id(metadata_datasets, 'code', dataset)
-                self.__datasets[pathology].append({'code': dataset, 'label': metadata_datasets[dataset_id]['label']})
+                label = metadata_datasets[dataset_id]['label']
+                label = self.__relabel(label, "Pathology '%s': Relabel dataset '%s'? [%s] " %(pathology, dataset, label))
+                self.__datasets[pathology].append({'code': dataset, 'label': label})
             else:
                 missing_datasets.append(dataset)
-                self.__datasets[pathology].append({'code': dataset, 'label': dataset.upper()})
+                label = dataset.upper()
+                label = self.__relabel(label, "Pathology '%s': Relabel dataset '%s'? [%s] " %(pathology, dataset, label))
+                self.__datasets[pathology].append({'code': dataset, 'label': label})
         for dataset in metadata_datasets:
             if dataset['code'] not in self.__datasets_codes[pathology]:
                 exceeding_datasets.append(dataset['code'])
@@ -168,18 +223,7 @@ class gen_pathologies:
                         metadata_dataset_file_change = True
 
         if metadata_dataset_file_change:
-            print('It appears that the dataset enumerations of the "%s" metadata, do not match the distinct dataset values in the data files (%s format). Do you want to configure them automatically? (Y/N) ' %(pathology, self.__config['data']['dataset_format']))
-            while True:
-                answer = input()
-                if answer.lower() == 'y':
-                    self.__metadata_file_writer(pathology)
-                    print('The metadata of the "%s" pathology were automatically configured.' % pathology)
-                    break
-                elif answer.lower() == 'n':
-                    print('The metadata of the "%s" pathology were not changed.' % pathology)
-                    break
-                else:
-                    print('Do you want to configure them automatically? (Y/N) ')
+            self.__metadata_file_writer(pathology)
 
     def __dataset_processor(self, pathology, file_path):
         datasets = []
@@ -284,6 +328,34 @@ class gen_pathologies:
                     self.__pathologies.append({'code': current_path_element})
                     self.__pathologies_ids[current_path_element] = len(self.__pathologies) - 1
                     self.__metadatas[current_path_element] = {'source': None, 'final': None}
+                    if self.__config['data']['metadata_online_sync']:
+                        metadata_version = 'latest_cde_version'
+                        if self.__config['data']['datacatalogue_version'] is not None:
+                            metadata_version = self.__config['data']['datacatalogue_version']
+                        datacatalogue_uri = '/pathology/allPathologies/%s/%s' %(current_path_element, metadata_version)
+                        response = requests.get(self.__config['data']['datacatalogue_host'] + datacatalogue_uri, headers=self.__config['data']['datacatalogue_headers'])
+                        if response.status_code == 200:
+                            file_encoding = self.__config['data']['metadata_encoding']
+                            content = None
+                            try:
+                                if file_encoding is not None:
+                                    content = json.loads(response.content.decode(file_encoding))
+                                else:
+                                    content = json.loads(response.content)
+                                if 'jsonString' in content:
+                                    if file_encoding is not None:
+                                        content = json.loads(content['jsonString'].encode().decode(file_encoding))
+                                    else:
+                                        content = json.loads(content['jsonString'])
+                            except Exception as e:
+                                content = None
+                                raise e
+                            if content is not None:
+                                # Enforce utf-8 encoding of remaining non-encoded characters (typically \u2019, \u03b2, and \u03c4 in dementia CDE)
+                                content = self.__replace_values(content, None, file_encoding)
+                                if os.path.isfile(os.path.join(path, self.__config['data']['metadata_filename'])):
+                                    os.rename(os.path.join(path, self.__config['data']['metadata_filename']), os.path.join(path, self.__config['data']['metadata_filename'] + '.bak'))
+                                self.__file_writer(os.path.join(path, self.__config['data']['metadata_filename']), content, 'json', file_encoding, self.__config['data']['metadata_indent'])
 
                 sub_path_list = sorted(glob.glob(os.path.join(path, '*')))
                 for sub_path in sub_path_list:
@@ -296,12 +368,14 @@ def main():
     argsparser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     argsparser.add_argument('-d', '--data-path', dest='data_path', help='Data base directory path', type=str)
     argsparser.add_argument('-r', '--max-recursion-depth', dest='data_max_recursion_depth', default=1, help='Maximum level of recursion for data directory analysis', type=int)
+    argsparser.add_argument('-w', '--force-relabel', dest='data_force_relabel', default=False, action='store_true', help='Force relabeling pathologies and datasets in CDE metadata files and pathologies file')
+    argsparser.add_argument('-s', '--metadata-online-sync', dest='data_metadata_online_sync', default=False, action='store_true', help='Download CDE metadata content from online Data Catalogue')
     argsparser.add_argument('-f', '--metadata-format', dest='data_metadata_format', default='json', help='CDE metadata files format', type=str)
     argsparser.add_argument('-m', '--metadata-filename', dest='data_metadata_filename', default='CDEsMetadata.json', help='CDE metadata file name', type=str)
     argsparser.add_argument('-e', '--metadata-encoding', dest='data_metadata_encoding', default='utf-8', help='CDE metadata files encoding', type=str)
     argsparser.add_argument('-i', '--metadata-indent-char', dest='data_metadata_indent_char', default=' ', help='CDE metadata files indentation character', type=str)
     argsparser.add_argument('-c', '--metadata-indent-count', dest='data_metadata_indent_count', default=2, help='CDE metadata files indentation character count', type=int)
-    argsparser.add_argument('-u', '--metadata-dataset-unsync', dest='data_metadata_dataset_unsync', default=False, action='store_true', help='Do NOT synchronize CDE metadata files dataset with dataset files content')
+    argsparser.add_argument('-u', '--metadata-dataset-unsync', dest='data_metadata_dataset_unsync', default=False, action='store_true', help='Do NOT synchronize CDE metadata files datasets enumeration with dataset files content')
     argsparser.add_argument('-t', '--dataset-format', dest='data_dataset_format', default='csv', help='Dataset files format', type=str)
     argsparser.add_argument('-o', '--dataset-encoding', dest='data_dataset_encoding', default='ascii', help='Dataset files encoding', type=str)
     argsparser.add_argument('-l', '--dataset-delimiter', dest='data_dataset_delimiter', default=',', help='Dataset files fields delimiter', type=str)
