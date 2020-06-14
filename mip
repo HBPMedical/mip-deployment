@@ -79,6 +79,12 @@ args_parser(){
 				ACTION=$1
 				shift
 				;;
+			data)
+				ACTION=$1
+				DATA_ACTION=$2
+				shift
+				shift
+				;;
 			fedtask)
 				ACTION=$1
 				FEDTASK=$2
@@ -373,6 +379,16 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 					MIP_COMPONENT for "ui" federation node:
 						[frontend|portalbackend|portalbackend_db|galaxy|create_dbs|datacataloguefrontend|datacatalogue_backend|datacatalogue_postgres]
 		cleanup								Clean the unused/old MIP Docker images.
+
+		FEDERATION SPECIFIC ACTION
+		==========================
+		data [DATA_ACTION]
+			consolidate						(PUSHER action) Consolidate datasets, metadatas and pathologies.json. Asks workers to prepare
+											fake "empty" datasets in an archive, download it from each workers, extract it locally,
+											maintains a list of workers per pathology, download new metadata CDEs from data catalogue,
+											aligns these with all available datasets for each pathology, then deploys CDEs on each
+											implied workers per pathology and also on the master, and deploys the pathologies.json
+											on the UI node.
 
 		OPTION
 		======
@@ -738,6 +754,9 @@ _write_mip_env(){
 				__debug --level 6 "Writing env var in $MIPENVFILE: $envvar=<$envval>"
 				echo "$envvar=$envval" >> $MIPENVFILE
 			done
+			if [[ $(id -u) -eq 0 && "$(cat /etc/passwd|grep $DOCKER_USER:)" != "" ]]; then
+				chown $DOCKER_USER.$DOCKER_USER $MIPENVFILE
+			fi
 		else
 			__debug --level 5 "Directory '$parentdir' does not exist! Cannot write $MIPENVFILE..."
 			result=1
@@ -1075,6 +1094,24 @@ prepare_docker_apt_sources(){
 			next=0
 		fi
 	done
+	__debug --level 1 --levelcompare "eq" --color "green" "done"
+}
+
+_manage_chown_user(){
+	__debug --level 1 --levelcompare "eq" -n "Chowning already installed components..."
+	__debug --level 4 "_manage_chown_user($@)"
+	if [[ "$DOCKER_USER" != "" && "$DOCKER_USER" != "root" ]]; then
+		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
+		if [[ -d $MIP_PATH ]]; then
+			__debug --level 5 "Folder '$MIP_PATH' exists."
+			if [[ "$(cat /etc/passwd|grep $DOCKER_USER:)" != "" ]]; then
+				__debug --level 5 "user $DOCKER_USER exist."
+				__debug --level 5 "chowning $MIP_PATH with $DOCKER_USER.$DOCKER_USER"
+				__debug --level 6 "chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH"
+				chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH
+			fi
+		fi
+	fi
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
@@ -1590,6 +1627,9 @@ download_mip(){
 					__debug --level 5 "Downloading pathologies_generator..."
 					__debug --level 6 "curl https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py"
 					curl https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py
+					if [[ -f /usr/local/bin/pathologies_generator.py ]]; then
+						chmod +x /usr/local/bin/pathologies_generator.py
+					fi
 				fi
 			else
 				break
@@ -1618,6 +1658,7 @@ _configure_user(){
 				useradd $DOCKER_USER --create-home --password $DOCKER_USER_PASSWD --shell /bin/bash --user-group
 			fi
 		fi
+		_manage_chown_user
 		_manage_sudo_user
 		_manage_docker_user
 	fi
@@ -1737,7 +1778,7 @@ _configure_pathologies(){
 	__debug --level 4 "_configure_pathologies($@)"
 	if [[ "$MIP_ENV_MIP_TYPE" = "local" && $ARG_PUSHER -ne 1 ]]; then
 		# Running the pathologies.json generator
-		if [[ ! -f $MIP_PATH/config/pathologies.json || $ARG_FORCE -eq 1 ]]; then
+		if [[ ! -f $MIP_PATH/config/pathologies.json || $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
 			__debug --level 1 --levelcompare "eq" -n "Configuring pathologies..."
 			$MIP_PATH/config/pathologies_generator.py -n
 			local ret=$?
@@ -1964,7 +2005,7 @@ _prepare_data(){
 			break
 		fi
 	done
-	if [[ $dbok -eq 1 && $ARG_FORCE -ne 1 ]]; then
+	if [[ $dbok -eq 1 && $ARG_FORCE -ne 1 && "$1" != "-f" ]]; then
 		__debug --level 5 "All pathologies have db. Nothing to do."
 		if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
 		return 0
@@ -2266,9 +2307,165 @@ _prepare_mip_env(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
+_data(){
+	__debug --level 4 "_data($@)"
+	if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+		return 0
+	fi
+	local result=0
+
+	case $DATA_ACTION in
+		consolidate)
+			__debug --level 1 --levelcompare "eq" -n "Consolidating data... "
+
+			if [[ $ARG_PUSHER -eq 1 ]]; then
+				if [[ ! -f $SSH_PATH/.ssh/config ]]; then
+					__red "Can't find any SSH configuration file to connect to the federation nodes!"
+					result=1
+				fi
+
+				if [[ ! -d /tmp/miptmpfeddata/data ]]; then
+					mkdir -p /tmp/miptmpfeddata/data
+				fi
+				if [[ ! -d /tmp/miptmpfeddata/config ]]; then
+					mkdir -p /tmp/miptmpfeddata/config
+				fi
+
+				local nodetype=""
+				local hostname=""
+				local datapath=""
+				local datafile=""
+				local metadatafile=""
+				local pathologies=""
+				local pathologyvar=""
+				local datasetfile=""
+				for host in $(awk '/^Host/ {print $2}' $SSH_PATH/.ssh/config); do
+					if [[ "$host" = "ms" || "$host" = "ui" ]]; then
+						nodetype=$host
+					else
+						nodetype="wk"
+					fi
+
+					if [[ "$nodetype" = "wk" ]]; then
+						hostname=$(ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@$host "hostname")
+						__debug --level 2 "Working in worker node <$hostname>..."
+						datafile=$(ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@$host "mip --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null")
+						if [[ "$datafile" != "" ]]; then
+							hostdatapath="host_datapath_"$host
+							export $hostdatapath=$(dirname $datafile)
+							__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@$host 'if [[ -f $datafile ]]; then echo ok; fi'"
+							datacheck=$(ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@$host "if [[ -f $datafile ]]; then echo ok; fi")
+							if [[ "$datacheck" = "ok" ]]; then
+								__debug --level 2 "Dataset samples ready on worker <$host>"
+								if [[ ! -d /tmp/miptmpfeddata/$host ]]; then
+									mkdir -p /tmp/miptmpfeddata/$host
+								fi
+								__debug --level 2 "Getting dataset samples from worker <$host>"
+								scp -F $SSH_PATH/.ssh/config $DOCKER_USER@$host:$datafile /tmp/miptmpfeddata/$host
+								tar xzf /tmp/miptmpfeddata/$host/$host.tar.gz --directory /tmp/miptmpfeddata/$host
+								for pathology in $(ls -l /tmp/miptmpfeddata/$host|awk '/^d/ {print $NF}'); do
+									pathologyvar="pathology_"$pathology
+									if [[ ! -d /tmp/miptmpfeddata/data/$pathology ]]; then
+										mkdir -p /tmp/miptmpfeddata/data/$pathology
+									fi
+									_contains $pathologies $pathology
+									if [[ $? -eq 1 ]]; then
+										if [[ "$pathologies" != "" ]]; then
+											pathologies=$pathologies" "
+										fi
+										pathologies=${pathologies}${pathology}
+									fi
+									if [[ ! -n ${!pathologyvar} ]]; then
+										export $pathologyvar="$host"
+									else
+										_contains ${!pathologyvar} $host
+										if [[ $? -eq 1 ]]; then
+											if [[ "${!pathologyvar}" != "" ]]; then
+												export $pathologyvar=${!pathologyvar}" "
+											fi
+											export $pathologyvar=${!pathologyvar}${host}
+										fi
+									fi
+									for datasetfile in $(ls /tmp/miptmpfeddata/$host/$pathology/*.csv); do
+										cp $datasetfile /tmp/miptmpfeddata/data/$pathology/
+									done
+								done
+								__debug --level 5 "pathologies=<$pathologies>"
+								__debug --level 5 "pathology_dementia=<$pathology_dementia>"
+								__debug --level 5 "pathology_mentalhealth=<$pathology_mentalhealth>"
+								__debug --level 5 "pathology_tbi=<$pathology_tbi>"
+							else
+								__debug --level 2 "Error on worker <$host>: datasets not ready!"
+							fi
+						fi
+					fi
+				done
+
+				__debug --level 2 "Aligning CDEs and generating pathologies.json"
+				__debug --level 6 "pathologies_generator.py --data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --metadata-online-sync --force-relabel --pathologies-preserve-dataset-var"
+				pathologies_generator.py --data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --metadata-online-sync --force-relabel --pathologies-preserve-dataset-var
+				__debug --level 5 "Parsing pathologies..."
+				for pathology in $pathologies; do
+					__debug --level 5 "pathology=<$pathology>"
+					pathologyvar="pathology_"$pathology
+					if [[ "${!pathologyvar}" != "" ]]; then
+						__debug --level 5 "Parsing hosts in $pathology..."
+						metadatafile=/tmp/miptmpfeddata/data/$pathology/CDEsMetadata.json
+						if [[ -f $metadatafile ]]; then
+							if [[ "${!pathologyvar}" != "" ]]; then
+								__debug --level 5 "Deploying aligned CDE in master for pathology <$pathology>, assuming the data should live in /data/$ARG_FEDERATION"
+								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@ms 'if [[ ! -d /data/$ARG_FEDERATION/$pathology ]]; then mkdir -p /data/$ARG_FEDERATION/$pathology; fi'"
+								ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@ms "if [[ ! -d /data/$ARG_FEDERATION/$pathology ]]; then mkdir -p /data/$ARG_FEDERATION/$pathology; fi"
+								__debug --level 6 "scp -F $SSH_PATH/.ssh/config $metadatafile $DOCKER_USER@ms:/data/$ARG_FEDERATION/$pathology/"
+								scp -F $SSH_PATH/.ssh/config $metadatafile $DOCKER_USER@ms:/data/$ARG_FEDERATION/$pathology/
+
+								for host in ${!pathologyvar}; do
+									__debug --level 5 "host=<$host>"
+									hostdatapath="host_datapath_"$host
+									__debug --level 5 "hostdatapath=<${!hostdatapath}>"
+									__debug --level 5 "Deploying aligned CDE in worker <$host> for pathology <$pathology>"
+									__debug --level 6 "scp -F $SSH_PATH/.ssh/config $metadatafile $DOCKER_USER@$host:${!hostdatapath}/$pathology/"
+									scp -F $SSH_PATH/.ssh/config $metadatafile $DOCKER_USER@$host:${!hostdatapath}/$pathology/
+									unset $hostdatapath
+								done
+							fi
+						fi
+						unset $pathologyvar
+					fi
+				done
+				local remoteuidir=$INSTALL_PATH/$DEFAULT_MIP_GITHUB_PROJECT/Federation
+				if [[ -f /tmp/miptmpfeddata/config/pathologies.json ]]; then
+					__debug --level 5 "Deploying pathologies.json in ui, assuming it should live in $remoteuidir/config"
+					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi'"
+					ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi"
+					__debug --level 6 "scp -F $SSH_PATH/.ssh/config /tmp/miptmpfeddata/config/pathologies.json $DOCKER_USER@ui:$remoteuidir/config"
+					scp -F $SSH_PATH/.ssh/config /tmp/miptmpfeddata/config/pathologies.json $DOCKER_USER@ui:$remoteuidir/config
+				else
+					__red "Can't find pathologies file </tmp/miptmpfeddata/config/pathologies.json>!"
+				fi
+
+				if [[ -d /tmp/miptmpfeddata ]]; then
+					rm -rf /tmp/miptmpfeddata
+				fi
+			else
+				_configure_pathologies -f
+				_prepare_data -f
+			fi
+			;;
+		*)
+			if [[ $ARG_PUSHER -eq 1 ]]; then
+				__red "Usage: $0 --pusher --federation <FEDERATION> data [consolidate]"
+			else
+				__red "Usage: $0 data [consolidate]"
+			fi
+	esac
+
+	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+}
+
 _federation_task(){
 	__debug --level 4 "_federation_task($@)"
-	if [[ $ARG_PUSHER -ne 1 || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 		return 0
 	fi
 
@@ -2276,7 +2473,7 @@ _federation_task(){
 		case $FEDTASK in
 			datasamples)
 				if [[ ! -n $ARG_FEDERATION ]]; then
-					__red "Federation not set!"
+					echo "Federation not set!"
 					exit 1
 				fi
 				local pathologies=$(ls -l $DATA_PATH/$ARG_FEDERATION|awk '/^d/ {print $NF}')
@@ -2294,13 +2491,14 @@ _federation_task(){
 							__debug --level 5 "Directory '/tmp/miptmpfeddata/$pathology' does not exist. Creating..."
 							mkdir -p /tmp/miptmpfeddata/$pathology
 						fi
-						if [[ -f $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json && ! -f /tmp/miptmpfeddata/$pathology/CDEsMetadata.json ]]; then
-							__debug --level 5 "Copying CDEsMetadata.json from $DATA_PATH/$ARG_FEDERATION/$pathology/ to /tmp/miptmpfeddata/$pathology/"
-							cp $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/
-						elif [[ "$(diff $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/CDEsMetadata.json)" != "" ]]; then
-							__debug --level 5 "/tmp/miptmpfeddata/$pathology/CDEsMetadata.json different from source $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json. Copying from source..."
-							cp $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/
-						fi
+						# AS THE PUSHER WILL DOWNLOAD CDEs FROM DATACATALOGUE, WE DON'T NEED TO PROVIDE THOSE FROM WORKERS ANYMORE!
+						#if [[ -f $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json && ! -f /tmp/miptmpfeddata/$pathology/CDEsMetadata.json ]]; then
+						#	__debug --level 5 "Copying CDEsMetadata.json from $DATA_PATH/$ARG_FEDERATION/$pathology/ to /tmp/miptmpfeddata/$pathology/"
+						#	cp $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/
+						#elif [[ "$(diff $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/CDEsMetadata.json)" != "" ]]; then
+						#	__debug --level 5 "/tmp/miptmpfeddata/$pathology/CDEsMetadata.json different from source $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json. Copying from source..."
+						#	cp $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/
+						#fi
 						__debug --level 5 "Adding header line in sample dataset file: </tmp/miptmpfeddata/$pathology/$dataset>"
 						head -1 $DATA_PATH/$ARG_FEDERATION/$pathology/$dataset > /tmp/miptmpfeddata/$pathology/$dataset
 						sed --in-place 's/\r//g' /tmp/miptmpfeddata/$pathology/$dataset
@@ -2333,6 +2531,7 @@ _federation_task(){
 					cd $path
 					__debug --level 5 "Removing /tmp/miptmpfeddata..."
 					rm -rf /tmp/miptmpfeddata
+					echo "$DATA_PATH/$ARG_FEDERATION/$(hostname).tar.gz"
 				fi
 				;;
 			getlogs)
@@ -2781,11 +2980,24 @@ main(){
 					exit 1
 			esac
 			;;
+		data)
+			_data $@
+			;;
 		fedtask)
 			_federation_task $@
 			;;
 		*)
-			__red "Usage: $0 [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
+			if [[ $ARG_PUSHER -eq 1 ]]; then
+				__red "Usage: $0 --pusher --federation <FEDERATION> [check-required|install|configure|uninstall|data]"
+			elif [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+				__red "Usage: $0 --node-type ms [check-required|install|configure|uninstall|status|status-details|logs|cleanup]"
+			elif [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+				__red "Usage: $0 --node-type wk [check-required|install|configure|uninstall|status|status-details|logs|cleanup|fedtask]"
+			elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+				__red "Usage: $0 --node-type ui [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
+			else
+				__red "Usage: $0 [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
+			fi
 	esac
 }
 
