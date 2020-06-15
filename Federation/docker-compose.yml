@@ -91,7 +91,7 @@ services:
       VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}, DataCatalogue: ${DATACATALOGUE}'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
-      DATACATALOGUE_SERVER: https://datacatalogue.hbpmip.link
+      DATACATALOGUE_SERVER: 'https://datacatalogue.hbpmip.link'
       KEYCLOAK_AUTH_URL: 'https://iam.humanbrainproject.eu/auth/'
       KEYCLOAK_LOGIN_URL: 'https://iam.humanbrainproject.eu/auth/realms/MIP/protocol/openid-connect/auth'
     restart: on-failure
