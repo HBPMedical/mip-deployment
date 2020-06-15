@@ -28,7 +28,7 @@ EXAREME_BRANCH="master"
 DOCKER_PROJECT_NAME="mip"
 DOCKER_FEDERATION_PROJECT_NAME="mip_federation"
 MIP_COMPONENTS="frontend portalbackend portalbackend_db galaxy keycloak keycloak_db create_dbs exareme_master exareme_keystore"
-MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy create_dbs datacataloguefrontend datacatalogue_backend datacatalogue_postgres"
+MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy create_dbs"
 CONFIGURE_PARTS="user ssh pusher pathologies host exareme-ip logs data keycloak all"
 
 DEFAULT_MIP_ENV_MIP_TYPE="local"
@@ -120,6 +120,19 @@ args_parser(){
 				;;
 			--federation)
 				ARG_FEDERATION=$2
+				shift
+				shift
+				;;
+			--online-cdes)
+				ARG_ONLINE_CDES=1
+				shift
+				;;
+			--review-dataset-labels)
+				ARG_REVIEW_DATASET_LABELS=1
+				shift
+				;;
+			--datacatalogue-host)
+				ARG_DATACATALOGUE_HOST=$2
 				shift
 				shift
 				;;
@@ -369,15 +382,14 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 											Used in "local" MIP or "ui" federation node.
 		status-details							Same than status, but with much detailed output on Docker
 											containers.
-		logs (MIP_COMPONENT)						Get logs of the passed component. The MIP_COMPONENT parameter
-											is MANDATORY for the "local" MIP, but for a federation
-											node, no MIP_COMPONENT will output the logs for
+		logs [MIP_COMPONENT]						Get logs of the passed component. The MIP_COMPONENT parameter is MANDATORY for the
+											"local" MIP, but for a federation node, no MIP_COMPONENT will output the logs for
 											the main component related to the node type.
 											Can be used with "-f|--follow" flag, the "tail" way.
-					MIP_COMPONENT for "local" MIP:
-						[frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
-					MIP_COMPONENT for "ui" federation node:
-						[frontend|portalbackend|portalbackend_db|galaxy|create_dbs|datacataloguefrontend|datacatalogue_backend|datacatalogue_postgres]
+			MIP_COMPONENT for "local" MIP:
+				[frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
+			MIP_COMPONENT for "ui" federation node:
+				[frontend|portalbackend|portalbackend_db|galaxy|create_dbs]
 		cleanup								Clean the unused/old MIP Docker images.
 
 		FEDERATION SPECIFIC ACTION
@@ -400,37 +412,36 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 	-y,	--yes								Force confirmation to any asked [yes/no] question.
 	-v,	--verbose							Be verbose.
 		--install-path [INSTALL_PATH]					Change the default installation path (/opt).
-											Don't use it except if you know exactly what your
-											doing. It will "corrupt" this file from git POV by changing
-											the corresponding variable in it for good!
+											Don't use it except if you know exactly what your doing. It will "corrupt" this file from
+											git POV by changing the corresponding variable in it for good!
 		--debug-level [1..6]						Debug level (1 will generate quite a fancy output).
 		--node-type [local (default)|ms/master|ui/frontend|wk/worker]
-										Type of node, typically in a federation. The
-											script will react differently and adapt to the
+										Type of node, typically in a federation. The script will react differently and adapt to the
 											node-type related context.
 		--pusher							With this option, the script can act as a pusher.
-											Any type of federated node can be a pusher as well,
-											as it doesn't conflict with any MIP component.
+											Any type of federated node can be a pusher as well, as it doesn't conflict with any MIP component.
 											Requires --federation parameter to be set as well.
-		--federation [FEDERATION_NAME]					Federation name (mipfed1, mipqa1...). This is
-											kind of arbitrary, but then, you'll have to stick
-											to this name everytime you want to administrate
-											the federation. Il also means that a pusher can
-											manage many different federations.
+		--federation [FEDERATION_NAME]					Federation name (mipfed1, mipqa1...). This is kind of arbitrary, but then, you'll have to stick
+											to this name everytime you want to administrate the federation. Il also means that a pusher
+											can manage many different federations.
 
 		Next parameters may be used mainly with "configure" action, but not exclusively.
 		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen.
-		--exareme-ip [EXAREME_IP]					Set the exareme IP. Basically, the IP of the "master" node
-											of the federation. Only usable on a "ui" federation node.
-		--with-keycloak-authentication					Use Keycloak authentication. Complementary keycloak
-											parameters may be set, or they may be asked at configuration
-											step.
+		--with-keycloak-authentication					Use Keycloak authentication. Complementary keycloak parameters may be set, or they may be asked at
+											configuration step.
 		--without-keycloak-authentication				Deactivate Keycloak authentication.
 		--keycloak-protocol [KEYCLOAK_PROTOCOL]				Set the Keycloak protocol [http/https] to use.
 		--keycloak-url [KEYCLOAK_URL]					Set the Keycloak URL to connect to.
 		--keycloak-realm [KEYCLOAK_REALM]				Set the Keycloak Realm (MIP/MIPTEST...) to connect to.
 		--keycloak-client-id [KEYCLOAK_CLIENT_ID]			Set the Keycloak Client ID to use for connection.
 		--keycloak-client-secret [KEYCLOAK_CLIENT_SECRET]		Set the Keycloak Client Secret of the Keycloak client.
+
+		FEDERATION SPECIFIC OPTION
+		==========================
+		--online-cdes							(PUSHER option) Get the CDE metadata files from Data Catalogue.
+		--review-dataset-labels						(PUSHER option) Force the user review of pathologies and datasets labels before generating and deploying
+											files to federation nodes.
+		--exareme-ip [EXAREME_IP]					(UI option) Set the exareme IP. Basically, the IP of the "master" node of the federation.
 EOF
 	exit 0
 }
@@ -1168,7 +1179,12 @@ _manage_docker_user(){
 
 _contains(){
 	__debug --level 4 "_contains($@)"
-	[[ $1 =~ (^|[[:space:]])"$2"($|[[:space:]]) ]] && return 0 || return 1
+	__debug --level 5 "param1=<$1>, param2=<$2>"
+	local result=1
+	[[ $1 =~ (^|[[:space:]])"$2"($|[[:space:]]) ]] && result=0
+
+	__debug --level 5 "result=<$result>"
+	return $result
 }
 
 _valid_IPv4(){
@@ -1411,6 +1427,7 @@ _cleanup(){
 		result=1
 	fi
 	if [[ $result -eq 0 ]]; then
+		#docker rmi $(docker images -f "dangling=true" -q)
 		local images=$(docker images --filter=reference='hbpmip/*' -q)
 		if [[ -n $images ]]; then
 			docker image rm -f $images
@@ -1751,8 +1768,8 @@ _configure_pusher(){
 				fi
 				if [[ $goahead -eq 1 ]]; then
 					__debug --level 1 -n "Copying SSH identity to $noderemoteuser@$nodehostname..."
-					__debug --level 6 "ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub $noderemoteuser@$nodehostname"
-					ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub $noderemoteuser@$nodehostname
+					__debug --level 6 "ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $noderemoteuser@$nodehostname"
+					ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $noderemoteuser@$nodehostname
 					ret=$?
 					if [[ $ret -eq 0 ]]; then
 						__debug --level 1 --color "green" "done"
@@ -2335,6 +2352,7 @@ _data(){
 				local hostname=""
 				local datapath=""
 				local datafile=""
+				local datacheck=""
 				local metadatafile=""
 				local pathologies=""
 				local pathologyvar=""
@@ -2347,45 +2365,63 @@ _data(){
 					fi
 
 					if [[ "$nodetype" = "wk" ]]; then
-						hostname=$(ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@$host "hostname")
+						hostname=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host "hostname")
 						__debug --level 2 "Working in worker node <$hostname>..."
-						datafile=$(ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@$host "mip --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null")
+						datafile=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host "mip --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null")
 						if [[ "$datafile" != "" ]]; then
 							hostdatapath="host_datapath_"$host
 							export $hostdatapath=$(dirname $datafile)
-							__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@$host 'if [[ -f $datafile ]]; then echo ok; fi'"
-							datacheck=$(ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@$host "if [[ -f $datafile ]]; then echo ok; fi")
+							__debug --level 6 "ssh -F $SSH_PATH/.ssh/config -o 'UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts' $DOCKER_USER@$host 'if [[ -f $datafile ]]; then echo ok; fi'"
+							datacheck=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host "if [[ -f $datafile ]]; then echo ok; fi")
 							if [[ "$datacheck" = "ok" ]]; then
 								__debug --level 2 "Dataset samples ready on worker <$host>"
 								if [[ ! -d /tmp/miptmpfeddata/$host ]]; then
 									mkdir -p /tmp/miptmpfeddata/$host
 								fi
 								__debug --level 2 "Getting dataset samples from worker <$host>"
-								scp -F $SSH_PATH/.ssh/config $DOCKER_USER@$host:$datafile /tmp/miptmpfeddata/$host
+								scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host:$datafile /tmp/miptmpfeddata/$host >/dev/null 2>&1
+								ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host "rm $datafile"
 								tar xzf /tmp/miptmpfeddata/$host/$host.tar.gz --directory /tmp/miptmpfeddata/$host
 								for pathology in $(ls -l /tmp/miptmpfeddata/$host|awk '/^d/ {print $NF}'); do
 									pathologyvar="pathology_"$pathology
 									if [[ ! -d /tmp/miptmpfeddata/data/$pathology ]]; then
 										mkdir -p /tmp/miptmpfeddata/data/$pathology
+										metadatafile=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms "if [[ -f /data/$ARG_FEDERATION/$pathology/CDEsMetadata.json ]]; then echo /data/$ARG_FEDERATION/$pathology/CDEsMetadata.json; else echo ""; fi")
+										if [[ "$metadatafile" != "" ]]; then
+											__debug --level 6 "scp -F $SSH_PATH/.ssh/config -o 'UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts' $DOCKER_USER@ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1"
+											scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1
+										else
+											__red "Can't find CDE file for pathology '$pathology' in master node!"
+										fi
 									fi
-									_contains $pathologies $pathology
+									__debug --level 6 "_contains $pathologies $pathology"
+									_contains "$pathologies" "$pathology"
 									if [[ $? -eq 1 ]]; then
+										__debug --level 6 "Does not contain"
 										if [[ "$pathologies" != "" ]]; then
+											__debug --level 5 "Not empty pathologies=<$pathologies>"
 											pathologies=$pathologies" "
 										fi
 										pathologies=${pathologies}${pathology}
+										__debug --level 5 "pathologies=<$pathologies>"
 									fi
 									if [[ ! -n ${!pathologyvar} ]]; then
+										__debug --level 5 "Empty $pathologyvar=<${!pathologyvar}>"
 										export $pathologyvar="$host"
 									else
-										_contains ${!pathologyvar} $host
+										__debug --level 6 "_contains ${!pathologyvar} $host"
+										_contains "${!pathologyvar}" "$host"
 										if [[ $? -eq 1 ]]; then
+											__debug --level 6 "Does not contain"
 											if [[ "${!pathologyvar}" != "" ]]; then
-												export $pathologyvar=${!pathologyvar}" "
+												__debug --level 5 "Not empty $pathologyvar=<${!pathologyvar}>"
+												export $pathologyvar="${!pathologyvar} "
 											fi
-											export $pathologyvar=${!pathologyvar}${host}
+											export $pathologyvar="${!pathologyvar}${host}"
+											__debug --level 5 "$pathologyvar=<${!pathologyvar}>"
 										fi
 									fi
+									__debug --level 5 "$pathologyvar=<${!pathologyvar}>"
 									for datasetfile in $(ls /tmp/miptmpfeddata/$host/$pathology/*.csv); do
 										cp $datasetfile /tmp/miptmpfeddata/data/$pathology/
 									done
@@ -2402,8 +2438,17 @@ _data(){
 				done
 
 				__debug --level 2 "Aligning CDEs and generating pathologies.json"
-				__debug --level 6 "pathologies_generator.py --data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --metadata-online-sync --force-relabel --pathologies-preserve-dataset-var"
-				pathologies_generator.py --data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --metadata-online-sync --force-relabel --pathologies-preserve-dataset-var
+				local pathologies_generator_args="--data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --pathologies-preserve-dataset-var"
+				if [[ $ARG_ONLINE_CDES -eq 1 ]]; then
+					pathologies_generator_args="$pathologies_generator_args --metadata-online-sync"
+				fi
+
+				if [[ $ARG_REVIEW_DATASET_LABELS -eq 1 ]]; then
+					pathologies_generator_args="$pathologies_generator_args --force-relabel"
+				fi
+
+				__debug --level 6 "pathologies_generator.py $pathologies_generator_args"
+				pathologies_generator.py $pathologies_generator_args
 				__debug --level 5 "Parsing pathologies..."
 				for pathology in $pathologies; do
 					__debug --level 5 "pathology=<$pathology>"
@@ -2414,32 +2459,36 @@ _data(){
 						if [[ -f $metadatafile ]]; then
 							if [[ "${!pathologyvar}" != "" ]]; then
 								__debug --level 5 "Deploying aligned CDE in master for pathology <$pathology>, assuming the data should live in /data/$ARG_FEDERATION"
-								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@ms 'if [[ ! -d /data/$ARG_FEDERATION/$pathology ]]; then mkdir -p /data/$ARG_FEDERATION/$pathology; fi'"
-								ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@ms "if [[ ! -d /data/$ARG_FEDERATION/$pathology ]]; then mkdir -p /data/$ARG_FEDERATION/$pathology; fi"
-								__debug --level 6 "scp -F $SSH_PATH/.ssh/config $metadatafile $DOCKER_USER@ms:/data/$ARG_FEDERATION/$pathology/"
-								scp -F $SSH_PATH/.ssh/config $metadatafile $DOCKER_USER@ms:/data/$ARG_FEDERATION/$pathology/
+								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms 'if [[ ! -d /data/$ARG_FEDERATION/$pathology ]]; then mkdir -p /data/$ARG_FEDERATION/$pathology; fi'"
+								ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms "if [[ ! -d /data/$ARG_FEDERATION/$pathology ]]; then mkdir -p /data/$ARG_FEDERATION/$pathology; fi"
+								__debug --level 6 "scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $metadatafile $DOCKER_USER@ms:/data/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1"
+								scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $metadatafile $DOCKER_USER@ms:/data/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1
 
 								for host in ${!pathologyvar}; do
 									__debug --level 5 "host=<$host>"
 									hostdatapath="host_datapath_"$host
 									__debug --level 5 "hostdatapath=<${!hostdatapath}>"
 									__debug --level 5 "Deploying aligned CDE in worker <$host> for pathology <$pathology>"
-									__debug --level 6 "scp -F $SSH_PATH/.ssh/config $metadatafile $DOCKER_USER@$host:${!hostdatapath}/$pathology/"
-									scp -F $SSH_PATH/.ssh/config $metadatafile $DOCKER_USER@$host:${!hostdatapath}/$pathology/
-									unset $hostdatapath
+									__debug --level 6 "scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $metadatafile $DOCKER_USER@$host:${!hostdatapath}/$pathology/ >/dev/null 2>&1"
+									scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $metadatafile $DOCKER_USER@$host:${!hostdatapath}/$pathology/ >/dev/null 2>&1
 								done
 							fi
 						fi
-						unset $pathologyvar
 					fi
 				done
+				for host in ${!pathologyvar}; do
+					hostdatapath="host_datapath_"$host
+					unset $hostdatapath
+				done
+				unset $pathologyvar
+
 				local remoteuidir=$INSTALL_PATH/$DEFAULT_MIP_GITHUB_PROJECT/Federation
 				if [[ -f /tmp/miptmpfeddata/config/pathologies.json ]]; then
 					__debug --level 5 "Deploying pathologies.json in ui, assuming it should live in $remoteuidir/config"
-					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi'"
-					ssh -F $SSH_PATH/.ssh/config $DOCKER_USER@ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi"
-					__debug --level 6 "scp -F $SSH_PATH/.ssh/config /tmp/miptmpfeddata/config/pathologies.json $DOCKER_USER@ui:$remoteuidir/config"
-					scp -F $SSH_PATH/.ssh/config /tmp/miptmpfeddata/config/pathologies.json $DOCKER_USER@ui:$remoteuidir/config
+					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi'"
+					ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi"
+					__debug --level 6 "scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" /tmp/miptmpfeddata/config/pathologies.json $DOCKER_USER@ui:$remoteuidir/config >/dev/null 2>&1"
+					scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" /tmp/miptmpfeddata/config/pathologies.json $DOCKER_USER@ui:$remoteuidir/config >/dev/null 2>&1
 				else
 					__red "Can't find pathologies file </tmp/miptmpfeddata/config/pathologies.json>!"
 				fi
@@ -2471,6 +2520,13 @@ _federation_task(){
 
 	if [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 		case $FEDTASK in
+			getconf)
+				if [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+					echo "DATA_PATH=$DATA_PATH"
+				elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+					echo "MIP_PATH=$MIP_PATH"
+				fi
+				;;
 			datasamples)
 				if [[ ! -n $ARG_FEDERATION ]]; then
 					echo "Federation not set!"
@@ -2491,14 +2547,6 @@ _federation_task(){
 							__debug --level 5 "Directory '/tmp/miptmpfeddata/$pathology' does not exist. Creating..."
 							mkdir -p /tmp/miptmpfeddata/$pathology
 						fi
-						# AS THE PUSHER WILL DOWNLOAD CDEs FROM DATACATALOGUE, WE DON'T NEED TO PROVIDE THOSE FROM WORKERS ANYMORE!
-						#if [[ -f $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json && ! -f /tmp/miptmpfeddata/$pathology/CDEsMetadata.json ]]; then
-						#	__debug --level 5 "Copying CDEsMetadata.json from $DATA_PATH/$ARG_FEDERATION/$pathology/ to /tmp/miptmpfeddata/$pathology/"
-						#	cp $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/
-						#elif [[ "$(diff $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/CDEsMetadata.json)" != "" ]]; then
-						#	__debug --level 5 "/tmp/miptmpfeddata/$pathology/CDEsMetadata.json different from source $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json. Copying from source..."
-						#	cp $DATA_PATH/$ARG_FEDERATION/$pathology/CDEsMetadata.json /tmp/miptmpfeddata/$pathology/
-						#fi
 						__debug --level 5 "Adding header line in sample dataset file: </tmp/miptmpfeddata/$pathology/$dataset>"
 						head -1 $DATA_PATH/$ARG_FEDERATION/$pathology/$dataset > /tmp/miptmpfeddata/$pathology/$dataset
 						sed --in-place 's/\r//g' /tmp/miptmpfeddata/$pathology/$dataset
