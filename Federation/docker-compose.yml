@@ -79,11 +79,8 @@ services:
     image: hbpmip/portal-frontend:${FRONTEND}
     depends_on:
       - portalbackend
-      - datacataloguefrontend
     ports:
       - '80:80'
-    links:
-      - datacataloguefrontend
     environment:
       WORKER_PROCESSES: 1
       ERROR_LOG_LEVEL: warn
@@ -94,47 +91,7 @@ services:
       VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}, DataCatalogue: ${DATACATALOGUE}'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
-      DATACATALOGUE_SERVER: datacataloguefrontend:4200
+      DATACATALOGUE_SERVER: https://datacatalogue.hbpmip.link
       KEYCLOAK_AUTH_URL: 'https://iam.humanbrainproject.eu/auth/'
       KEYCLOAK_LOGIN_URL: 'https://iam.humanbrainproject.eu/auth/realms/MIP/protocol/openid-connect/auth'
-    restart: on-failure
-
-  datacatalogue_backend:
-    image: hbpmip/datacatalogue_spring_boot_backend:${DATACATALOGUE}
-    ports:
-      - 8086
-    depends_on:
-      - datacatalogue_postgres
-    links:
-      - datacatalogue_postgres
-    environment:
-      - spring.datasource.url=jdbc:postgresql://datacatalogue_postgres:5432/datacatalog
-      - spring.datasource.username=andy
-      - spring.datasource.password=password
-      - keycloak.client.clientId=default
-      - keycloak.client.clientSecret=SaNJbC2YFHPhPM-tGiJ1b7tmAA
-      - keycloak.client.accessTokenUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/token
-      - keycloak.resource.userInfoUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/userinfo
-      - keycloak.client.userAuthorizationUri=https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/auth
-      - keycloak.client.redirect_uri=http://localhost:4200/pathologies
-    restart: on-failure
-
-  datacataloguefrontend:
-    image: hbpmip/datacatalogue_angular_frontend:${DATACATALOGUE}
-    ports:
-      - 4200:4200
-    depends_on:
-      - datacatalogue_backend
-    links:
-      - datacatalogue_backend
-    restart: on-failure
-
-  datacatalogue_postgres:
-    image: postgres:9.5
-    environment:
-      - POSTGRES_DB=datacatalog
-      - POSTGRES_USER=andy
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - ./postgres_data:/var/lib/postgresql/data
     restart: on-failure
