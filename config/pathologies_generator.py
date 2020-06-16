@@ -275,6 +275,8 @@ class gen_pathologies:
                         metadata_content = None
                         if self.__config['data']['metadata_format'] == 'json':
                             metadata_content = json.load(f)
+                            # Enforce utf-8 encoding of remaining non-encoded characters (typically \u2019, \u03b2, and \u03c4 in dementia CDE)
+                            metadata_content = self.__replace_values(metadata_content, None, file_encoding)
                         else:
                             print('No metadata processor for format "%s"!' % self.__config['data']['metadata_format'])
                             sys.exit(1)
@@ -351,8 +353,6 @@ class gen_pathologies:
                                 content = None
                                 raise e
                             if content is not None:
-                                # Enforce utf-8 encoding of remaining non-encoded characters (typically \u2019, \u03b2, and \u03c4 in dementia CDE)
-                                content = self.__replace_values(content, None, file_encoding)
                                 if os.path.isfile(os.path.join(path, self.__config['data']['metadata_filename'])):
                                     os.rename(os.path.join(path, self.__config['data']['metadata_filename']), os.path.join(path, self.__config['data']['metadata_filename'] + '.bak'))
                                 self.__file_writer(os.path.join(path, self.__config['data']['metadata_filename']), content, 'json', file_encoding, self.__config['data']['metadata_indent'])
