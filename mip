@@ -26,7 +26,7 @@ EXAREME_GITHUB_PROJECT="exareme"
 EXAREME_BRANCH="master"
 
 DOCKER_PROJECT_NAME="mip"
-DOCKER_FEDERATION_PROJECT_NAME="mip_federation"
+DOCKER_FEDERATION_PROJECT_NAME="mipfederation"
 MIP_COMPONENTS="frontend portalbackend portalbackend_db galaxy keycloak keycloak_db create_dbs exareme_master exareme_keystore"
 MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy create_dbs"
 CONFIGURE_PARTS="user ssh pusher pathologies host exareme-ip logs data keycloak all"
@@ -59,7 +59,7 @@ args_parser(){
 		key="$1"
 
 		case $key in
-			check-required|install|uninstall|start|stop|restart|status|status-details|cleanup)
+			check-required|install|uninstall|start|stop|restart|status|status-details|cleanup|tmux)
 				ACTION=$1
 				shift
 				;;
@@ -401,6 +401,11 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 											aligns these with all available datasets for each pathology, then deploys CDEs on each
 											implied workers per pathology and also on the master, and deploys the pathologies.json
 											on the UI node.
+		tmux								(PUSHER action) Create+launch/join a tmux session to manage all the configured nodes.
+											Requires "configure pusher" to be done to have a ssh config file ready to reach all
+											federation nodes.
+											May be called with --force to force regenerate tmux configuration file, i.e. if it already
+											exists and ssh configuration has been changed (like when adding/removing nodes).
 
 		OPTION
 		======
@@ -415,18 +420,9 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 											Don't use it except if you know exactly what your doing. It will "corrupt" this file from
 											git POV by changing the corresponding variable in it for good!
 		--debug-level [1..6]						Debug level (1 will generate quite a fancy output).
-		--node-type [local (default)|ms/master|ui/frontend|wk/worker]
-										Type of node, typically in a federation. The script will react differently and adapt to the
-											node-type related context.
-		--pusher							With this option, the script can act as a pusher.
-											Any type of federated node can be a pusher as well, as it doesn't conflict with any MIP component.
-											Requires --federation parameter to be set as well.
-		--federation [FEDERATION_NAME]					Federation name (mipfed1, mipqa1...). This is kind of arbitrary, but then, you'll have to stick
-											to this name everytime you want to administrate the federation. Il also means that a pusher
-											can manage many different federations.
 
 		Next parameters may be used mainly with "configure" action, but not exclusively.
-		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen.
+		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen. For "local" installation and "ui" federation node.
 		--with-keycloak-authentication					Use Keycloak authentication. Complementary keycloak parameters may be set, or they may be asked at
 											configuration step.
 		--without-keycloak-authentication				Deactivate Keycloak authentication.
@@ -435,13 +431,22 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--keycloak-realm [KEYCLOAK_REALM]				Set the Keycloak Realm (MIP/MIPTEST...) to connect to.
 		--keycloak-client-id [KEYCLOAK_CLIENT_ID]			Set the Keycloak Client ID to use for connection.
 		--keycloak-client-secret [KEYCLOAK_CLIENT_SECRET]		Set the Keycloak Client Secret of the Keycloak client.
+		--online-cdes							Get the CDE metadata files from Data Catalogue.
+		--review-dataset-labels						Force the user review of pathologies and datasets labels before generating and deploying
+											files to federation nodes.
 
 		FEDERATION SPECIFIC OPTION
 		==========================
-		--online-cdes							(PUSHER option) Get the CDE metadata files from Data Catalogue.
-		--review-dataset-labels						(PUSHER option) Force the user review of pathologies and datasets labels before generating and deploying
-											files to federation nodes.
+		--node-type [local (default)|ms/master|ui/frontend|wk/worker]
+										Type of node, typically in a federation. The script will react differently and adapt to the
+											node-type related context.
 		--exareme-ip [EXAREME_IP]					(UI option) Set the exareme IP. Basically, the IP of the "master" node of the federation.
+		--pusher							With this option, the script can act as a pusher.
+											Any type of federated node can be a pusher as well, as it doesn't conflict with any MIP component.
+											Requires --federation parameter to be set as well.
+		--federation [FEDERATION_NAME]					Federation name (mipfed1, mipqa1...). This is kind of arbitrary, but then, you'll have to stick
+											to this name everytime you want to administrate the federation. Il also means that a pusher
+											can manage many different federations.
 EOF
 	exit 0
 }
@@ -1094,13 +1099,8 @@ prepare_docker_apt_sources(){
 			next=0
 		fi
 		if [[ "$(grep -R $DOCKER_DOWNLOAD_HOST /etc/apt)" = "" ]]; then
-			local codename=$DISTRIB_CODENAME
-			if [[ "$DISTRIB_ID" = "ubuntu" && "$DISTRIB_CODENAME" = "focal" ]]; then
-				__debug --level 6 "Distrib is Ubuntu Focal, but as focal package is still not available in Docker repo, choosing 'Eoan'"
-				codename="eoan"
-			fi
-			__debug --level 6 "add-apt-repository 'deb [arch=amd64] https://$DOCKER_DOWNLOAD_HOST/linux/$DISTRIB_ID $codename stable' && apt-get update"
-			add-apt-repository "deb [arch=amd64] https://$DOCKER_DOWNLOAD_HOST/linux/$DISTRIB_ID $codename stable"
+			__debug --level 6 "add-apt-repository 'deb [arch=amd64] https://$DOCKER_DOWNLOAD_HOST/linux/$DISTRIB_ID $DISTRIB_CODENAME stable' && apt-get update"
+			add-apt-repository "deb [arch=amd64] https://$DOCKER_DOWNLOAD_HOST/linux/$DISTRIB_ID $DISTRIB_CODENAME stable"
 			apt-get update
 			next=0
 		fi
@@ -1115,11 +1115,23 @@ _manage_chown_user(){
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ -d $MIP_PATH ]]; then
 			__debug --level 5 "Folder '$MIP_PATH' exists."
-			if [[ "$(cat /etc/passwd|grep $DOCKER_USER:)" != "" ]]; then
-				__debug --level 5 "user $DOCKER_USER exist."
-				__debug --level 5 "chowning $MIP_PATH with $DOCKER_USER.$DOCKER_USER"
-				__debug --level 6 "chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH"
-				chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH
+			if [[ $(id -u) -eq 0 ]]; then
+				if [[ "$(cat /etc/passwd|grep $DOCKER_USER:)" != "" ]]; then
+					__debug --level 5 "user $DOCKER_USER exist."
+					__debug --level 5 "chowning $MIP_PATH with $DOCKER_USER.$DOCKER_USER"
+					if [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+						local path=$(pwd)
+						cd $MIP_PATH
+						__debug --level 6 "find . ! -path './Federation/.*' ! -path './Federation/logs/*' | xargs -I {} chown $DOCKER_USER.$DOCKER_USER {}"
+						find . ! -path './Federation/.*' ! -path './Federation/logs/*' | xargs -I {} chown $DOCKER_USER.$DOCKER_USER {}
+						cd $path
+					elif [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) ]]; then
+						__debug --level 6 "chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH"
+						chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH
+					fi
+				fi
+			else
+				__debug --level 2 --color "red" "Not root user. Won't chown $MIP_PATH!"
 			fi
 		fi
 	fi
@@ -1163,16 +1175,7 @@ _manage_docker_user(){
 				DOCKER_USER="root"
 			fi
 		fi
-		if [[ -d $MIP_PATH ]]; then
-			local lsline=$(ls -la $SSH_PATH/|awk '/\.ssh$/')
-			local user=$(echo $lsline|awk '{print $3}')
-			local group=$(echo $lsline|awk '{print $4}')
-			if [[ $ARG_FORCE -eq 1 || "$user" != "$DOCKER_USER" || "$group" != "$DOCKER_USER" ]]; then
-				__debug --level 5 "Chowning MIP install '$MIP_PATH' with $DOCKER_USER.$DOCKER_USER"
-				__debug --level 6 "chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH"
-				chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH
-			fi
-		fi
+		_manage_chown_user
 	fi
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
@@ -1185,6 +1188,17 @@ _contains(){
 
 	__debug --level 5 "result=<$result>"
 	return $result
+}
+
+_get_list_element_by_id(){
+	local list=$1
+	local id=$2
+
+	local array=()
+	for item in $(echo $list); do
+		array+=("$item")
+	done
+	printf '%s\n' "${array[id]}"
 }
 
 _valid_IPv4(){
@@ -1427,10 +1441,12 @@ _cleanup(){
 		result=1
 	fi
 	if [[ $result -eq 0 ]]; then
-		#docker rmi $(docker images -f "dangling=true" -q)
-		local images=$(docker images --filter=reference='hbpmip/*' -q)
-		if [[ -n $images ]]; then
-			docker image rm -f $images
+		docker rmi $(docker images -f "dangling=true" -q) >/dev/null 2>&1
+		if [[ $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
+			local images=$(docker images --filter=reference='hbpmip/*' -q)
+			if [[ -n $images ]]; then
+				docker image rm -f $images
+			fi
 		fi
 	fi
 
@@ -1447,7 +1463,7 @@ check_running_swarm(){
 			return 1
 		fi
 
-		local docker_services=$(docker service ls|grep "replicated")
+		local docker_services=$(docker service ls --filter mode=replicated -q)
 		local service_id=""
 		local service_name=""
 		local hostname=""
@@ -1460,7 +1476,8 @@ check_running_swarm(){
 				return 0
 			fi
 			echo "Nodes:"
-			for service in $docker_services; do
+			for serviceid in $docker_services; do
+				service=$(docker service ls|grep "^$serviceid")
 				service_id=$(echo $service|awk '{print $1}')
 				service_name=$(echo $service|awk '{print $2}')
 				hostname=$(echo $service_name|awk -F '_' '{print $1}')
@@ -1468,7 +1485,7 @@ check_running_swarm(){
 				replicas=$(echo $service|awk '{print $4}')
 				image=$(echo $service|awk '{print $5}')
 
-				if [[ "$service_name" = "exareme-master" ]]; then
+				if [[ "$service_name" = "exareme-master" || "$service_name" = "exareme-keystore" ]]; then
 					echo -n "	Master	: "
 				elif [[ "$service_name" = "exareme" ]]; then
 					echo -n "	Worker	: "
@@ -1513,43 +1530,43 @@ check_running(){
 			fi
 			if [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
 				echo -n "Portal Frontend							"
-				echo $(_check_docker_container mip_federation_frontend_1 -v)
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_frontend_1 -v)
 
-				echo -n "Portal Backend								"
-				echo $(_check_docker_container mip_federation_portalbackend_1 -v)
+				echo -n "Portal Backend							"
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_portalbackend_1 -v)
 
-				echo -n "Portal Backend PostgreSQL DB						"
-				echo $(_check_docker_container mip_federation_portalbackend_db_1 -v)
+				echo -n "Portal Backend PostgreSQL DB					"
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_portalbackend_db_1 -v)
 
-				echo -n "Galaxy									"
-				echo $(_check_docker_container mip_federation_galaxy_1 -v)
+				echo -n "Galaxy								"
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_galaxy_1 -v)
 			elif [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 				echo -n "Exareme									"
 				echo $(_check_docker_container ${HOSTNAME}_exareme -v)
 			else
 				echo -n "Portal Frontend								"
-				echo $(_check_docker_container mip_frontend_1)
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_frontend_1)
 
 				echo -n "Portal Backend								"
-				echo $(_check_docker_container mip_portalbackend_1)
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_portalbackend_1)
 
 				echo -n "Portal Backend PostgreSQL DB						"
-				echo $(_check_docker_container mip_portalbackend_db_1)
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_portalbackend_db_1)
 
 				echo -n "Galaxy									"
-				echo $(_check_docker_container mip_galaxy_1)
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_galaxy_1)
 
 				echo -n "KeyCloak								"
-				echo $(_check_docker_container mip_keycloak_1)
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_keycloak_1)
 
 				echo -n "KeyCloak PostgreSQL DB							"
-				echo $(_check_docker_container mip_keycloak_db_1)
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_keycloak_db_1)
 
 				echo -n "Exareme Master								"
-				echo $(_check_docker_container mip_exareme_master_1)
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_exareme_master_1)
 
 				echo -n "Exareme Keystore							"
-				echo $(_check_docker_container mip_exareme_keystore_1)
+				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_exareme_keystore_1)
 			fi
 		else
 			_check_exareme_required_ports -q
@@ -1787,6 +1804,157 @@ EOF
 					fi
 				fi
 			done
+			chown -R $DOCKER_USER.$DOCKER_USER $SSH_PATH
+		fi
+	fi
+}
+
+_generate_tmux_config(){
+	__debug --level 4 "_generate_tmux_config($@)"
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		local tmuxfile=$MIP_PATH/.tmux.conf
+		if [[ ! -f $tmuxfile || $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
+			local nodecount=$(cat $SSH_PATH/.ssh/config | grep '^Host'|wc -l)
+			local nodes=$(cat $SSH_PATH/.ssh/config | awk '/^Host/ {print $NF}')
+
+			#nodecount=5
+
+			__debug --level 5 "panes=<$nodecount>"
+			local workerscount=$(expr $nodecount - 2)
+			__debug --level 5 "workers=<$workerscount>"
+			local rows=$(bc <<< "sqrt($workerscount)")
+			local remains=$(bc <<< "$workerscount % $rows")
+			local cols=$(bc <<< "$workerscount / $rows")
+			local panecount=0
+			__debug --level 5 "Workers grid: $rows * $cols"
+			__debug --level 5 "remains=<$remains>"
+			local nodeid=$panecount
+			local node=$(_get_list_element_by_id "$nodes" $nodeid)
+			cat << EOF > $tmuxfile
+set -g default-terminal "screen-256color"
+
+bind-key R respawn-window
+bind-key r respawn-pane
+
+new -s $ARG_FEDERATION -n bash -c $MIP_PATH/Federated-Deployment bash
+set remain-on-exit on
+respawn-window -k
+
+neww -n logs 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node'
+set remain-on-exit on
+respawn-window -k
+EOF
+			panecount=$(expr $panecount + 1)
+
+			local i=$rows
+			local tmpremains=$remains
+			local splitoption="-t 1"
+			while [[ $i -gt 0 ]]; do
+				p=$(bc <<< "scale=2; $i/($i+1) * 100")
+				p=${p%.*} >/dev/null
+				nodeid=$(expr $panecount + 1)
+				node=$(_get_list_element_by_id "$nodes" $nodeid)
+				cat << EOF >> $tmuxfile
+
+splitw -v -p $p $splitoption 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node'
+respawn-pane -k
+EOF
+
+				i=$(expr $i - 1)
+				if [[ $i -ne $rows ]]; then
+					splitoption=""
+				fi
+				panecount=$(expr $panecount + $rows)
+				if [[ $tmpremains -gt 0 ]]; then
+					panecount=$(expr $panecount + 1)
+					tmpremains=$(expr $tmpremains - 1)
+				fi
+			done
+
+			panecount=0
+			nodeid=$(expr $panecount + 1)
+			node=$(_get_list_element_by_id "$nodes" $nodeid)
+			cat << EOF >> $tmuxfile
+
+selectp -t $panecount
+splitw -h -p 50 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node'
+respawn-pane -k
+EOF
+			panecount=$(expr $panecount + 1)
+
+			local rowcount=0
+			local col=0
+			while [[ $panecount -lt $(expr $nodecount - 2) ]]; do
+				cat << EOF >> $tmuxfile
+
+selectp -t $(expr $panecount + 1)
+EOF
+				panecount=$(expr $panecount + 1)
+				if [[ $panecount -eq $nodecount ]]; then break; fi
+
+				col=$(expr $cols - 1)
+				if [[ $remains -gt 0 ]]; then
+					col=$(expr $col + 1)
+					remains=$(expr $remains - 1)
+				fi
+				while [[ $col -gt 0 ]]; do
+					p=$(bc <<< "scale=2; $col/($col+1) * 100")
+					p=${p%.*} >/dev/null
+					nodeid=$(expr $panecount + 1)
+					node=$(_get_list_element_by_id "$nodes" $nodeid)
+					cat << EOF >> $tmuxfile
+
+splitw -h -p $p 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node'
+respawn-pane -k
+EOF
+					panecount=$(expr $panecount + 1)
+					if [[ $panecount -eq $nodecount ]]; then break; fi
+
+					col=$(expr $col - 1)
+				done
+				rowcount=$(expr $rowcount + 1)
+			done
+
+			cat << EOF >> $tmuxfile
+
+selectp -t 0
+setw synchronize-panes on
+
+neww -n deploy -c $MIP_PATH/Federated-Deployment/Docker-Ansible/scripts ./deploy.sh
+set remain-on-exit on
+respawn-window -k
+EOF
+
+			for node in $nodes; do
+				cat << EOF >> $tmuxfile
+
+neww -n $node 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node'
+set remain-on-exit on
+respawn-window -k
+EOF
+			done
+		fi
+	fi
+}
+
+_manage_tmux_session(){
+	__debug --level 4 "_manage_tmux_session($@)"
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		if [[ "$(whoami)" != "$DOCKER_USER" ]]; then
+			__red "Please run this as $DOCKER_USER!"
+			exit 1
+		fi
+
+		local tmuxsession=$(tmux ls|awk '{print $1}'|rev|cut -c 2-|rev)
+		if [[ $ARG_FORCE -eq 1 && "$tmuxsession" = "$ARG_FEDERATION" ]]; then
+			tmux kill-session -t $ARG_FEDERATION
+			tmuxsession=$(tmux ls|awk '{print $1}'|rev|cut -c 2-|rev)
+		fi
+		if [[ "$tmuxsession" != "$ARG_FEDERATION" ]]; then
+			_generate_tmux_config
+			tmux source $MIP_PATH/.tmux.conf \; new-session -s $ARG_FEDERATION
+		else
+			tmux a -t $ARG_FEDERATION
 		fi
 	fi
 }
@@ -1796,8 +1964,18 @@ _configure_pathologies(){
 	if [[ "$MIP_ENV_MIP_TYPE" = "local" && $ARG_PUSHER -ne 1 ]]; then
 		# Running the pathologies.json generator
 		if [[ ! -f $MIP_PATH/config/pathologies.json || $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
-			__debug --level 1 --levelcompare "eq" -n "Configuring pathologies..."
-			$MIP_PATH/config/pathologies_generator.py -n
+			__debug --level 1 --levelcompare "eq" -n "Aligning CDEs and generating pathologies.json..."
+			local pathologies_generator_args="--data-path $MIP_PATH/data --pathologies-path $MIP_PATH/config --pathologies-preserve-dataset-var"
+			if [[ $ARG_ONLINE_CDES -eq 1 ]]; then
+				pathologies_generator_args="$pathologies_generator_args --metadata-online-sync"
+			fi
+
+			if [[ $ARG_REVIEW_DATASET_LABELS -eq 1 ]]; then
+				pathologies_generator_args="$pathologies_generator_args --force-relabel"
+			fi
+
+			__debug --level 6 "$MIP_PATH/config/pathologies_generator.py $pathologies_generator_args"
+			$MIP_PATH/config/pathologies_generator.py $pathologies_generator_args
 			local ret=$?
 			if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $ret; fi
 		fi
@@ -2369,7 +2547,7 @@ _data(){
 						__debug --level 2 "Working in worker node <$hostname>..."
 						datafile=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host "mip --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null")
 						if [[ "$datafile" != "" ]]; then
-							hostdatapath="host_datapath_"$host
+							hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
 							export $hostdatapath=$(dirname $datafile)
 							__debug --level 6 "ssh -F $SSH_PATH/.ssh/config -o 'UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts' $DOCKER_USER@$host 'if [[ -f $datafile ]]; then echo ok; fi'"
 							datacheck=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host "if [[ -f $datafile ]]; then echo ok; fi")
@@ -2466,7 +2644,7 @@ _data(){
 
 								for host in ${!pathologyvar}; do
 									__debug --level 5 "host=<$host>"
-									hostdatapath="host_datapath_"$host
+									hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
 									__debug --level 5 "hostdatapath=<${!hostdatapath}>"
 									__debug --level 5 "Deploying aligned CDE in worker <$host> for pathology <$pathology>"
 									__debug --level 6 "scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $metadatafile $DOCKER_USER@$host:${!hostdatapath}/$pathology/ >/dev/null 2>&1"
@@ -2477,7 +2655,7 @@ _data(){
 					fi
 				done
 				for host in ${!pathologyvar}; do
-					hostdatapath="host_datapath_"$host
+					hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
 					unset $hostdatapath
 				done
 				unset $pathologyvar
@@ -2644,7 +2822,7 @@ _services_up(){
 	fi
 	__debug --level 1 --levelcompare "eq" "Starting services..."
 
-	_check_installed_mip
+	_check_installed_mip -q
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
 		# Deploying MIP services
@@ -2674,7 +2852,7 @@ _services_down(){
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Stopping services..."
 
-	_check_installed_mip
+	_check_installed_mip -q
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
 		echo -e "\nRemoving previous services..."
@@ -2900,11 +3078,17 @@ delete_mip(){
 			return 1
 		fi
 		if [[ "$MIP_ENV_MIP_TYPE" = "local" || $ARG_PUSHER -eq 1 ]]; then
-			echo -n "Delete full MIP $MIP_PATH [y/n]? "
+			if [[ -d $MIP_PATH ]]; then
+				echo -n "Delete full MIP $MIP_PATH [y/n]? "
+			else
+				answer="y"
+			fi
 		elif [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 			echo -n "Leave Docker Swarm [y/n]? "
 		fi
-		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+		if [[ -n $answer ]]; then
+			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+		fi
 	fi
 
 	if [[ "$answer" = "y" ]]; then
@@ -2914,12 +3098,24 @@ delete_mip(){
 		if [[ -e /usr/local/bin/mip ]]; then
 			rm /usr/local/bin/mip
 		fi
+		if [[ $ARG_PUSHER -eq 1 ]]; then
+			if [[ -e /usr/local/bin/pathologies_generator.py ]]; then
+				rm /usr/local/bin/pathologies_generator.py
+			fi
+			local tmuxsessions=$(su - $DOCKER_USER -c 'tmux ls'|awk '{print $1}'|rev|cut -c 2-|rev)
+			for tmuxsession in $tmuxsessions; do
+				su - $DOCKER_USER -c 'tmux kill-session -t $tmuxsession'
+			done
+		fi
 		if [[ -d $MIP_PATH ]]; then
 			rm -rf $MIP_PATH
 		fi
+		if [[ -f $MIPENVFILE ]]; then
+			rm $MIPENVFILE
+		fi
 	fi
 	if [[ ! -d $MIP_PATH && $ARG_PURGE -eq 1 ]]; then
-		_cleanup
+		_cleanup -f
 	fi
 }
 
@@ -2982,7 +3178,7 @@ main(){
 			fi
 			_check_installed_mip -q
 			ret=$?
-			if [[ $ret -ne 0 ]]; then
+			if [[ $ret -eq 0 ]]; then
 				stop_mip -q
 				delete_mip
 			fi
@@ -3000,7 +3196,7 @@ main(){
 			fi
 			download_mip
 			_postinstall
-			if [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+			if [[ $ARG_PUSHER -ne 1 && (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) ]]; then
 				if [[ $ARG_NORUN -eq 1 ]]; then
 					answer="n"
 				elif [[ $ARG_YES -eq 1 ]]; then
@@ -3033,6 +3229,10 @@ main(){
 			;;
 		fedtask)
 			_federation_task $@
+			;;
+		tmux)
+			_generate_tmux_config
+			_manage_tmux_session
 			;;
 		*)
 			if [[ $ARG_PUSHER -eq 1 ]]; then
