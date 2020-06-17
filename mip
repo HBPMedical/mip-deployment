@@ -773,6 +773,9 @@ _write_mip_env(){
 		local parentdir=$(dirname $MIPENVFILE)
 		if [[ -d $parentdir ]]; then
 			__debug --level 5 "Erasing env file '$MIPENVFILE'"
+			if [[ ! -f $MIPENVFILE && -w $parentdir ]]; then
+				touch $MIPENVFILE
+			fi
 			if [[ -w $MIPENVFILE ]]; then
 				cat /dev/null > $MIPENVFILE
 				for line in $(env|grep "^MIP_ENV_"|sort); do
