@@ -31,6 +31,8 @@ MIP_COMPONENTS="frontend portalbackend portalbackend_db galaxy keycloak keycloak
 MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy create_dbs"
 CONFIGURE_PARTS="user ssh pusher pathologies host exareme-ip logs data keycloak all"
 
+DEFAULT_METADATA_FILENAME="CDEsMetadata.json"
+
 DEFAULT_MIP_ENV_MIP_TYPE="local"
 DEFAULT_MIP_ENV_KEYCLOAK_AUTHENTICATION=0
 DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL="http"
@@ -1706,8 +1708,8 @@ download_mip(){
 						branch=$DEFAULT_MIP_BRANCH
 					fi
 					__debug --level 5 "Downloading pathologies_generator..."
-					__debug --level 6 "curl https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py"
-					curl https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py
+					__debug --level 6 "curl --silent https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py"
+					curl --silent https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py
 					if [[ -f /usr/local/bin/pathologies_generator.py ]]; then
 						chmod +x /usr/local/bin/pathologies_generator.py
 					fi
@@ -1810,11 +1812,22 @@ _configure_pusher(){
 		if [[ ! -f $SSH_PATH/.ssh/config ]]; then
 			__debug --level 5 "SSH config file $SSH_PATH/.ssh/config does not exist"
 			local goahead=1
+			local masterok=0
+			local uiok=0
 			echo "Configuration of access to federation nodes. Here, you'll have the possibility to create simplified ssh key based access to"
-			echo "federation nodes. I suggest that you go with ms (master), ui (frontend), and then wk1, wk2, wk3 etc... for worker nodes."
+			echo "federation nodes. First you'll have to prepare ms (master) and ui (frontend), and then, I suggest that you go wk1, wk2, wk3"
+			echo "etc... for worker nodes."
 			while [[ $goahead -eq 1 ]]; do
-				echo -n "Node short name (i.e. ms, ui, wk1, wk2)? [empty to finish] "
-				read nodename
+				if [[ $masterok -ne 1 ]]; then
+					echo "Configuring ms (master):"
+					nodename="ms"
+				elif [[ $uiok -ne 1 ]]; then
+					echo "Configuring ui (frontend):"
+					nodename="ui"
+				else
+					echo -n "Node short name (i.e. wk1, wk2, wk3)? [empty to finish] "
+					read nodename
+				fi
 				if [[ "$nodename" = "" ]]; then
 					goahead=0
 				else
@@ -2396,6 +2409,8 @@ _postinstall(){
 	result=0
 	action=""
 
+	_write_mip_env
+
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		__debug --level 5 "ARG_PUSHER=<1>"
 		action="copy"
@@ -2453,7 +2468,7 @@ _remove_installer(){
 	local parentdir=$(dirname $0)
 	local answer=""
 
-	if [[ -d $parentdir && "$parentdir" = "$MIP_GITHUB_PROJECT" && "$(dirname $parentdir)" != "$INSTALL_PATH" ]]; then
+	if [[ -d $parentdir && "$parentdir" = "$DEFAULT_MIP_GITHUB_PROJECT" && "$(dirname $parentdir)" != "$INSTALL_PATH" ]]; then
 		if [[ $ARG_YES -eq 1 ]]; then
 			answer="y"
 		else
@@ -2613,7 +2628,7 @@ _data(){
 									if [[ ! -d /tmp/miptmpfeddata/data/$pathology ]]; then
 										mkdir -p /tmp/miptmpfeddata/data/$pathology
 										masterdatapath=$(_get_remote_var ms DATA_PATH)
-										metadatafile=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms "if [[ -f /data/$ARG_FEDERATION/$pathology/CDEsMetadata.json ]]; then echo /data/$ARG_FEDERATION/$pathology/CDEsMetadata.json; else echo ""; fi")
+										metadatafile=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms "if [[ -f /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME ]]; then echo /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME; else echo ""; fi")
 										if [[ "$metadatafile" != "" ]]; then
 											__debug --level 0 "Downloading CDE for pathology <$pathology> from master node"
 											__debug --level 6 "scp -F $SSH_PATH/.ssh/config -o 'UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts' $DOCKER_USER@ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1"
@@ -2685,14 +2700,15 @@ _data(){
 					pathologyvar="pathology_"$pathology
 					if [[ "${!pathologyvar}" != "" ]]; then
 						__debug --level 5 "Parsing hosts in $pathology..."
-						metadatafile=/tmp/miptmpfeddata/data/$pathology/CDEsMetadata.json
+						metadatafile=/tmp/miptmpfeddata/data/$pathology/$DEFAULT_METADATA_FILENAME
 						if [[ -f $metadatafile ]]; then
 							if [[ "${!pathologyvar}" != "" ]]; then
-								__debug --level 0 "Deploying aligned CDE in master node for pathology <$pathology>, assuming the data should live there in /data/$ARG_FEDERATION"
-								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms 'if [[ ! -d /data/$ARG_FEDERATION/$pathology ]]; then mkdir -p /data/$ARG_FEDERATION/$pathology; fi'"
-								ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms "if [[ ! -d /data/$ARG_FEDERATION/$pathology ]]; then mkdir -p /data/$ARG_FEDERATION/$pathology; fi"
+								masterdatapath=$(_get_remote_var ms DATA_PATH)
+								__debug --level 0 "Deploying aligned CDE in master node for pathology <$pathology>, in /$masterdatapath/$ARG_FEDERATION"
+								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms 'if [[ ! -d /$masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p /$masterdatapath/$ARG_FEDERATION/$pathology; fi'"
+								ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ms "if [[ ! -d /$masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p /$masterdatapath/$ARG_FEDERATION/$pathology; fi"
 								__debug --level 6 "scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $metadatafile $DOCKER_USER@ms:/data/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1"
-								scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $metadatafile $DOCKER_USER@ms:/data/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1
+								scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $metadatafile $DOCKER_USER@ms:/$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1
 
 								for host in ${!pathologyvar}; do
 									__debug --level 5 "host=<$host>"
@@ -2712,9 +2728,10 @@ _data(){
 				done
 				unset $pathologyvar
 
-				local remoteuidir=$INSTALL_PATH/$DEFAULT_MIP_GITHUB_PROJECT/Federation
+				local uimippath=$(_get_remote_var ui MIP_PATH)
+				local remoteuidir=$uimippath/Federation
 				if [[ -f /tmp/miptmpfeddata/config/pathologies.json ]]; then
-					__debug --level 0 "Deploying pathologies file in ui node, ASSUMING it should live there in $remoteuidir/config"
+					__debug --level 0 "Deploying pathologies file in ui node, in $remoteuidir/config"
 					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi'"
 					ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi"
 					__debug --level 6 "scp -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" /tmp/miptmpfeddata/config/pathologies.json $DOCKER_USER@ui:$remoteuidir/config >/dev/null 2>&1"
