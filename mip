@@ -1143,6 +1143,59 @@ prepare_docker_apt_sources(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
+_chown(){
+	local chownarg=$1
+	local chownpath=$2
+	local origchownpath=$3
+	local exclusions=$4
+	local maxlevel=$5
+
+	local exclude=()
+	local item=""
+	for item in $(echo $exclusions); do
+		exclude+=("${origchownpath}/${item}")
+	done
+
+	local tmppath=""
+	local element=""
+	if [[ -d $chownpath ]]; then
+		local tmppaths=$(ls -a $chownpath|sed 's/\t/\n/g')
+		local tmpchownpath=""
+		local origifs=$IFS
+		local tmpifs=$'\n'
+		IFS=$tmpifs
+		for tmppath in $tmppaths; do
+			IFS=$origifs
+			if [[ "$tmppath" != "." && "$tmppath" != ".." ]]; then
+				tmppath="${chownpath}/${tmppath}"
+				tmpchownpath=$(echo $tmppath|sed 's/ /\\ /g')
+				local goahead=1
+				for element in "${exclude[@]}"; do
+					if [[ "$element" = "${tmppath}" ]]; then
+						goahead=0
+						break
+					fi
+				done
+				if [[ $goahead -eq 1 ]]; then
+					if [[ $maxlevel -gt 0 ]]; then
+						_chown "$chownarg" "${tmppath}" "$origchownpath" "$exclusions" "$(expr $maxlevel - 1)"
+					else # Recursion check level is reached, so we finish the rest in normal mode
+						if [[ -d $tmpchownpath ]]; then
+							chown -R $chownarg $tmpchownpath >/dev/null 2>&1
+						else
+							chown $chownarg $tmpchownpath >/dev/null 2>&1
+						fi
+					fi
+				fi
+			fi
+			IFS=$tmpifs
+		done
+		IFS=$origifs
+	elif [[ -f $chownpath ]]; then
+		chown $chownarg $(echo $chownpath|sed 's/ /\\ /g') >/dev/null 2>&1
+	fi
+}
+
 _manage_chown_user(){
 	__debug --level 1 --levelcompare "eq" -n "Chowning already installed components..."
 	__debug --level 4 "_manage_chown_user($@)"
@@ -1155,11 +1208,8 @@ _manage_chown_user(){
 					__debug --level 5 "user $DOCKER_USER exist."
 					__debug --level 5 "chowning $MIP_PATH with $DOCKER_USER.$DOCKER_USER"
 					if [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-						local path=$(pwd)
-						cd $MIP_PATH
-						__debug --level 6 "find . ! -path './logs/*' ! -path './Federation/.*' ! -path './Federation/logs/*' | xargs -I {} chown $DOCKER_USER.$DOCKER_USER {}"
-						find . ! -path './Federation/.*' ! -path './Federation/logs/*' | xargs -I {} chown $DOCKER_USER.$DOCKER_USER {}
-						cd $path
+						__debug --level 6 "_chown $DOCKER_USER.$DOCKER_USER $MIP_PATH $MIP_PATH ".stored_data logs Federation/.stored_data Federation/logs" 1"
+						_chown $DOCKER_USER.$DOCKER_USER $MIP_PATH $MIP_PATH ".stored_data logs Federation/.stored_data Federation/logs" 1
 					elif [[ $ARG_PUSHER -eq 1 ]]; then
 						__debug --level 6 "chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH"
 						chown -R $DOCKER_USER.$DOCKER_USER $MIP_PATH
