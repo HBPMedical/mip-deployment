@@ -18,30 +18,30 @@ If you don't match the OS requirements, we recommend that you deploy it inside a
 
 ## Setup
 1. Prepare a VM/Physical machine with **Ubuntu 20.04** server
-2. As root:
 
-        adduser mipadmin
-        adduser mipadmin sudo
-        mkdir /opt/mip
-        chown mipadmin.mipadmin /opt/mip
+You'll have to know on which URL, like http://<HOSTNAME>, http://<HOSTNAME>:<PORT> or http://<IP>:<PORT> you want to expose your MIP. If you're operating it inside a VM on your computer, you may use the IP of your computer, and the port on which your VM's port 80 is mapped to, like:
+http://192.168.1.3:8888
 
-3. As mipadmin:
+2. Install the MIP
 
-        cd /opt/mip
+As root:
+
         git clone https://github.com/HBPMedical/mip-deployment
-        cd
-        sudo ln -s /opt/mip/mip-deployment/mip /usr/local/bin/
-        mip install
+        mip-deployment/mip --quiet --yes --no-run install
+
+3. Configure the MIP
+
+As root:
+
+        mip --quiet --yes --host 192.168.1.3:8888 --with-keycloak-authentication configure all
 
 ## Run
 You can then launch the MIP with:
 
         mip start
 
-The first time, it will launch the configuration procedure. Then, it won't ask you anything anymore, but you can still use the following command to reconfigure things:
+After launching, you should be able to browse the MIP on the URL which will be displayed. Enjoy!
 
-        mip configure
-
-At anytime, you can learn how to use the *mip* commands with:
+At anytime, you can learn more about the *mip* commands with:
 
         mip --help
