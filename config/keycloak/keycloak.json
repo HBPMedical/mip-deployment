@@ -85,7 +85,7 @@
       "attributes" : { }
     }, {
       "id" : "42065ead-df17-4f5b-aac2-2fef031f46a0",
-      "name" : "DATASET_DEMO1",
+      "name" : "DATASET_DUMMY_TBI",
       "composite" : false,
       "clientRole" : false,
       "containerId" : "MIP",
@@ -105,7 +105,7 @@
       "name" : "PATHOLOGY_TBI",
       "composite" : true,
       "composites" : {
-        "realm" : [ "DATASET_DEMO1" ]
+        "realm" : [ "DATASET_DUMMY_TBI" ]
       },
       "clientRole" : false,
       "containerId" : "MIP",
@@ -444,7 +444,7 @@
     } ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
-    "realmRoles" : [ "PATHOLOGY_TBI" ],
+    "realmRoles" : [ "DATASET_ALL" ],
     "clientRoles" : {
       "account" : [ "manage-account", "view-profile" ]
     },
