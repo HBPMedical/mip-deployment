@@ -160,7 +160,8 @@ As root:
 
         mip --pusher --federation mipfed1 configure all
 
-This will ask you to provide informations about the **worker** and **master** nodes, to prepare ssh identity exchange with the federation participants.
+This will ask you to provide informations about the **worker** and **master** nodes, to prepare ssh identity exchange with the federation participants.  
+This is very important, for the worker names choice, to match the current *hostname* of the corresponding node!
 
 ### Consolidate data
 On the pusher, as **mipadmin** user:
