@@ -35,6 +35,12 @@ As root:
 
         mip --quiet --yes --host 192.168.1.3:8888 --with-keycloak-authentication configure all
 
+4. Consolidate data
+
+As **mipadmin** user:
+
+        mip --quiet data consolidate
+
 ## Run
 You can then launch the MIP with:
 
