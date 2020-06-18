@@ -52,10 +52,8 @@ class gen_pathologies:
             else:
                 sys.exit('Invalid directory: %s' % path)
 
-        #config['data']['datacatalogue_host'] = 'http://dc.mip.ebrains.eu:8086'
-        config['data']['datacatalogue_host'] = 'http://195.251.252.222:2448'
-        config['data']['datacatalogue_headers'] = {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}
-        config['data']['datacatalogue_version'] = None
+        config['data']['metadata_datacatalogue_headers'] = {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}
+        config['data']['metadata_datacatalogue_version'] = None
         self.__config = config
 
     def __predict_encoding(self, file_path, n_lines=None):
@@ -332,10 +330,11 @@ class gen_pathologies:
                     self.__metadatas[current_path_element] = {'source': None, 'final': None}
                     if self.__config['data']['metadata_online_sync']:
                         metadata_version = 'latest_cde_version'
-                        if self.__config['data']['datacatalogue_version'] is not None:
-                            metadata_version = self.__config['data']['datacatalogue_version']
+                        if self.__config['data']['metadata_datacatalogue_version'] is not None:
+                            metadata_version = self.__config['data']['metadata_datacatalogue_version']
                         datacatalogue_uri = '/pathology/allPathologies/%s/%s' %(current_path_element, metadata_version)
-                        response = requests.get(self.__config['data']['datacatalogue_host'] + datacatalogue_uri, headers=self.__config['data']['datacatalogue_headers'])
+                        # Old datacatalogue API URL was: http://195.251.252.222:2448
+                        response = requests.get(self.__config['data']['metadata_datacatalogue_api_url'] + datacatalogue_uri, headers=self.__config['data']['metadata_datacatalogue_headers'])
                         if response.status_code == 200:
                             file_encoding = self.__config['data']['metadata_encoding']
                             content = None
@@ -370,6 +369,7 @@ def main():
     argsparser.add_argument('-r', '--max-recursion-depth', dest='data_max_recursion_depth', default=1, help='Maximum level of recursion for data directory analysis', type=int)
     argsparser.add_argument('-w', '--force-relabel', dest='data_force_relabel', default=False, action='store_true', help='Force relabeling pathologies and datasets in CDE metadata files and pathologies file')
     argsparser.add_argument('-s', '--metadata-online-sync', dest='data_metadata_online_sync', default=False, action='store_true', help='Download CDE metadata content from online Data Catalogue')
+    argsparser.add_argument('-z', '--metadata-datacatalogue-api-url', dest='data_metadata_datacatalogue_api_url', default='http://datacatalogue.mip.ebrains.eu:8086', help='Online CDE metadata datacatalogue API URL', type=str)
     argsparser.add_argument('-f', '--metadata-format', dest='data_metadata_format', default='json', help='CDE metadata files format', type=str)
     argsparser.add_argument('-m', '--metadata-filename', dest='data_metadata_filename', default='CDEsMetadata.json', help='CDE metadata file name', type=str)
     argsparser.add_argument('-e', '--metadata-encoding', dest='data_metadata_encoding', default='utf-8', help='CDE metadata files encoding', type=str)

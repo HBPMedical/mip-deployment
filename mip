@@ -47,6 +47,11 @@ DEFAULT_FED_MIP_ENV_KEYCLOAK_REALM="MIPTEST"
 DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_ID="mipqa"
 DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_SECRET="a67c7ae8-e8f2-444b-a0a4-bd0b783adb47"
 
+DEFAULT_DATACATALOGUE_API_PROTOCOL="http"
+DEFAULT_DATACATALOGUE_API_PORT="8086"
+DEFAULT_MIP_ENV_DATACATALOGUE_PROTOCOL="https"
+DEFAULT_MIP_ENV_DATACATALOGUE_HOST="datacatalogue.mip.ebrains.eu"
+
 MIPENVFILENAME=.mipenv
 DISTRIB_ID=""
 DISTRIB_RELEASE=""
@@ -131,6 +136,11 @@ args_parser(){
 				;;
 			--review-dataset-labels)
 				ARG_REVIEW_DATASET_LABELS=1
+				shift
+				;;
+			--datacatalogue-protocol)
+				ARG_DATACATALOGUE_PROTOCOL=$2
+				shift
 				shift
 				;;
 			--datacatalogue-host)
@@ -460,6 +470,8 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--keycloak-client-id [KEYCLOAK_CLIENT_ID]			Set the Keycloak Client ID to use for connection.
 		--keycloak-client-secret [KEYCLOAK_CLIENT_SECRET]		Set the Keycloak Client Secret of the Keycloak client.
 		--online-cdes							Get the CDE metadata files from Data Catalogue.
+		--datacatalogue-protocol [http|https]				Set the Data Catalogue protocol
+		--datacatalogue-host [DATACATALOGUE_HOST]			Set the Data Catalogue host (<HOSTNAME> or <HOSTNAME>:<PORT>)
 		--review-dataset-labels						Force the user review of pathologies and datasets labels before generating and deploying
 											files to federation nodes.
 
@@ -650,6 +662,27 @@ load_mip_env(){
 			__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_CLIENT_SECRET=<$ARG_KEYCLOAK_CLIENT_SECRET>"
 			export MIP_ENV_KEYCLOAK_CLIENT_SECRET=$ARG_KEYCLOAK_CLIENT_SECRET
 			envvar_changes=1
+		fi
+	fi
+
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) ]]; then
+		__debug --level 6 "Setting global var: DATACATALOGUE_API_PROTOCOL=<$DEFAULT_DATACATALOGUE_API_PROTOCOL"
+		DATACATALOGUE_API_PROTOCOL=$DEFAULT_DATACATALOGUE_API_PROTOCOL
+		__debug --level 6 "Setting global var: DATACATALOGUE_API_PORT=<$DEFAULT_DATACATALOGUE_API_PORT"
+		DATACATALOGUE_API_PORT=$DEFAULT_DATACATALOGUE_API_PORT
+		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$DEFAULT_MIP_ENV_DATACATALOGUE_PROTOCOL"
+		export MIP_ENV_DATACATALOGUE_PROTOCOL=$DEFAULT_MIP_ENV_DATACATALOGUE_PROTOCOL
+		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$DEFAULT_MIP_ENV_DATACATALOGUE_HOST"
+		export MIP_ENV_DATACATALOGUE_HOST=$DEFAULT_MIP_ENV_DATACATALOGUE_HOST
+		if [[ -n $ARG_DATACATALOGUE_PROTOCOL ]]; then
+			__debug --level 5 "ARG_DATACATALOGUE_PROTOCOL=<$ARG_DATACATALOGUE_PROTOCOL>"
+			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$ARG_DATACATALOGUE_PROTOCOL"
+			export MIP_ENV_DATACATALOGUE_PROTOCOL=$ARG_DATACATALOGUE_PROTOCOL
+		fi
+		if [[ -n $ARG_DATACATALOGUE_HOST ]]; then
+			__debug --level 5 "ARG_DATACATALOGUE_HOST=<$ARG_DATACATALOGUE_HOST>"
+			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$ARG_DATACATALOGUE_HOST"
+			export MIP_ENV_DATACATALOGUE_HOST=$ARG_DATACATALOGUE_HOST
 		fi
 	fi
 
@@ -2757,6 +2790,9 @@ _data(){
 				if [[ $ARG_ONLINE_CDES -eq 1 ]]; then
 					__debug --level 0 -b "Have been asked to download CDEs from datacatalogue. I'll try to take latest versions there and overwrite local CDEs"
 					pathologies_generator_args="$pathologies_generator_args --metadata-online-sync"
+					local datacatalogue_host=$(echo $MIP_ENV_DATACATALOGUE_HOST|awk -F ':' '{print $1}')
+					__debug --level 0 "Setting datacatalogue API URL: <$DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT>"
+					pathologies_generator_args="$pathologies_generator_args --metadata-datacatalogue-api-url $DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT"
 				fi
 
 				if [[ $ARG_REVIEW_DATASET_LABELS -eq 1 ]]; then
