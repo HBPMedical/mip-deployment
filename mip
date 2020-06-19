@@ -20,7 +20,7 @@ REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
 REQUIRED_PIP3_PACKAGES="chardet"
 DEFAULT_MIP_GITHUB_OWNER="HBPMedical"
 DEFAULT_MIP_GITHUB_PROJECT="mip-deployment"
-DEFAULT_MIP_BRANCH="dev_systemd"
+DEFAULT_MIP_BRANCH="master"
 EXAREME_GITHUB_OWNER="madgik"
 EXAREME_GITHUB_PROJECT="exareme"
 EXAREME_BRANCH="master"
@@ -58,6 +58,7 @@ DISTRIB_RELEASE=""
 DISTRIB_CODENAME=""
 
 DEBUG_LEVEL=0
+MIP_COMMAND="mip"
 
 args_parser(){
 	POSITIONAL=()
@@ -1342,7 +1343,7 @@ _get_remote_var(){
 						nodetype="wk"
 						;;
 				esac
-				local val=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node "mip --node-type $nodetype --federation $ARG_FEDERATION fedtask getvar $var")
+				local val=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node "$MIP_COMMAND --node-type $nodetype --federation $ARG_FEDERATION fedtask getvar $var")
 				echo $val
 			fi
 		fi
@@ -1775,8 +1776,10 @@ download_mip(){
 	__debug --level 1 --levelcompare "eq" -n "Downloading MIP..."
 
 	local path=$(pwd)
+	local answer=""
 	local next=0
 	while [[ $next -eq 0 ]]; do
+		answer=""
 		if [[ ! -d $INSTALL_PATH ]]; then
 			mkdir -p $INSTALL_PATH
 		fi
@@ -1829,6 +1832,7 @@ download_mip(){
 _configure_user(){
 	__debug --level 1 --levelcompare "eq" -n "Configuring user..."
 	__debug --level 4 "_configure_user($@)"
+	local answer=""
 	if [[ "$DOCKER_USER" != "" && "$DOCKER_USER" != "root" ]]; then
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ "$(cat /etc/passwd|grep $DOCKER_USER:)" = "" ]]; then
@@ -1991,10 +1995,13 @@ _generate_tmux_config(){
 			local remains=$(bc <<< "$workerscount % $rows")
 			local cols=$(bc <<< "$workerscount / $rows")
 			local panecount=0
-			__debug --level 5 "Workers grid: $rows * $cols"
+			__debug --level 5 "Workers grid: "$rows"*"$cols
 			__debug --level 5 "remains=<$remains>"
 			local nodeid=$panecount
+			__debug --level 9 "nodeid=<$panecount>"
 			local node=$(_get_list_element_by_id "$nodes" $nodeid)
+			__debug --level 9 "node=<$node>"
+			__debug --level 9 "<Tmux main config, first window, second window and first pane in second window>"
 			cat << EOF > $tmuxfile
 set -g default-terminal "screen-256color"
 
@@ -2009,77 +2016,131 @@ neww -n logs 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh
 set remain-on-exit on
 respawn-window -k
 EOF
+			__debug --level 9 "</Tmux main config, first window, second window and first pane in second window>"
 			panecount=$(expr $panecount + 1)
+			__debug --level 9 "panecount=<$panecount>"
 
 			local i=$rows
+			__debug --level 9 "i=<$i>"
 			local tmpremains=$remains
+			__debug --level 9 "tmpremains=<$tmpremains>"
 			local splitoption="-t 1"
+			__debug --level 9 "splitoption=<$splitoption>"
+			__debug --level 9 "<VERTICAL PANES SPLIT LOOP>"
 			while [[ $i -gt 0 ]]; do
 				p=$(bc <<< "scale=2; $i/($i+1) * 100")
 				p=${p%.*} >/dev/null
+				__debug --level 9 "p=<$p>"
 				nodeid=$(expr $panecount + 1)
+				__debug --level 9 "nodeid=<$nodeid>"
 				node=$(_get_list_element_by_id "$nodes" $nodeid)
+				__debug --level 9 "node=<$node>"
+				__debug --level 9 "<Tmux pane vertical split $p%, then in node <$node>>"
 				cat << EOF >> $tmuxfile
 
 splitw -v -p $p $splitoption 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node'
 respawn-pane -k
 EOF
+				__debug --level 9 "</Tmux pane vertical split $p%, then in node <$node>>"
 
 				i=$(expr $i - 1)
+				__debug --level 9 "i=<$i>"
 				if [[ $i -ne $rows ]]; then
 					splitoption=""
 				fi
-				panecount=$(expr $panecount + $rows)
+				__debug --level 9 "splitoption=<$splitoption>"
+				panecount=$(expr $panecount + $cols)
+				__debug --level 9 "panecount=<$panecount>"
 				if [[ $tmpremains -gt 0 ]]; then
+					__debug --level 9 "tmpremains > 0:<$tmpremains>"
 					panecount=$(expr $panecount + 1)
+					__debug --level 9 "panecount=<$panecount>"
 					tmpremains=$(expr $tmpremains - 1)
+					__debug --level 9 "tmpremains=<$tmpremains>"
 				fi
 			done
+			__debug --level 9 "</VERTICAL PANES SPLIT LOOP>"
 
 			panecount=0
+			__debug --level 9 "panecount=<$panecount>"
 			nodeid=$(expr $panecount + 1)
+			__debug --level 9 "nodeid=<$nodeid>"
 			node=$(_get_list_element_by_id "$nodes" $nodeid)
+			__debug --level 9 "node=<$node>"
+			__debug --level 9 "<Tmux select pane <$panecount> and horizontal split 50%, then in node <$node>>"
 			cat << EOF >> $tmuxfile
 
 selectp -t $panecount
 splitw -h -p 50 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node'
 respawn-pane -k
 EOF
+			__debug --level 9 "</Tmux select pane <$panecount> and horizontal split 50%, then in node <$node>>"
 			panecount=$(expr $panecount + 1)
+			__debug --level 9 "panecount=<$panecount>"
 
 			local rowcount=0
+			__debug --level 9 "rowcount=<$rowcount>"
 			local col=0
+			__debug --level 9 "col=<$col>"
+			__debug --level 9 "<VERTICAL PANES SELECTION LOOP>"
 			while [[ $panecount -lt $(expr $nodecount - 2) ]]; do
+				__debug --level 9 "panecount < (nodecount - 2): $panecount < $(expr $nodecount - 2)"
+				__debug --level 9 "<Tmux select pane $(expr $panecount + 1)>"
 				cat << EOF >> $tmuxfile
 
 selectp -t $(expr $panecount + 1)
 EOF
+				__debug --level 9 "</Tmux select pane $(expr $panecount + 1)>"
 				panecount=$(expr $panecount + 1)
-				if [[ $panecount -eq $nodecount ]]; then break; fi
+				__debug --level 9 "panecount=<$panecount>"
+				if [[ $panecount -eq $nodecount ]]; then
+					__debug --level 9 "panecount=nodecount=$panecount ==> breaking the SECOND loop"
+					break;
+				fi
 
 				col=$(expr $cols - 1)
+				__debug --level 9 "col=<$col>"
 				if [[ $remains -gt 0 ]]; then
+					__debug --level 9 "remains > 0: remains=<$remains>"
 					col=$(expr $col + 1)
+					__debug --level 9 "col=<$col>"
 					remains=$(expr $remains - 1)
+					__debug --level 9 "remains=<$remains>"
 				fi
+				__debug --level 9 "<HORIZONTAL PANES SPLIT LOOP>"
 				while [[ $col -gt 0 ]]; do
 					p=$(bc <<< "scale=2; $col/($col+1) * 100")
 					p=${p%.*} >/dev/null
+					__debug --level 9 "p=<$p>"
 					nodeid=$(expr $panecount + 1)
+					__debug --level 9 "nodeid=<$nodeid>"
 					node=$(_get_list_element_by_id "$nodes" $nodeid)
+					__debug --level 9 "node=<$node>"
+					__debug --level 9 "<Tmux pane horizontal split $p%, then in node <$node>>"
 					cat << EOF >> $tmuxfile
 
 splitw -h -p $p 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node'
 respawn-pane -k
 EOF
+					__debug --level 9 "</Tmux pane horizontal split $p%, then in node <$node>>"
+
 					panecount=$(expr $panecount + 1)
-					if [[ $panecount -eq $nodecount ]]; then break; fi
+					__debug --level 9 "panecount=<$panecount>"
+					if [[ $panecount -eq $nodecount ]]; then
+						__debug --level 9 "panecount=nodecount=$panecount ==> breaking the THIRD loop"
+						break;
+					fi
 
 					col=$(expr $col - 1)
+					__debug --level 9 "col=<$col>"
 				done
+				__debug --level 9 "</HORIZONTAL PANES SPLIT LOOP>"
 				rowcount=$(expr $rowcount + 1)
+				__debug --level 9 "rowcount=<$rowcount>"
 			done
+			__debug --level 9 "</VERTICAL PANES SELECTION LOOP>"
 
+			__debug --level 9 "<Tmux select pane 0, synchronize-panes, and new window>"
 			cat << EOF >> $tmuxfile
 
 selectp -t 0
@@ -2089,14 +2150,17 @@ neww -n deploy -c $MIP_PATH/Federated-Deployment/Docker-Ansible/scripts ./deploy
 set remain-on-exit on
 respawn-window -k
 EOF
+			__debug --level 9 "</Tmux select pane 0, synchronize-panes, and new window>"
 
 			for node in $nodes; do
+				__debug --level 9 "<Tmux new window for node <$node>>"
 				cat << EOF >> $tmuxfile
 
 neww -n $node 'ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$node'
 set remain-on-exit on
 respawn-window -k
 EOF
+				__debug --level 9 "</Tmux new window for node <$node>>"
 			done
 		fi
 	fi
@@ -2160,6 +2224,7 @@ _configure_host(){
 	if [[ $ARG_QUIET -eq 1 ]]; then
 		return 1
 	fi
+	local answer=""
 
 	# Checking the PUBLIC_MIP_HOST env variable
 	local first_int_ip=$(hostname -I|awk '{print $1}')
@@ -2210,6 +2275,7 @@ _configure_exareme_ip(){
 	if [[ $ARG_QUIET -eq 1 ]]; then
 		return 1
 	fi
+	local answer=""
 
 	if [[ -n $MIP_ENV_EXAREME_IP ]]; then
 		echo -e "\n'EXAREME_IP' is set to value: $MIP_ENV_EXAREME_IP"
@@ -2226,6 +2292,7 @@ _configure_exareme_ip(){
 	_valid_IPv4 $answer
 	local ret=$?
 	while [[ $ret -ne 0 ]]; do
+		answer=""
 		echo
 		__red -n "'$answer' is not a valid IPv4 address. Try again: "
 		read answer
@@ -2392,6 +2459,7 @@ _prepare_keycloak(){
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Preparing keycloak..."
+	local answer=""
 
 	local keycloakok=1
 	if [[ -n $MIP_ENV_KEYCLOAK_AUTHENTICATION && $ARG_FORCE -ne 1 ]]; then
@@ -2713,7 +2781,7 @@ _data(){
 					if [[ "$nodetype" = "wk" ]]; then
 						hostname=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host "hostname")
 						__debug --level 0 -b "Asking worker node <$host> ($hostname) to provide dataset list"
-						datafile=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host "mip --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null")
+						datafile=$(ssh -F $SSH_PATH/.ssh/config -o "UserKnownHostsFile=$SSH_PATH/.ssh/known_hosts" $DOCKER_USER@$host "$MIP_COMMAND --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null")
 						if [[ "$datafile" != "" ]]; then
 							hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
 							export $hostdatapath=$(dirname $datafile)
@@ -3209,6 +3277,7 @@ stop_mip(){
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Stopping MIP..."
+	local answer=""
 
 	if [[ $ARG_FORCE -eq 1 ]]; then
 		__debug --level 5 "ARG_FORCE=<1>"
@@ -3247,6 +3316,7 @@ stop_mip(){
 delete_mip(){
 	__debug --level 1 --levelcompare "eq" "Deleting MIP..."
 	__debug --level 4 "delete_mip($@)"
+	local answer=""
 	if [[ $ARG_YES -eq 1 ]]; then
 		answer="y"
 	else
@@ -3296,8 +3366,8 @@ delete_mip(){
 }
 
 main(){
-	#if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
 	load_mip_env
+	local answer=""
 
 	case $ACTION in
 		start)
