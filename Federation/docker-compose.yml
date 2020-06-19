@@ -46,10 +46,10 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       CONTEXT_PATH: /services
-      AUTHENTICATION: 1
-      FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
-      FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_IP}/
-      FRONTEND_AFTER_LOGOUT_URL: http://${PUBLIC_MIP_IP}/services/login/hbp
+      AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
+      FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
+      FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_HOST}/
+      FRONTEND_AFTER_LOGOUT_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
       LOGGING_LEVEL_WEB: INFO
       LOGGING_LEVEL_HIBERNATE: INFO
       SESSION_TIMEOUT: 2592000
@@ -62,12 +62,12 @@ services:
       GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-      CLIENT_ID: default
-      CLIENT_SECRET: SaNJbC2YFHPhPM-tGiJ1b7tmAA
-      AUTH_URI: 'https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/auth'
-      USER_INFO_URI: 'https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/userinfo'
-      TOKEN_URI: 'https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/token'
-      LOGOUT_URI: 'https://iam.humanbrainproject.eu/auth/realms/MIPTEST/protocol/openid-connect/logout'
+      CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      AUTH_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
+      USER_INFO_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
+      TOKEN_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      LOGOUT_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout
     depends_on:
       - create_dbs
     restart: on-failure
@@ -88,10 +88,10 @@ services:
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       INSTANCE_NAME: 'MIP ${MIP}'
-      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}, DataCatalogue: ${DATACATALOGUE}'
+      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
-      DATACATALOGUE_SERVER: 'https://datacatalogue.hbpmip.link'
-      KEYCLOAK_AUTH_URL: 'https://iam.humanbrainproject.eu/auth/'
-      KEYCLOAK_LOGIN_URL: 'https://iam.humanbrainproject.eu/auth/realms/MIP/protocol/openid-connect/auth'
+      DATACATALOGUE_SERVER: ${DATACATALOGUE_PROTOCOL}://${DATACATALOGUE_HOST}
+      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      KEYCLOAK_LOGIN_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
     restart: on-failure
