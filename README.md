@@ -1,4 +1,4 @@
-# mip-deployment (currently for Ubuntu >= 18.04)
+# MIP, deployment and operating system (currently for Ubuntu >= 18.04)
 
 This is the MIP (Medical Informatics Platform) main repository.
 
