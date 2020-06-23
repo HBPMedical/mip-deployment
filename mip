@@ -28,7 +28,13 @@ EXAREME_BRANCH="master"
 DOCKER_PROJECT_NAME="mip"
 DOCKER_FEDERATION_PROJECT_NAME="mipfederation"
 MIP_COMPONENTS="frontend portalbackend portalbackend_db galaxy keycloak keycloak_db create_dbs exareme_master exareme_keystore"
+MIP_COMPONENT_LABELS="Portal Frontend,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,KeyCloak,KeyCloak DB,Create DBs,Exareme Master,Exareme Keystore"
+MIP_FEDERATION_MS_COMPONENTS="exareme_master exareme_keystore"
+MIP_FEDERATION_MS_COMPONENT_LABELS="Exareme Master,Exareme Keystore"
 MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy create_dbs"
+MIP_FEDERATION_UI_COMPONENT_LABELS="Portal Frontend,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,Create DBs"
+MIP_FEDERATION_WK_COMPONENTS="exareme"
+MIP_FEDERATION_WK_COMPONENT_LABELS="Exareme"
 CONFIGURE_PARTS="user ssh pusher pathologies host exareme-ip logs data keycloak all"
 
 DEFAULT_METADATA_FILENAME="CDEsMetadata.json"
@@ -710,6 +716,8 @@ load_mip_env(){
 		DOCKER_PROJECT_NAME=$DOCKER_FEDERATION_PROJECT_NAME
 		__debug --level 6 "Setting global var: MIP_COMPONENTS=<$MIP_FEDERATION_UI_COMPONENTS>"
 		MIP_COMPONENTS=$MIP_FEDERATION_UI_COMPONENTS
+		__debug --level 6 "Setting global var: MIP_COMPONENT_LABELS=<$MIP_FEDERATION_UI_COMPONENT_LABELS>"
+		MIP_COMPONENT_LABELS=$MIP_FEDERATION_UI_COMPONENT_LABELS
 		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=<$DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL>"
 		DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=$DEFAULT_FED_MIP_ENV_KEYCLOAK_PROTOCOL
 		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$DEFAULT_MIP_ENV_KEYCLOAK_URL>"
@@ -724,8 +732,20 @@ load_mip_env(){
 		LOGS_PATH=$MIP_PATH/Federation/logs
 		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$MIP_PATH/Federation>"
 		DOCKER_COMPOSE_PATH=$MIP_PATH/Federation
-	elif [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
-		__debug --level 5 "MIP_ENV_NODE_TYPE=<ms> or <wk>"
+	elif [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+		__debug --level 5 "MIP_ENV_NODE_TYPE=<ms>"
+		__debug --level 6 "Setting global var: MIP_COMPONENTS=<$MIP_FEDERATION_MS_COMPONENTS>"
+		MIP_COMPONENTS=$MIP_FEDERATION_MS_COMPONENTS
+		__debug --level 6 "Setting global var: MIP_COMPONENT_LABELS=<$MIP_FEDERATION_MS_COMPONENT_LABELS>"
+		MIP_COMPONENT_LABELS=$MIP_FEDERATION_MS_COMPONENT_LABELS
+		__debug --level 6 "Setting global var: DATA_PATH=</data>"
+		DATA_PATH=/data
+	elif [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+		__debug --level 5 "MIP_ENV_NODE_TYPE=<wk>"
+		__debug --level 6 "Setting global var: MIP_COMPONENTS=<$MIP_FEDERATION_WK_COMPONENTS>"
+		MIP_COMPONENTS=$MIP_FEDERATION_WK_COMPONENTS
+		__debug --level 6 "Setting global var: MIP_COMPONENT_LABELS=<$MIP_FEDERATION_WK_COMPONENT_LABELS>"
+		MIP_COMPONENT_LABELS=$MIP_FEDERATION_WK_COMPONENT_LABELS
 		__debug --level 6 "Setting global var: DATA_PATH=</data>"
 		DATA_PATH=/data
 	elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
@@ -762,6 +782,11 @@ load_mip_env(){
 	MIP_CONTAINERS_LIST=$(echo $MIP_CONTAINERS|sed 's/ /|/g')
 	__debug --level 6 "Setting global var: MIP_CONTAINERS_TABLE=<@($MIP_CONTAINERS_LIST)>"
 	MIP_CONTAINERS_TABLE="@($MIP_CONTAINERS_LIST)"
+
+	__debug --level 6 "Setting global var: MIP_CONTAINER_LABELS_LIST=<$(echo $MIP_COMPONENT_LABELS|sed 's/,/|/g')>"
+	MIP_CONTAINER_LABELS_LIST=$(echo $MIP_COMPONENT_LABELS|sed 's/,/|/g')
+	__debug --level 6 "Setting global var: MIP_CONTAINER_LABELS_TABLE=<@($MIP_CONTAINER_LABELS_LIST)>"
+	MIP_CONTAINER_LABELS_TABLE="@($MIP_CONTAINER_LABELS_LIST)"
 
 	__debug --level 6 "Setting global var: CONFIGURE_PARTS_LIST=<$(echo $CONFIGURE_PARTS|sed 's/ /|/g')>"
 	CONFIGURE_PARTS_LIST=$(echo $CONFIGURE_PARTS|sed 's/ /|/g')
@@ -1331,14 +1356,47 @@ _contains(){
 }
 
 _get_list_element_by_id(){
-	local list=$1
-	local id=$2
+	local list=""
+	local id=""
+	local sep=""
 
-	local array=()
-	for item in $(echo $list); do
-		array+=("$item")
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--id)
+				id=$2
+				shift
+				shift
+				;;
+			--sep)
+				sep=$2
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
 	done
-	printf '%s\n' "${array[id]}"
+	set -- ${positional[@]}
+	list=$@
+
+	if [[ "$sep" != "" ]]; then
+		local origifs=$IFS
+		IFS=$"§"
+		list=$(echo $list|sed 's/,/§/g')
+	fi
+
+	local elements=()
+	for item in $(echo "$list"); do
+		elements+=("$item")
+	done
+	echo ${elements[id]}
+
+	if [[ "$sep" != "" ]]; then
+		IFS=$origifs
+	fi
 }
 
 _get_remote_var(){
@@ -1362,7 +1420,7 @@ _get_remote_var(){
 						nodetype="wk"
 						;;
 				esac
-				local val=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$node "$MIP_COMMAND --node-type $nodetype --federation $ARG_FEDERATION fedtask getvar $var" 2>/dev/null)
+				local val=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node "$MIP_COMMAND --node-type $nodetype --federation $ARG_FEDERATION fedtask getvar $var" 2>/dev/null)
 				echo $val
 			fi
 		fi
@@ -1516,14 +1574,21 @@ _check_docker_container(){
 		return 0
 	fi
 
-	local process_id=$(docker ps|grep $1|awk '{print $1}')
+	local container=$1
+	local arg=""
+	if [[ "$1" = "-v" || "$1" = "-q" ]]; then
+		arg=$1
+		container=$2
+	fi
+
+	local process_id=$(docker ps|grep $container|awk '{print $1}')
 	__debug --level 6 "process_id=<$process_id>"
 	if [[ "$process_id" != "" ]]; then
 		local process_state=$(docker inspect $process_id --format '{{.State.Status}}')
 		__debug --level 6 "process_state=<$process_state>"
 		if [[ "$process_state" = "running" ]]; then
 			result=0
-			if [[ $ARG_VERBOSE -eq 1 || $DEBUG_LEVEL -ge 6 ]]; then
+			if [[ $ARG_VERBOSE -eq 1 || "$arg" = "-v" || $DEBUG_LEVEL -ge 6 ]]; then
 				local startdate=$(docker inspect $process_id --format '{{.State.StartedAt}}')
 				__debug --level 6 "startdate=<$startdate>"
 				result="running since $startdate"
@@ -1536,13 +1601,29 @@ _check_docker_container(){
 	fi
 
 	if [[ "$result" = "ok" ]]; then
-		__green $result
+		if [[ "$arg" = "-q" ]]; then
+			return 0
+		else
+			__green $result
+		fi
 	elif [[ "$result" = "NOT RUNNING!" ]]; then
-		__red $result
+		if [[ "$arg" = "-q" ]]; then
+			return 1
+		else
+			__red $result
+		fi
 	elif [[ "$result" = "0" || "$result" = "1" ]]; then
-		__check_return $result
+		if [[ "$arg" != "-q" ]]; then
+			__check_return $result
+		else
+			return $result
+		fi
 	else
-		echo $result
+		if [[ "$arg" = "-q" ]]; then
+			return 1
+		else
+			echo $result
+		fi
 	fi
 }
 
@@ -1678,6 +1759,21 @@ check_running_swarm(){
 	return 0
 }
 
+_display_components_status(){
+	__green "" >/dev/null 2>&1
+
+	local result=""
+	local i=0
+	for container in $MIP_CONTAINERS; do
+		local label=$(_get_list_element_by_id --id $i --sep ',' $MIP_COMPONENT_LABELS)
+		_check_docker_container -q $container
+		local status="${green}ok${reset}"
+		result="${result}${label}@${status}@@"
+		i=$(expr $i + 1)
+	done
+	echo $result | sed 's/@@/\n/g' | column -s '@' -t
+}
+
 check_running(){
 	__debug --level 1 --levelcompare "eq" "Checking running components..."
 	__debug --level 4 "check_running($@)"
@@ -1693,6 +1789,7 @@ check_running(){
 	local docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
 	local parts=""
 	if [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+		_display_components_status
 		check_running_swarm -v
 	else
 		docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
@@ -1700,46 +1797,7 @@ check_running(){
 			if [[ $ARG_QUIET -eq 1 ]]; then
 				return 0
 			fi
-			if [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
-				echo -n "Portal Frontend							"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_frontend_1 -v)
-
-				echo -n "Portal Backend							"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_portalbackend_1 -v)
-
-				echo -n "Portal Backend PostgreSQL DB					"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_portalbackend_db_1 -v)
-
-				echo -n "Galaxy								"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_galaxy_1 -v)
-			elif [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
-				echo -n "Exareme									"
-				echo $(_check_docker_container ${HOSTNAME}_exareme -v)
-			else
-				echo -n "Portal Frontend								"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_frontend_1)
-
-				echo -n "Portal Backend								"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_portalbackend_1)
-
-				echo -n "Portal Backend PostgreSQL DB						"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_portalbackend_db_1)
-
-				echo -n "Galaxy									"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_galaxy_1)
-
-				echo -n "KeyCloak								"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_keycloak_1)
-
-				echo -n "KeyCloak PostgreSQL DB							"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_keycloak_db_1)
-
-				echo -n "Exareme Master								"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_exareme_master_1)
-
-				echo -n "Exareme Keystore							"
-				echo $(_check_docker_container ${DOCKER_PROJECT_NAME}_exareme_keystore_1)
-			fi
+			_display_components_status
 		else
 			_check_exareme_required_ports -q
 			local ret=$?
@@ -1771,7 +1829,7 @@ check_running_details(){
 	local docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
 	if [[ "$docker_ps" != "" ]]; then
 		if [[ $ARG_QUIET -ne 1 ]]; then
-			echo $docker_ps
+			echo "$docker_ps"
 		fi
 	else
 		_check_exareme_required_ports -q
@@ -1952,8 +2010,8 @@ _configure_pusher(){
 			if [[ "$answer" = "y" ]]; then
 				rm $SSH_PATH/.ssh/config
 			else
-				nodecount=$(cat $SSH_PATH/.ssh/config | grep '^Host'|wc -l)
-				nodes=$(cat $SSH_PATH/.ssh/config | awk '/^Host/ {print $NF}')
+				nodecount=$(cat $SSH_PATH/.ssh/config|grep '^Host'|wc -l)
+				nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
 			fi
 		fi
 
@@ -1967,6 +2025,8 @@ _configure_pusher(){
 		local identityfile=""
 		local nodeprompttext=""
 		local nodename=""
+		local autonodename=""
+		local nodenameline=""
 		local nodehostname=""
 		local noderemoteuser=""
 		local tmpnodes=""
@@ -1974,21 +2034,36 @@ _configure_pusher(){
 
 		echo "Configuration of access to federation nodes. Here, you'll have the possibility to create simplified ssh key based access to"
 		echo "federation nodes. First you'll have to prepare ms (master) and ui (frontend), and then, the workers."
+		echo
 		while [[ $goahead -eq 1 || $(expr $wkid - 1) -lt $nodecount ]]; do
 			nodename=""
+			autonodename=""
+			nodenameline=""
 			nodehostname=""
 			noderemoteuser=""
+
+			case $wkid in
+				1)
+					autonodename="ms"
+					;;
+				2)
+					autonodename="ui"
+					;;
+				*)
+					autonodename="wk$(expr $wkid - 2)"
+					;;
+			esac
 
 			doconfig=0
 			if [[ $(expr $wkid - 1) -lt $nodecount ]]; then
 				linenb=$(bc <<< "($wkid - 1) * 5 + 1")
 				host=$(sed -n ${linenb}p $SSH_PATH/.ssh/config|awk '{print $NF}')
-				hostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host $host$"|awk '/Hostname / {print $2}')
-				user=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host $host$"|awk '/User / {print $2}')
-				identityfile=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host $host$"|awk '/IdentityFile / {print $2}')
+				hostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$host\b$"|awk '/Hostname / {print $2}')
+				user=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$host\b$"|awk '/User / {print $2}')
+				identityfile=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$host\b$"|awk '/IdentityFile / {print $2}')
 
 				if [[ $goahead -eq 1 ]]; then
-					echo -n "Reconfigure "
+					echo -n "Reconfigure '$autonodename' node "
 					__yellow -n "$host"
 					echo -n " ("
 					__cyan -n "$user"
@@ -2062,23 +2137,15 @@ _configure_pusher(){
 				if [[ $goahead -eq 1 ]]; then
 					__yellow -n "	Identifying remote hostname..."
 					nodename=$(ssh -i $SSH_PATH/.ssh/id_rsa $SSH_OPTIONS $noderemoteuser@$nodehostname "hostname" 2>/dev/null)
-					if [[ $wkid -eq 1 && "$nodename" != "ms" ]]; then
-						__red "The Master node has to be named <ms>! Please fix it on the remote node!"
-						goahead=0
-					elif [[ $wkid -eq 2 && "$nodename" != "ui" ]]; then
-						__red "The Frontend node has to be named <ui>! Please fix it on the remote node!"
-						goahead=0
-					else
-						_contains "$tmpnodes" "$nodename"
-						ret=$?
-						if [[ $ret -eq 0 ]]; then
-							__red "The node name <$nodename> is already defined!"
-							continue
-						fi
-						__yellow -n "<"
-						__green -n "$nodename"
-						__yellow ">"
+					_contains "$tmpnodes" "$nodename"
+					ret=$?
+					if [[ $ret -eq 0 ]]; then
+						__red "The node name <$nodename> is already defined!"
+						continue
 					fi
+					__yellow -n "<"
+					__green -n "$nodename"
+					__yellow ">"
 				fi
 			fi
 
@@ -2094,13 +2161,20 @@ _configure_pusher(){
 						noderemoteuser=$user
 					fi
 				fi
+
+				nodenameline=$autonodename
+				if [[ "$nodename" != "" && "$nodename" != "$autonodename" ]]; then
+					nodenameline="${nodenameline} ${nodename}"
+				fi
+				__debug --level 5 "Generated nodenameline=<$nodenameline>"
+
 				__debug --level 5 "Writing host details in $SSH_PATH/.ssh/config.tmp"
 				if [[ -s $SSH_PATH/.ssh/config.tmp ]]; then
 					__debug --level 5 "$SSH_PATH/.ssh/config.tmp not empty. Writing blank line to separate records"
 					echo "" >> $SSH_PATH/.ssh/config.tmp
 				fi
 				cat << EOF >> $SSH_PATH/.ssh/config.tmp
-Host $nodename
+Host $nodenameline
   Hostname $nodehostname
   User $noderemoteuser
   IdentityFile $SSH_PATH/.ssh/id_rsa
@@ -2108,7 +2182,11 @@ EOF
 				if [[ -n $tmpnodes ]]; then
 					tmpnodes=$tmpnodes" "
 				fi
-				tmpnodes=${tmpnodes}${nodename}
+				if [[ "$nodename" != "$autonodename" ]]; then
+					tmpnodes="${tmpnodes}${autonodename} ${nodename}"
+				else
+					tmpnodes="${tmpnodes}${autonodename}"
+				fi
 				wkid=$(expr $wkid + 1)
 			fi
 		done
@@ -2140,7 +2218,7 @@ _generate_tmux_config(){
 			__debug --level 5 "remains=<$remains>"
 			local nodeid=$panecount
 			__debug --level 9 "nodeid=<$panecount>"
-			local node=$(_get_list_element_by_id "$nodes" $nodeid)
+			local node=$(_get_list_element_by_id --id $nodeid "$nodes")
 			__debug --level 9 "node=<$node>"
 			__debug --level 9 "<Tmux main config, first window, second window and first pane in second window>"
 			cat << EOF > $tmuxfile
@@ -2153,7 +2231,7 @@ new -s $ARG_FEDERATION -n bash -c $MIP_PATH/Federated-Deployment bash
 set remain-on-exit on
 respawn-window -k
 
-neww -n logs 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$node 2>/dev/null'
+neww -n logs 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
 set remain-on-exit on
 respawn-window -k
 EOF
@@ -2174,12 +2252,12 @@ EOF
 				__debug --level 9 "p=<$p>"
 				nodeid=$(expr $panecount + 1)
 				__debug --level 9 "nodeid=<$nodeid>"
-				node=$(_get_list_element_by_id "$nodes" $nodeid)
+				node=$(_get_list_element_by_id --id $nodeid "$nodes")
 				__debug --level 9 "node=<$node>"
 				__debug --level 9 "<Tmux pane vertical split $p%, then in node <$node>>"
 				cat << EOF >> $tmuxfile
 
-splitw -v -p $p $splitoption 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$node 2>/dev/null'
+splitw -v -p $p $splitoption 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
 respawn-pane -k
 EOF
 				__debug --level 9 "</Tmux pane vertical split $p%, then in node <$node>>"
@@ -2206,13 +2284,13 @@ EOF
 			__debug --level 9 "panecount=<$panecount>"
 			nodeid=$(expr $panecount + 1)
 			__debug --level 9 "nodeid=<$nodeid>"
-			node=$(_get_list_element_by_id "$nodes" $nodeid)
+			node=$(_get_list_element_by_id --id $nodeid "$nodes")
 			__debug --level 9 "node=<$node>"
 			__debug --level 9 "<Tmux select pane <$panecount> and horizontal split 50%, then in node <$node>>"
 			cat << EOF >> $tmuxfile
 
 selectp -t $panecount
-splitw -h -p 50 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$node 2>/dev/null'
+splitw -h -p 50 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
 respawn-pane -k
 EOF
 			__debug --level 9 "</Tmux select pane <$panecount> and horizontal split 50%, then in node <$node>>"
@@ -2255,12 +2333,12 @@ EOF
 					__debug --level 9 "p=<$p>"
 					nodeid=$(expr $panecount + 1)
 					__debug --level 9 "nodeid=<$nodeid>"
-					node=$(_get_list_element_by_id "$nodes" $nodeid)
+					node=$(_get_list_element_by_id --id $nodeid "$nodes")
 					__debug --level 9 "node=<$node>"
 					__debug --level 9 "<Tmux pane horizontal split $p%, then in node <$node>>"
 					cat << EOF >> $tmuxfile
 
-splitw -h -p $p 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$node 2>/dev/null'
+splitw -h -p $p 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
 respawn-pane -k
 EOF
 					__debug --level 9 "</Tmux pane horizontal split $p%, then in node <$node>>"
@@ -2297,7 +2375,7 @@ EOF
 				__debug --level 9 "<Tmux new window for node <$node>>"
 				cat << EOF >> $tmuxfile
 
-neww -n $node 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$node 2>/dev/null'
+neww -n $node 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
 set remain-on-exit on
 respawn-window -k
 EOF
@@ -2902,6 +2980,7 @@ _data(){
 				mkdir -p /tmp/miptmpfeddata/config
 
 				local nodetype=""
+				local customhostname=""
 				local localhostname=""
 				local localmshostname=""
 				local localuihostname=""
@@ -2917,18 +2996,15 @@ _data(){
 				local pathologyvar=""
 				local datasetfile=""
 				for host in $(awk '/^Host/ {print $2}' $SSH_PATH/.ssh/config); do
-					localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host $host"|awk '/Hostname / {print $2}')
+					customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \b$host\b"|awk '{print $NF}')
+					localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host \b$host\b"|awk '/Hostname / {print $2}')
 					__debug --level 5 "localhostname=<$localhostname>"
-					if [[ "$host" = "ms" || "$host" = "ui" ]]; then
-						__debug --level 0 -n "Checking if remote 'hostname' matches <$host>..."
-					else
-						__debug --level 0 -n -b "Checking if remote 'hostname' matches <$host>..."
-					fi
-					remotehostname=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$host "hostname" 2>/dev/null)
+					remotehostname=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "hostname" 2>/dev/null)
 					__debug --level 5 "remotehostname=<$remotehostname>"
-					if [[ "$host" != "$remotehostname" ]]; then
+					__debug --level 0 -n "Checking if remote <$host/$remotehostname> ($localhostname) hostname matches SSH config file's content..."
+					if [[ $(_contains "$host $customhostname" "$remotehostname") -ne 0 ]]; then
 						__red "SSH (and Ansible) defined host have to be the same than the corresponding 'machine hostname'!"
-						__red "SSH defined host: <$localhostname>, remote machine hostname: <$remotehostname>"
+						__red "SSH defined host: <$customhostname> ($localhostname), remote machine hostname: <$remotehostname>"
 						__red "Please fix it!"
 						exit 1
 					fi
@@ -2947,34 +3023,34 @@ _data(){
 					fi
 
 					if [[ "$nodetype" = "wk" ]]; then
-						__debug --level 0 --color "cyan" "Asking worker node <$host> ($localhostname) to provide dataset list"
-						datafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$host "$MIP_COMMAND --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null" 2>/dev/null)
+						__debug --level 0 --color "cyan" "Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list"
+						datafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "$MIP_COMMAND --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null" 2>/dev/null)
 						if [[ "$datafile" != "" ]]; then
 							hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
 							export $hostdatapath=$(dirname $datafile)
-							__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$host 'if [[ -f $datafile ]]; then echo ok; fi' 2>/dev/null"
-							datacheck=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$host "if [[ -f $datafile ]]; then echo ok; fi" 2>/dev/null)
+							__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host 'if [[ -f $datafile ]]; then echo ok; fi' 2>/dev/null"
+							datacheck=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "if [[ -f $datafile ]]; then echo ok; fi" 2>/dev/null)
 							if [[ "$datacheck" = "ok" ]]; then
 								__debug --level 2 "Dataset samples ready on worker <$host>"
 								if [[ ! -d /tmp/miptmpfeddata/$host ]]; then
 									mkdir -p /tmp/miptmpfeddata/$host
 								fi
-								__debug --level 0 --color "cyan" -e "Downloading dataset list from worker node <$host> ($localhostname)"
-								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$host:$datafile /tmp/miptmpfeddata/$host >/dev/null 2>&1
-								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@$host "rm $datafile" 2>/dev/null
-								tar xzf /tmp/miptmpfeddata/$host/$host.tar.gz --directory /tmp/miptmpfeddata/$host
+								__debug --level 0 --color "cyan" -e "Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)"
+								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host:$datafile /tmp/miptmpfeddata/$host >/dev/null 2>&1
+								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "rm $datafile" 2>/dev/null
+								tar xzf /tmp/miptmpfeddata/$host/$remotehostname.tar.gz --directory /tmp/miptmpfeddata/$host
 								for pathology in $(ls -l /tmp/miptmpfeddata/$host|awk '/^d/ {print $NF}'); do
 									pathologyvar="pathology_"$pathology
 									if [[ ! -d /tmp/miptmpfeddata/data/$pathology ]]; then
 										mkdir -p /tmp/miptmpfeddata/data/$pathology
 										masterdatapath=$(_get_remote_var ms DATA_PATH)
-										metadatafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@ms "if [[ -f /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME ]]; then echo /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME; else echo ""; fi" 2>/dev/null)
+										metadatafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ -f /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME ]]; then echo /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME; else echo ""; fi" 2>/dev/null)
 										if [[ "$metadatafile" != "" ]]; then
-											__debug --level 0 --color "magenta" "Downloading CDE for pathology <$pathology> from master node"
-											__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1"
-											scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1
+											__debug --level 0 --color "magenta" "Downloading CDE for pathology <$pathology> from Master <ms/$remotemshostname> node ($localmshostname)"
+											__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1"
+											scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1
 										else
-											__red "Can't find CDE file for pathology '$pathology' in master node!"
+											__red "Can't find CDE file for pathology '$pathology' in master <$remotehostname> ($localhostname) node!"
 										fi
 									fi
 									__debug --level 6 "_contains $pathologies $pathology"
@@ -3014,7 +3090,7 @@ _data(){
 								__debug --level 5 "pathology_mentalhealth=<$pathology_mentalhealth>"
 								__debug --level 5 "pathology_tbi=<$pathology_tbi>"
 							else
-								__debug --level 2 "Error on worker <$host> ($localhostname): datasets not ready!"
+								__debug --level 2 "Error on worker <$host/$remotehostname> ($localhostname): datasets not ready!"
 							fi
 						fi
 					fi
@@ -3047,21 +3123,23 @@ _data(){
 						metadatafile=/tmp/miptmpfeddata/data/$pathology/$DEFAULT_METADATA_FILENAME
 						if [[ -f $metadatafile ]]; then
 							if [[ "${!pathologyvar}" != "" ]]; then
+								customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bms\b"|awk '{print $NF}')
 								masterdatapath=$(_get_remote_var ms DATA_PATH)
-								__debug --level 0 --color "magenta" -b "Deploying aligned CDE in master node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/"
-								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@ms 'if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi' 2>/dev/null"
-								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@ms "if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi" 2>/dev/null
-								__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $DOCKER_USER@ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1"
-								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $DOCKER_USER@ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1
+								__debug --level 0 --color "magenta" -b "Deploying aligned CDE in Master <ms/$customhostname> node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/"
+								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms 'if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi' 2>/dev/null"
+								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi" 2>/dev/null
+								__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1"
+								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1
 
 								for host in ${!pathologyvar}; do
 									__debug --level 5 "host=<$host>"
+									customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \b$host\b"|awk '{print $NF}')
 									hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
 									__debug --level 5 "hostdatapath=<${!hostdatapath}>"
-									localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host $host"|awk '/Hostname / {print $2}')
-									__debug --level 0 --color "cyan" "Deploying aligned CDE in worker node <$host> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/"
-									__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $DOCKER_USER@$host:${!hostdatapath}/$pathology/ >/dev/null 2>&1"
-									scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $DOCKER_USER@$host:${!hostdatapath}/$pathology/ >/dev/null 2>&1
+									localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host \b$host\b"|awk '/Hostname / {print $2}')
+									__debug --level 0 --color "cyan" "Deploying aligned CDE in worker node <$host/$customhostname> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/"
+									__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1"
+									scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1
 								done
 							fi
 						fi
@@ -3076,11 +3154,12 @@ _data(){
 				local uimippath=$(_get_remote_var ui MIP_PATH)
 				local remoteuidir=$uimippath/Federation
 				if [[ -f /tmp/miptmpfeddata/config/pathologies.json ]]; then
-					__debug --level 0 --color "magenta" -b "Deploying pathologies file in ui node ($localuihostname), in $remoteuidir/config/"
-					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi' 2>/dev/null"
-					ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $DOCKER_USER@ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi" 2>/dev/null
-					__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json $DOCKER_USER@ui:$remoteuidir/config/ >/dev/null 2>&1"
-					scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json $DOCKER_USER@ui:$remoteuidir/config/ >/dev/null 2>&1
+					customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bui\b"|awk '{print $NF}')
+					__debug --level 0 --color "magenta" -b "Deploying pathologies file in Frontend <ui/$customhostname> node ($localuihostname), in $remoteuidir/config/"
+					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi' 2>/dev/null"
+					ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi" 2>/dev/null
+					__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json ui:$remoteuidir/config/ >/dev/null 2>&1"
+					scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json ui:$remoteuidir/config/ >/dev/null 2>&1
 				else
 					__red "Can't find pathologies file </tmp/miptmpfeddata/config/pathologies.json>!"
 				fi
