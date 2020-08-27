@@ -64,7 +64,7 @@ DISTRIB_RELEASE=""
 DISTRIB_CODENAME=""
 
 DEBUG_LEVEL=0
-MIP_COMMAND="/vagrant/mip-deployment/mip"
+MIP_COMMAND="mip"
 
 args_parser(){
 	ORIG_ARGS=$@
