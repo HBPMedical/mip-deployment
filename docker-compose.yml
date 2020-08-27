@@ -4,6 +4,7 @@ services:
   exareme_keystore:
     image: progrium/consul
     command: -server -bootstrap
+  restart: unless-stopped
 
   exareme_master:
     image: hbpmip/exareme:${EXAREME}
@@ -20,7 +21,7 @@ services:
       - '9090:9090'
     volumes:
       - ./data:/root/exareme/data/
-    restart: on-failure
+    restart: unless-stopped
 
   galaxy:
     image: hbpmip/galaxy:${GALAXY}
@@ -35,7 +36,7 @@ services:
       - '80'
     ports:
       - '8090:80'
-    restart: on-failure
+    restart: unless-stopped
 
   portalbackend_db:
     image: postgres:11.3-alpine
@@ -47,7 +48,7 @@ services:
     command: -p 5433
     expose:
       - 5433
-    restart: on-failure
+    restart: unless-stopped
 
   create_dbs:
     image: hbpmip/create-databases:1.1.0
@@ -97,13 +98,12 @@ services:
       USER_INFO_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
       TOKEN_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
       LOGOUT_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout
-
     depends_on:
       - create_dbs
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
-    restart: on-failure
+    restart: unless-stopped
 
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
@@ -123,7 +123,7 @@ services:
       GALAXY_URL: http://galaxy/nativeGalaxy
       KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
       KEYCLOAK_LOGIN_URL: http://keycloak:8095/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
-    restart: on-failure
+    restart: unless-stopped
 
   keycloak_db:
     image: postgres:12.2
@@ -133,7 +133,7 @@ services:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: password
-    restart: on-failure
+    restart: unless-stopped
 
   keycloak:
     image: jboss/keycloak:9.0.2
@@ -158,4 +158,4 @@ services:
       - '8443:8443'
     depends_on:
       - keycloak_db
-    restart: on-failure
+    restart: unless-stopped
