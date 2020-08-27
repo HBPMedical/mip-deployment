@@ -20,6 +20,7 @@ services:
       - '9090:9090'
     volumes:
       - ./data:/root/exareme/data/
+    restart: on-failure
 
   galaxy:
     image: hbpmip/galaxy:${GALAXY}
@@ -34,6 +35,7 @@ services:
       - '80'
     ports:
       - '8090:80'
+    restart: on-failure
 
   portalbackend_db:
     image: postgres:11.3-alpine
@@ -45,6 +47,7 @@ services:
     command: -p 5433
     expose:
       - 5433
+    restart: on-failure
 
   create_dbs:
     image: hbpmip/create-databases:1.1.0
@@ -120,7 +123,7 @@ services:
       GALAXY_URL: http://galaxy/nativeGalaxy
       KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
       KEYCLOAK_LOGIN_URL: http://keycloak:8095/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
-      restart: on-failure
+    restart: on-failure
 
   keycloak_db:
     image: postgres:12.2
@@ -130,6 +133,7 @@ services:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: password
+    restart: on-failure
 
   keycloak:
     image: jboss/keycloak:9.0.2

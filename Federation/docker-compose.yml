@@ -12,6 +12,7 @@ services:
       - '80'
     ports:
       - '8090:80'
+    restart: on-failure
 
   portalbackend_db:
     image: postgres:11.3-alpine
@@ -20,6 +21,7 @@ services:
     hostname: portalbackend_db
     environment:
       POSTGRES_PASSWORD: test
+    restart: on-failure
 
   create_dbs:
     image: hbpmip/create-databases:1.1.0
