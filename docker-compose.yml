@@ -4,7 +4,7 @@ services:
   exareme_keystore:
     image: progrium/consul
     command: -server -bootstrap
-  restart: unless-stopped
+    restart: unless-stopped
 
   exareme_master:
     image: hbpmip/exareme:${EXAREME}
