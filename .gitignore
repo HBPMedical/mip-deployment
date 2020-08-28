@@ -1,6 +1,5 @@
 .idea
-.IPs_env
-.env
+.mipenv
 *.db
 ./.stored_data/
 logs/
