@@ -2,9 +2,7 @@ version: '3.2'
 
 services:
   exareme_keystore:
-    image: bitnami/consul:1.8.3 
-    ports:
-      - '8500:8500'
+    image: bitnami/consul:1.8.3
     environment:
       - CONSUL_AGENT_MODE=server
       - CONSUL_BOOTSTRAP_EXPECT=1
