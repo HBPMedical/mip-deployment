@@ -141,7 +141,7 @@ services:
     restart: unless-stopped
 
   keycloak:
-          image: jboss/keycloak:11.0.2
+    image: jboss/keycloak:11.0.2
     command: -Djboss.http.port=8095
     volumes:
       - ./config/keycloak/keycloak.json:/tmp/mip.json
