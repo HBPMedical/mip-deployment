@@ -1,7 +1,7 @@
 .idea
 .mipenv
 *.db
-./.stored_data/
+.stored_data/
 logs/
 Federation/data
 Federation/logs
