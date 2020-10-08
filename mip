@@ -20,7 +20,7 @@ REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
 REQUIRED_PIP3_PACKAGES="chardet"
 DEFAULT_MIP_GITHUB_OWNER="HBPMedical"
 DEFAULT_MIP_GITHUB_PROJECT="mip-deployment"
-DEFAULT_MIP_BRANCH="dev_mipscript"
+DEFAULT_MIP_BRANCH="master"
 EXAREME_GITHUB_OWNER="madgik"
 EXAREME_GITHUB_PROJECT="exareme"
 EXAREME_BRANCH="master"
@@ -3176,6 +3176,11 @@ _prepare_docker_compose(){
 version: '3.2'
 
 services:
+  frontend:
+    environment:
+      KEYCLOAK_AUTH_URL:
+      KEYCLOAK_LOGIN_URL:
+
   keycloak_db:
     entrypoint: ["echo", "Service keycloak_db disabled"]
 
