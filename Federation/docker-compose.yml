@@ -3,26 +3,30 @@ version: '3.2'
 services:
   galaxy:
     image: hbpmip/galaxy:${GALAXY}
+    expose:
+      - '80'
+    ports:
+      - '8090:80'
     environment:
       - EXAREME_IP=${EXAREME_IP}
       - EXAREME_PORT=9090
       - PASSWORD=password
     command: bash -c "htpasswd -bc /etc/apache2/htpasswd admin $$PASSWORD && ./createExaremeVariables.sh && /etc/init.d/apache2 restart && ./run.sh"
-    expose:
-      - '80'
-    ports:
-      - '8090:80'
+    restart: unless-stopped
 
   portalbackend_db:
     image: postgres:11.3-alpine
-    volumes:
-      - ./.stored_data/portalbackenddb:/var/lib/postgresql/data
     hostname: portalbackend_db
     environment:
       POSTGRES_PASSWORD: test
+    restart: unless-stopped
+    volumes:
+      - ./.stored_data/portalbackenddb:/var/lib/postgresql/data
 
   create_dbs:
     image: hbpmip/create-databases:1.1.0
+    depends_on:
+      - portalbackend_db
     environment:
       DB_HOST: portalbackend_db
       DB_PORT: 5432
@@ -31,12 +35,12 @@ services:
       DB4: portal
       USER4: portal
       PASSWORD4: portalpwd
-    depends_on:
-      - portalbackend_db
     restart: on-failure
 
   portalbackend:
     image: hbpmip/portal-backend:${PORTALBACKEND}
+    depends_on:
+      - create_dbs
     ports:
       - '8080:8080'
       - '8089:8089'
@@ -68,9 +72,7 @@ services:
       USER_INFO_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
       TOKEN_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
       LOGOUT_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout
-    depends_on:
-      - create_dbs
-    restart: on-failure
+    restart: unless-stopped
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
@@ -94,4 +96,4 @@ services:
       DATACATALOGUE_SERVER: ${DATACATALOGUE_PROTOCOL}://${DATACATALOGUE_HOST}
       KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
       KEYCLOAK_LOGIN_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
-    restart: on-failure
+    restart: unless-stopped

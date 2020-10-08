@@ -1,8 +1,7 @@
 .idea
-.IPs_env
-.env
+.mipenv
 *.db
-./.stored_data/
+.stored_data/
 logs/
 Federation/data
 Federation/logs

@@ -15,7 +15,7 @@ DOCKER_USER="mipadmin"
 DOCKER_USER_PASSWD='$6$hZTew7vztbwhQHx$/F8I.cs78bBy9lO.rQ4AUICGrkZLVjPt7zkV3xXEC3.mip0rVrrxPmTgvrZQ0DcsNqpnb10Cn6InVt441BIUo0'
 CONFLICTING_PACKAGES="docker docker-engine docker.io containerd runc"
 CONFLICTING_SNAP_PACKAGES="docker"
-PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates curl gnupg-agent software-properties-common net-tools whois lsof python3-pip"
+PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates ssl-cert curl gnupg-agent software-properties-common net-tools whois lsof expect python3-pip"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
 REQUIRED_PIP3_PACKAGES="chardet"
 DEFAULT_MIP_GITHUB_OWNER="HBPMedical"
@@ -67,6 +67,8 @@ DEBUG_LEVEL=0
 MIP_COMMAND="mip"
 
 args_parser(){
+	ORIG_ARGS=$@
+	ORIG_ARGS_COUNT=$#
 	POSITIONAL=()
 	local key=""
 	while [[ $# -gt 0 ]]; do
@@ -89,13 +91,27 @@ args_parser(){
 				shift
 				shift
 				;;
-			cleanup)
+			node)
 				ACTION=$1
+				NODE_ACTION=$2
+				shift
+				shift
+				;;
+			services)
+				ACTION=$1
+				SERVICES_ACTION=$2
+				shift
 				shift
 				;;
 			data)
 				ACTION=$1
 				DATA_ACTION=$2
+				shift
+				shift
+				;;
+			version)
+				ACTION=$1
+				VERSION_ACTION=$2
 				shift
 				shift
 				;;
@@ -198,6 +214,23 @@ args_parser(){
 				shift
 				shift
 				;;
+			--node)
+				ARG_NODE=$2
+				shift
+				shift
+				;;
+			--with-portainer)
+				ARG_WITH_PORTAINER=1
+				shift
+				;;
+			--with-secure-portainer)
+				ARG_WITH_SECURE_PORTAINER=1
+				shift
+				;;
+			--without-exareme)
+				ARG_WITHOUT_EXAREME=1
+				shift
+				;;
 			-f|--follow)
 				ARG_FOLLOW=1
 				shift
@@ -237,25 +270,25 @@ __config_colors(){
 	local result=0
 	if [[ $(command -v tput) && "$ACTION" != "fedtask" ]]; then
 		if [[ -z ${red+x} ]]; then
-			red=`tput setaf 1`
+			red=$(tput setaf 1)
 		fi
 		if [[ -z ${green+x} ]]; then
-			green=`tput setaf 2`
+			green=$(tput setaf 2)
 		fi
 		if [[ -z ${yellow+x} ]]; then
-			yellow=`tput setaf 3`
+			yellow=$(tput setaf 3)
 		fi
 		if [[ -z ${blue+x} ]]; then
-			blue=`tput setaf 4`
+			blue=$(tput setaf 4)
 		fi
 		if [[ -z ${magenta+x} ]]; then
-			magenta=`tput setaf 5`
+			magenta=$(tput setaf 5)
 		fi
 		if [[ -z ${cyan+x} ]]; then
-			cyan=`tput setaf 6`
+			cyan=$(tput setaf 6)
 		fi
 		if [[ -z ${reset+x} ]]; then
-			reset=`tput sgr0`
+			reset=$(tput sgr0)
 		fi
 	else
 		result=1
@@ -284,34 +317,34 @@ __colored_msg(){
 		shift
 	fi
 	if [[ $ret -eq 0 ]]; then
-		echo $arg "${!color}$@${reset}" >&2
+		echo "${arg}" "${!color}$*${reset}" >&2
 	else
-		echo $arg "$@" >&2
+		echo "${arg}" "$*" >&2
 	fi
 }
 
 __red(){
-	__colored_msg "red" "$@"
+	__colored_msg "red" "$*"
 }
 
 __green(){
-	__colored_msg "green" "$@"
+	__colored_msg "green" "$*"
 }
 
 __yellow(){
-	__colored_msg "yellow" "$@"
+	__colored_msg "yellow" "$*"
 }
 
 __blue(){
-	__colored_msg "blue" "$@"
+	__colored_msg "blue" "$*"
 }
 
 __magenta(){
-	__colored_msg "magenta" "$@"
+	__colored_msg "magenta" "$*"
 }
 
 __cyan(){
-	__colored_msg "cyan" "$@"
+	__colored_msg "cyan" "$*"
 }
 
 __debug(){
@@ -367,13 +400,13 @@ __debug(){
 				shift
 				;;
 			*)
-				positional+="$1"
+				positional+=("$1")
 				shift
 				;;
 		esac
 	done
 
-	set -- ${positional[@]}
+	set -- "${positional[@]}"
 
 	if [[ "$compare" = "eq" ]]; then
 		if [[ $DEBUG_LEVEL -eq $level ]]; then
@@ -385,11 +418,11 @@ __debug(){
 		fi
 	fi
 
-	if [[ -n $@ && $print -eq 1 ]]; then
+	if [[ -n $* && $print -eq 1 ]]; then
 		if [[ $crbegin -eq 1 ]]; then
 			echo ""
 		fi
-		__colored_msg "$color" $msgarg $@
+		__colored_msg "$color" "$msgarg" $@
 		if [[ $crend -eq 1 ]]; then
 			echo ""
 		fi
@@ -517,7 +550,7 @@ EOF
 
 load_mip_env(){
 	__debug --level 1 --levelcompare "eq" -n "Loading MIP environment..."
-	__debug --level 4 "load_mip_env($@)"
+	__debug --level 4 "load_mip_env($*)"
 	local envvar_changes=0
 	local envvar=""
 	local envval=""
@@ -738,6 +771,8 @@ load_mip_env(){
 		MIP_COMPONENTS=$MIP_FEDERATION_MS_COMPONENTS
 		__debug --level 6 "Setting global var: MIP_COMPONENT_LABELS=<$MIP_FEDERATION_MS_COMPONENT_LABELS>"
 		MIP_COMPONENT_LABELS=$MIP_FEDERATION_MS_COMPONENT_LABELS
+		__debug --level 6 "Setting global var: MIP_PATH=<$INSTALL_PATH/mip>"
+		MIP_PATH=$INSTALL_PATH/mip
 		__debug --level 6 "Setting global var: DATA_PATH=</data>"
 		DATA_PATH=/data
 	elif [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
@@ -805,6 +840,16 @@ load_mip_env(){
 		MIP_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
 		__debug --level 6 "Setting global var: MIPENVFILE=<$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME>"
 		MIPENVFILE=$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME
+		__debug --level 6 "Setting global var: ANSIBLE_PATH=<$MIP_PATH/Federated-Deployment/Docker-Ansible>"
+		ANSIBLE_PATH=$MIP_PATH/Federated-Deployment/Docker-Ansible
+		__debug --level 6 "Setting global var: ANSIBLE_HOSTS_FILE=<$ANSIBLE_PATH/hosts.ini>"
+		ANSIBLE_HOSTS_FILE=$ANSIBLE_PATH/hosts.ini
+		__debug --level 6 "Setting global var: ANSIBLE_VAULT_FILE=<$ANSIBLE_PATH/vault.yaml>"
+		ANSIBLE_VAULT_FILE=$ANSIBLE_PATH/vault.yaml
+		__debug --level 6 "Setting global var: ANSIBLE_VAULT_PASS_FILE=<$ANSIBLE_PATH/.vault_pass>"
+		ANSIBLE_VAULT_PASS_FILE=$ANSIBLE_PATH/.vault_pass
+		__debug --level 6 "Setting global var: ANSIBLE_CMD=<ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE >"
+		ANSIBLE_CMD="ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE "
 		__debug --level 6 "Setting global var: CONFLICTING_PACKAGES=<>"
 		CONFLICTING_PACKAGES=""
 		__debug --level 6 "Setting global var: CONFLICTING_SNAP_PACKAGES=<>"
@@ -835,7 +880,7 @@ load_mip_env(){
 
 load_mip_versions(){
 	__debug --level 1 --levelcompare "eq" -n "Loading MIP versions..."
-	__debug --level 4 "load_mip_versions($@)"
+	__debug --level 4 "load_mip_versions($*)"
 	local envvar=""
 	local envval=""
 	local mipenvvar=""
@@ -860,7 +905,7 @@ load_mip_versions(){
 
 _write_mip_env(){
 	__debug --level 1 --levelcompare "eq" -n "Saving MIP environment..."
-	__debug --level 4 "_write_mip_env($@)"
+	__debug --level 4 "_write_mip_env($*)"
 	local result=0
 	local envvar=""
 	local envval=""
@@ -899,7 +944,7 @@ _write_mip_env(){
 }
 
 _get_docker_main_ip(){
-	__debug --level 4 "_get_docker_main_ip($@)"
+	__debug --level 4 "_get_docker_main_ip($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return 1
 	fi
@@ -912,7 +957,7 @@ _get_docker_main_ip(){
 }
 
 _has_minimum_version(){
-	__debug --level 4 "_has_minimum_version($@)"
+	__debug --level 4 "_has_minimum_version($*)"
 	local result=0
 
 	__debug --level 5 "current=<$1>"
@@ -946,7 +991,7 @@ _has_minimum_version(){
 
 _check_os(){
 	__debug --level 1 --levelcompare "eq" -n "Checking OS requirements..."
-	__debug --level 4 "_check_os($@)"
+	__debug --level 4 "_check_os($*)"
 	local result=0
 	_has_minimum_version $(lsb_release -sr) $REQUIRED_OS_RELEASE
 	local ret=$?
@@ -972,7 +1017,7 @@ _check_os(){
 
 _check_conflicting_packages(){
 	__debug --level 1 --levelcompare "eq" -n "Checking conflicting packages..."
-	__debug --level 4 "_check_conflicting_packsges($@)"
+	__debug --level 4 "_check_conflicting_packsges($*)"
 	local result=0
 	local packages=""
 	for package in $CONFLICTING_PACKAGES; do
@@ -997,7 +1042,7 @@ _check_conflicting_packages(){
 
 _check_conflicting_snap_packages(){
 	__debug --level 1 --levelcompare "eq" -n "Checking conflicting Snap packages..."
-	__debug --level 4 "_check_conflicting_snap_packages($@)"
+	__debug --level 4 "_check_conflicting_snap_packages($*)"
 	local result=0
 	local packages=""
 	for package in $CONFLICTING_SNAP_PACKAGES; do
@@ -1022,7 +1067,7 @@ _check_conflicting_snap_packages(){
 
 uninstall_conflicting_snap_packages(){
 	__debug --level 1 --levelcompare "eq" -n "Uninstalling conflicting Snap packages..."
-	__debug --level 4 "uninstall_conflicting_snap_packages($@)"
+	__debug --level 4 "uninstall_conflicting_snap_packages($*)"
 	local next=0
 	while [[ $next -eq 0 ]]; do
 		local packages=""
@@ -1044,7 +1089,7 @@ uninstall_conflicting_snap_packages(){
 
 uninstall_conflicting_packages(){
 	__debug --level 1 --levelcompare "eq" -n "Uninstalling conflicting packages..."
-	__debug --level 4 "uninstall_conflicting_packages($@)"
+	__debug --level 4 "uninstall_conflicting_packages($*)"
 	local next=0
 	while [[ $next -eq 0 ]]; do
 		local packages=""
@@ -1066,7 +1111,7 @@ uninstall_conflicting_packages(){
 
 install_required_packages(){
 	__debug --level 1 --levelcompare "eq" -n "Installing required packages..."
-	__debug --level 4 "install_required_packages($@)"
+	__debug --level 4 "install_required_packages($*)"
 	local required_packages=""
 	case $1 in
 		prerequired)
@@ -1109,8 +1154,8 @@ install_required_packages(){
 				__debug --level 5 "pip3 install $packages"
 				pip3 install $packages
 			else
-				__debug --level 5 "apt-get install $install_option $packages"
-				apt-get install $install_option $packages
+				__debug --level 5 "apt-get update && apt-get install $install_option $packages"
+				apt-get update && apt-get install $install_option $packages
 			fi
 		fi
 	done
@@ -1119,7 +1164,7 @@ install_required_packages(){
 
 _check_python2(){
 	__debug --level 1 --levelcompare "eq" -n "Checking Python2 requirements..."
-	__debug --level 4 "_check_python2($@)"
+	__debug --level 4 "_check_python2($*)"
 	local result=0
 	if [[ ! $(command -v python2) ]]; then
 		if [[ "$1" != "-q" ]]; then
@@ -1134,7 +1179,7 @@ _check_python2(){
 
 install_pyenv(){
 	__debug --level 1 --levelcompare "eq" -n "Installing PyEnv..."
-	__debug --level 4 "install_pyenv($@)"
+	__debug --level 4 "install_pyenv($*)"
 	if [[ ! $(command -v pyenv) ]]; then
 		if [[ ! -d /usr/src/pyenv ]]; then
 			__debug --level 6 "/usr/src/pyenv not found. git clone https://github.com/pyenv/pyenv /usr/src/pyenv"
@@ -1156,7 +1201,7 @@ install_pyenv(){
 
 install_python2(){
 	__debug --level 1 --levelcompare "eq" -n "Installing Python2..."
-	__debug --level 4 "install_python2($@)"
+	__debug --level 4 "install_python2($*)"
 	_check_python2 -q
 	local ret=$?
 	if [[ $ret -ne 0 ]]; then
@@ -1198,7 +1243,7 @@ install_python2(){
 
 prepare_docker_apt_sources(){
 	__debug --level 1 --levelcompare "eq" -n "Preparing Docker APT sources..."
-	__debug --level 4 "prepare_docker_apt_sources($@)"
+	__debug --level 4 "prepare_docker_apt_sources($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return 0
 	fi
@@ -1276,7 +1321,7 @@ _chown(){
 
 _manage_chown_user(){
 	__debug --level 1 --levelcompare "eq" -n "Chowning already installed components..."
-	__debug --level 4 "_manage_chown_user($@)"
+	__debug --level 4 "_manage_chown_user($*)"
 	if [[ "$DOCKER_USER" != "" && "$DOCKER_USER" != "root" ]]; then
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ -d $MIP_PATH ]]; then
@@ -1303,7 +1348,7 @@ _manage_chown_user(){
 
 _manage_sudo_user(){
 	__debug --level 1 --levelcompare "eq" -n "Adding user in sudo group..."
-	__debug --level 4 "_manage_sudo_user($@)"
+	__debug --level 4 "_manage_sudo_user($*)"
 	if [[ "$DOCKER_USER" != "" && "$DOCKER_USER" != "root" ]]; then
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ "$(cat /etc/group|grep sudo:)" != "" ]]; then
@@ -1322,7 +1367,7 @@ _manage_sudo_user(){
 
 _manage_docker_user(){
 	__debug --level 1 --levelcompare "eq" -n "Adding user in docker group..."
-	__debug --level 4 "_manage_docker_user($@)"
+	__debug --level 4 "_manage_docker_user($*)"
 	if [[ "$DOCKER_USER" != "" && "$DOCKER_USER" != "root" ]]; then
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ "$(cat /etc/group|grep docker:)" != "" ]]; then
@@ -1344,7 +1389,7 @@ _manage_docker_user(){
 }
 
 _contains(){
-	__debug --level 4 "_contains($@)"
+	__debug --level 4 "_contains($*)"
 	local result=1
 	content=$1
 	item=$2
@@ -1409,7 +1454,8 @@ _get_remote_var(){
 	if [[ "$node" != "" && "$var" != "" ]]; then
 		if [[ -f $SSH_PATH/.ssh/config ]]; then
 			local nodes=$(awk '/^Host/ {print $2}' $SSH_PATH/.ssh/config)
-			local nodecheck=$(_contains "$nodes" $node)
+			_contains "$nodes" $node
+			local nodecheck=$?
 			if [[ $nodecheck -eq 0 ]]; then
 				local nodetype=""
 				case $node in
@@ -1427,8 +1473,31 @@ _get_remote_var(){
 	fi
 }
 
+_remote_exec(){
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		return 0
+	fi
+
+	local node=$1
+	shift
+
+	if [[ -f $SSH_PATH/.ssh/config ]]; then
+		local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+		local nodecount=$(cat $SSH_PATH/.ssh/config|wc -l)
+	else
+		__red "SSH federation configuration file not found!"
+		exit 1
+	fi
+
+	_contains "$nodes" "$node"
+	local ret=$?
+	if [[ $ret -eq 0 ]]; then
+		ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node $@
+	fi
+}
+
 _valid_IPv4(){
-	__debug --level 4 "_valid_IPv4($@)"
+	__debug --level 4 "_valid_IPv4($*)"
 	local result=0
 	local IP=$1
 
@@ -1449,7 +1518,7 @@ _valid_IPv4(){
 
 _check_docker(){
 	__debug --level 1 --levelcompare "eq" -n "Checking Docker version..."
-	__debug --level 4 "_check_docker($@)"
+	__debug --level 4 "_check_docker($*)"
 	local result=0
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return $result
@@ -1483,7 +1552,7 @@ _check_docker(){
 
 ensure_running_dockerd(){
 	__debug --level 1 --levelcompare "eq" -n "Making sure Docker is running..."
-	__debug --level 4 "ensure_running_dockerd($@)"
+	__debug --level 4 "ensure_running_dockerd($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return 0
 	fi
@@ -1513,7 +1582,7 @@ ensure_running_dockerd(){
 
 _check_exareme_required_ports(){
 	__debug --level 1 --levelcompare "eq" -n "Checking required ports are free..."
-	__debug --level 4 "_check_exareme_required_ports($@)"
+	__debug --level 4 "_check_exareme_required_ports($*)"
 	local result=0
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return $result
@@ -1544,7 +1613,7 @@ _check_exareme_required_ports(){
 
 _check_installed_mip(){
 	__debug --level 1 --levelcompare "eq" -n "Checking if the MIP is installed..."
-	__debug --level 4 "_check_installed_mip($@)"
+	__debug --level 4 "_check_installed_mip($*)"
 	local result=0
 	if [[ (( $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) )) && ! -d $MIP_PATH ]]; then
 		__debug --level 5 "Federation folder $MIP_PATH does not exist"
@@ -1564,7 +1633,7 @@ _check_installed_mip(){
 }
 
 _check_docker_container(){
-	__debug --level 4 "_check_docker_container($@)"
+	__debug --level 4 "_check_docker_container($*)"
 	local result=1
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return $result
@@ -1629,7 +1698,7 @@ _check_docker_container(){
 
 check_required(){
 	__debug --level 1 --levelcompare "eq" -n "Checking for requirements..."
-	__debug --level 4 "check_required($@)"
+	__debug --level 4 "check_required($*)"
 	local result=0
 
 	_check_os $1
@@ -1683,7 +1752,7 @@ _prerunning_backend_guard(){
 
 _cleanup(){
 	__debug --level 1 --levelcompare "eq" -n "Cleaning Docker containers..."
-	__debug --level 4 "_cleanup($@)"
+	__debug --level 4 "_cleanup($*)"
 	local result=0
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return $result
@@ -1708,7 +1777,7 @@ _cleanup(){
 }
 
 check_running_swarm(){
-	__debug --level 4 "check_running_swarm($@)"
+	__debug --level 4 "check_running_swarm($*)"
 	if [[ "$MIP_ENV_NODE_TYPE" = "ms" && $ARG_PUSHER -ne 1 ]]; then
 		__debug --level 1 --levelcompare "eq" "Checking Docker Swarm services..."
 		if [[ "$(command -v docker)" = "" ]]; then
@@ -1776,7 +1845,7 @@ _display_components_status(){
 
 check_running(){
 	__debug --level 1 --levelcompare "eq" "Checking running components..."
-	__debug --level 4 "check_running($@)"
+	__debug --level 4 "check_running($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return 0
 	fi
@@ -1816,7 +1885,7 @@ check_running(){
 
 check_running_details(){
 	__debug --level 1 --levelcompare "eq" "Checking running components (with details)..."
-	__debug --level 4 "check_running_details($@)"
+	__debug --level 4 "check_running_details($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return 0
 	fi
@@ -1846,7 +1915,7 @@ check_running_details(){
 }
 
 download_mip(){
-	__debug --level 4 "download_mip($@)"
+	__debug --level 4 "download_mip($*)"
 	if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
 		return 0
 	fi
@@ -1908,7 +1977,7 @@ download_mip(){
 
 _configure_user(){
 	__debug --level 1 --levelcompare "eq" -n "Configuring user..."
-	__debug --level 4 "_configure_user($@)"
+	__debug --level 4 "_configure_user($*)"
 	local answer=""
 	if [[ "$DOCKER_USER" != "" && "$DOCKER_USER" != "root" ]]; then
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
@@ -1934,7 +2003,7 @@ _configure_user(){
 
 _configure_ssh(){
 	__debug --level 1 --levelcompare "eq" -n "Configuring SSH..."
-	__debug --level 4 "_configure_ssh($@)"
+	__debug --level 4 "_configure_ssh($*)"
 	if [[ "$DOCKER_USER" != "root" ]]; then
 		__debug --level 5 "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
@@ -1972,7 +2041,7 @@ _configure_ssh(){
 }
 
 _configure_pusher(){
-	__debug --level 4 "_configure_pusher($@)"
+	__debug --level 4 "_configure_pusher($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		__debug --level 1 --levelcompare "eq" "Configuring pusher..."
 
@@ -2009,6 +2078,15 @@ _configure_pusher(){
 			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 			if [[ "$answer" = "y" ]]; then
 				rm $SSH_PATH/.ssh/config
+				if [[ -f $ANSIBLE_HOSTS_FILE ]]; then
+					rm $ANSIBLE_HOSTS_FILE
+				fi
+				if [[ -f $ANSIBLE_VAULT_FILE ]]; then
+					rm $ANSIBLE_VAULT_FILE
+				fi
+				if [[ -f $ANSIBLE_VAULT_PASS_FILE ]]; then
+					rm $ANSIBLE_VAULT_PASS_FILE
+				fi
 			else
 				nodecount=$(cat $SSH_PATH/.ssh/config|grep '^Host'|wc -l)
 				nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
@@ -2016,7 +2094,8 @@ _configure_pusher(){
 		fi
 
 		local goahead=1
-		local wkid=1
+		local nodeid=1
+		local ansiblevaultpassword=""
 		local doconfig=0
 		local linenb=0
 		local host=""
@@ -2028,21 +2107,71 @@ _configure_pusher(){
 		local autonodename=""
 		local nodenameline=""
 		local nodehostname=""
+		local nodeansiblename=""
+		local encryptedvault=0
 		local noderemoteuser=""
+		local noderemotepasswd=""
+		local nodehomepath=""
+		local nodedatapath=""
 		local tmpnodes=""
+		local isworker=0
 		local ret=0
 
-		echo "Configuration of access to federation nodes. Here, you'll have the possibility to create simplified ssh key based access to"
-		echo "federation nodes. First you'll have to prepare ms (master) and ui (frontend), and then, the workers."
+		echo "Configuration of federation nodes. Here, you'll have the possibility to setup everything required to operate"
+		echo "federation nodes. First you'll have to set ms (master) and ui (frontend), and then, the workers."
+		__yellow "Just make sure all the nodes are installed and configured, prior to run this!"
+		echo "Press [ENTER] to continue, or CTRL-C to cancel."
+		read
 		echo
-		while [[ $goahead -eq 1 || $(expr $wkid - 1) -lt $nodecount ]]; do
+
+		local vaultok=0
+		while [[ $vaultok -ne 1 ]]; do
+			if [[ -f $ANSIBLE_VAULT_PASS_FILE ]]; then
+				ansiblevaultpassword=$(cat $ANSIBLE_VAULT_PASS_FILE)
+			else
+				read -p "Ansible Vault password: " -s ansiblevaultpassword
+				echo "${ansiblevaultpassword}" > $ANSIBLE_VAULT_PASS_FILE
+			fi
+			if [[ -f $ANSIBLE_VAULT_FILE ]]; then
+				if [[ "$(head -1 $ANSIBLE_VAULT_FILE|grep "^\$ANSIBLE_VAULT;")" != "" ]]; then
+					ansible-vault decrypt $ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >/dev/null 2>&1
+					if [[ $? -eq 0 ]]; then
+						vaultok=1
+					else
+						rm $ANSIBLE_VAULT_PASS_FILE
+						__red "Wrong Ansible Vault password!"
+					fi
+				else
+					vaultok=1
+				fi
+			fi
+
+			if [[ ! -s $ANSIBLE_HOSTS_FILE || ! -s $ANSIBLE_VAULT_FILE ]]; then
+				cat /dev/null > $ANSIBLE_VAULT_FILE
+				cat /dev/null > $ANSIBLE_HOSTS_FILE
+				vaultok=1
+			fi
+
+			if [[ $vaultok -eq 1 ]]; then
+				chown $DOCKER_USER.$DOCKER_USER $ANSIBLE_VAULT_FILE
+				chown $DOCKER_USER.$DOCKER_USER $ANSIBLE_VAULT_PASS_FILE
+				chown $DOCKER_USER.$DOCKER_USER $ANSIBLE_HOSTS_FILE
+			fi
+		done
+
+		while [[ $goahead -eq 1 || $(expr $nodeid - 1) -lt $nodecount ]]; do
 			nodename=""
 			autonodename=""
 			nodenameline=""
 			nodehostname=""
+			nodeansiblename=""
+			encryptedvault=0
 			noderemoteuser=""
+			noderemotepasswd=""
+			nodehomepath=""
+			nodedatapath=""
 
-			case $wkid in
+			case $nodeid in
 				1)
 					autonodename="ms"
 					;;
@@ -2050,17 +2179,31 @@ _configure_pusher(){
 					autonodename="ui"
 					;;
 				*)
-					autonodename="wk$(expr $wkid - 2)"
+					autonodename="wk$(expr $nodeid - 2)"
+					isworker=1
 					;;
 			esac
 
 			doconfig=0
-			if [[ $(expr $wkid - 1) -lt $nodecount ]]; then
-				linenb=$(bc <<< "($wkid - 1) * 5 + 1")
+			if [[ $(expr $nodeid - 1) -lt $nodecount ]]; then
+				linenb=$(bc <<< "($nodeid - 1) * 5 + 1")
 				host=$(sed -n ${linenb}p $SSH_PATH/.ssh/config|awk '{print $NF}')
 				hostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$host\b$"|awk '/Hostname / {print $2}')
 				user=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$host\b$"|awk '/User / {print $2}')
 				identityfile=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$host\b$"|awk '/IdentityFile / {print $2}')
+				if [[ -s $ANSIBLE_HOSTS_FILE ]]; then
+					nodeansiblename=$(cat $ANSIBLE_HOSTS_FILE|grep "ansible_host=$hostname"|awk '{print $1}')
+					if [[ "$nodeansiblename" != "" ]]; then
+						nodedatapath=$(cat $ANSIBLE_HOSTS_FILE|grep "^$nodeansiblename data_path"|awk -F '=' '{print $2}')
+						if [[ "$nodeansiblename" = "master" ]]; then
+							nodehomepath=$(cat $ANSIBLE_HOSTS_FILE|grep "^$nodeansiblename home_path"|awk -F '=' '{print $2}')
+						fi
+						if [[ -s $ANSIBLE_VAULT_FILE ]]; then
+							noderemoteuser=$(cat $ANSIBLE_VAULT_FILE|grep "^${nodeansiblename}_remote_user"|awk -F ':' '{print $2}')
+							noderemotepasswd=$(cat $ANSIBLE_VAULT_FILE|grep "^${nodeansiblename}_ssh_pass"|awk -F ':' '{print $2}')
+						fi
+					fi
+				fi
 
 				if [[ $goahead -eq 1 ]]; then
 					echo -n "Reconfigure '$autonodename' node "
@@ -2081,7 +2224,7 @@ _configure_pusher(){
 
 			if [[ $doconfig -eq 1 ]]; then
 				echo
-				case $wkid in
+				case $nodeid in
 					1)
 						echo "Configuring ms (master):"
 						nodeprompttext="Master"
@@ -2091,8 +2234,8 @@ _configure_pusher(){
 						nodeprompttext="Frontend"
 						;;
 					*)
-						echo "Configuring worker$(expr $wkid - 2):"
-						nodeprompttext="Worker$(expr $wkid - 2)"
+						echo "Configuring worker$(expr $nodeid - 2):"
+						nodeprompttext="Worker$(expr $nodeid - 2)"
 						;;
 				esac
 
@@ -2118,16 +2261,30 @@ _configure_pusher(){
 				fi
 
 				if [[ $goahead -eq 1 ]]; then
+					echo -n "	$nodeprompttext node remote password for user <$noderemoteuser>? [empty to finish] "
+					read -s noderemotepasswd
+					if [[ "$noderemotepasswd" = "" ]]; then
+						goahead=0
+					fi
+				fi
+
+				if [[ $goahead -eq 1 ]]; then
+					echo
 					__yellow -n "	Copying SSH identity to "
 					__cyan -n "$noderemoteuser"
 					__yellow -n "@"
 					__magenta -n "$nodehostname"
-					__yellow "..."
-					__debug --level 6 "ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub $SSH_OPTIONS $noderemoteuser@$nodehostname >/dev/null 2>&1"
-					ssh-copy-id -i $SSH_PATH/.ssh/id_rsa.pub $SSH_OPTIONS $noderemoteuser@$nodehostname >/dev/null 2>&1
+					__yellow -n "..."
+					__debug --level 6 "ssh-copy-id -f -i $SSH_PATH/.ssh/id_rsa.pub $SSH_OPTIONS $noderemoteuser@$nodehostname >/dev/null 2>&1"
+					expect >/dev/null 2>&1 << EOD
+spawn ssh-copy-id -f -i $SSH_PATH/.ssh/id_rsa.pub $SSH_OPTIONS $noderemoteuser@$nodehostname
+expect "password"
+send "$noderemotepasswd\r"
+interact
+EOD
 					ret=$?
 					if [[ $ret -eq 0 ]]; then
-						__green "	done"
+						__green "done"
 						__debug --level 5 "SSH identity copied successfully."
 					else
 						goahead=0
@@ -2147,10 +2304,19 @@ _configure_pusher(){
 					__green -n "$nodename"
 					__yellow ">"
 				fi
+
+				if [[ $goahead -eq 1 ]]; then
+					if [[ $nodeid -eq 1 ]]; then
+						nodehomepath=$(ssh -i $SSH_PATH/.ssh/id_rsa $SSH_OPTIONS $noderemoteuser@$nodehostname "$MIP_COMMAND fedtask getvar MIP_PATH" 2>/dev/null)
+					fi
+					if [[ $nodeid -ne 2 ]]; then
+						nodedatapath=$(ssh -i $SSH_PATH/.ssh/id_rsa $SSH_OPTIONS $noderemoteuser@$nodehostname "$MIP_COMMAND fedtask getvar DATA_PATH" 2>/dev/null)
+					fi
+				fi
 			fi
 
-			if [[ $goahead -eq 1 || $(expr $wkid - 1) -lt $nodecount ]]; then
-				if [[ $(expr $wkid - 1) -lt $nodecount ]]; then
+			if [[ $goahead -eq 1 || $(expr $nodeid - 1) -lt $nodecount ]]; then
+				if [[ $(expr $nodeid - 1) -lt $nodecount ]]; then
 					if [[ ! -n $nodename ]]; then
 						nodename=$host
 					fi
@@ -2179,6 +2345,77 @@ Host $nodenameline
   User $noderemoteuser
   IdentityFile $SSH_PATH/.ssh/id_rsa
 EOF
+
+				if [[ $nodeid -ne 2 ]]; then
+					local nodeip=""
+					_valid_IPv4 $nodehostname
+					ret=$?
+					if [[ $ret -ne 0 ]]; then
+						nodeip=$(host $nodehostname|awk '/has address/ {print $NF}')
+					else
+						nodeip=$nodehostname
+					fi
+
+					if [[ ! -n $nodeansiblename ]]; then
+						if [[ "$autonodename" = "ms" ]]; then
+							nodeansiblename="master"
+						else
+							if [[ "$nodeip" != "" ]]; then
+								nodeansiblename="worker$(echo $nodeip|sed 's/\./_/g')"
+							fi
+						fi
+					fi
+
+					if [[ $nodeid -eq 1 ]]; then
+						cat /dev/null > $ANSIBLE_VAULT_FILE.tmp
+						cat /dev/null > $ANSIBLE_HOSTS_FILE.tmp
+					fi
+					if [[ -s $ANSIBLE_VAULT_FILE.tmp ]]; then
+						echo >> $ANSIBLE_VAULT_FILE.tmp
+						echo >> $ANSIBLE_VAULT_FILE.tmp
+						echo >> $ANSIBLE_HOSTS_FILE.tmp
+					fi
+					cat << EOF >> $ANSIBLE_VAULT_FILE.tmp
+${nodeansiblename}_remote_user: $noderemoteuser
+${nodeansiblename}_become_user: $noderemoteuser
+${nodeansiblename}_ssh_pass: $noderemotepasswd
+${nodeansiblename}_become_pass: $noderemotepasswd
+EOF
+
+					cat << EOF >> $ANSIBLE_HOSTS_FILE.tmp
+[$nodeansiblename]
+$nodeansiblename ansible_host=$nodeip
+EOF
+
+					if [[ $nodeid -eq 1 ]]; then
+						cat << EOF >> $ANSIBLE_HOSTS_FILE.tmp
+$nodeansiblename home_path=${nodehomepath}/
+EOF
+					elif [[ $nodeid -gt 2 ]]; then
+						cat << EOF >> $ANSIBLE_HOSTS_FILE.tmp
+$nodeansiblename hostname=$nodename
+EOF
+					fi
+
+					cat << EOF >> $ANSIBLE_HOSTS_FILE.tmp
+$nodeansiblename data_path=${nodedatapath}/$ARG_FEDERATION/
+
+$nodeansiblename remote_user="{{${nodeansiblename}_remote_user}}"
+$nodeansiblename become_user="{{${nodeansiblename}_become_user}}"
+$nodeansiblename ansible_become_pass="{{${nodeansiblename}_become_pass}}"
+$nodeansiblename ansible_ssh_pass="{{${nodeansiblename}_ssh_pass}}"
+EOF
+
+					if [[ $nodeid -eq 3 ]]; then
+						sed -i '11i \[workers]\n' $ANSIBLE_HOSTS_FILE.tmp
+					fi
+
+					if [[ $nodeid -gt 2 ]]; then
+						local lineid=$(expr 9 + $nodeid)
+						sed -i "${lineid}i ${nodeansiblename}" $ANSIBLE_HOSTS_FILE.tmp
+					fi
+				fi
+
 				if [[ -n $tmpnodes ]]; then
 					tmpnodes=$tmpnodes" "
 				fi
@@ -2187,18 +2424,25 @@ EOF
 				else
 					tmpnodes="${tmpnodes}${autonodename}"
 				fi
-				wkid=$(expr $wkid + 1)
+				nodeid=$(expr $nodeid + 1)
 			fi
 		done
 		if [[ -f $SSH_PATH/.ssh/config.tmp ]]; then
 			mv $SSH_PATH/.ssh/config.tmp $SSH_PATH/.ssh/config
+		fi
+		if [[ -f $ANSIBLE_VAULT_FILE.tmp ]]; then
+			ansible-vault encrypt $ANSIBLE_VAULT_FILE.tmp --vault-password-file $ANSIBLE_VAULT_PASS_FILE
+			mv $ANSIBLE_VAULT_FILE.tmp $ANSIBLE_VAULT_FILE
+		fi
+		if [[ -f $ANSIBLE_HOSTS_FILE.tmp ]]; then
+			mv $ANSIBLE_HOSTS_FILE.tmp $ANSIBLE_HOSTS_FILE
 		fi
 		chown -R $DOCKER_USER.$DOCKER_USER $SSH_PATH
 	fi
 }
 
 _generate_tmux_config(){
-	__debug --level 4 "_generate_tmux_config($@)"
+	__debug --level 4 "_generate_tmux_config($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		local tmuxfile=$MIP_PATH/.tmux.conf
 		if [[ ! -f $tmuxfile || $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
@@ -2386,7 +2630,7 @@ EOF
 }
 
 _manage_tmux_session(){
-	__debug --level 4 "_manage_tmux_session($@)"
+	__debug --level 4 "_manage_tmux_session($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		if [[ "$(whoami)" != "$DOCKER_USER" ]]; then
 			__red "Please run this as $DOCKER_USER!"
@@ -2408,7 +2652,7 @@ _manage_tmux_session(){
 }
 
 _configure_pathologies(){
-	__debug --level 4 "_configure_pathologies($@)"
+	__debug --level 4 "_configure_pathologies($*)"
 	if [[ "$MIP_ENV_MIP_TYPE" = "local" && $ARG_PUSHER -ne 1 ]]; then
 		# Running the pathologies.json generator
 		if [[ ! -f $MIP_PATH/config/pathologies.json || $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
@@ -2431,7 +2675,7 @@ _configure_pathologies(){
 }
 
 _configure_host(){
-	__debug --level 4 "_configure_host($@)"
+	__debug --level 4 "_configure_host($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
@@ -2482,7 +2726,7 @@ _configure_host(){
 }
 
 _configure_exareme_ip(){
-	__debug --level 4 "_configure_exareme_ip($@)"
+	__debug --level 4 "_configure_exareme_ip($*)"
 	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_NODE_TYPE" != "ui" ]]; then
 		return 0
 	fi
@@ -2527,7 +2771,7 @@ _configure_exareme_ip(){
 
 check_configure(){
 	__debug --level 1 --levelcompare "eq" -n "Checking configuration..."
-	__debug --level 4 "check_configure($@)"
+	__debug --level 4 "check_configure($*)"
 	_configure_user
 	_configure_ssh
 	_configure_pusher
@@ -2541,7 +2785,7 @@ check_configure(){
 }
 
 do_configure(){
-	__debug --level 4 "do_configure($@)"
+	__debug --level 4 "do_configure($*)"
 	case $CONFIGURE_PART in
 		user)
 			_configure_user
@@ -2585,7 +2829,7 @@ do_configure(){
 }
 
 _prepare_logs(){
-	__debug --level 4 "_prepare_logs($@)"
+	__debug --level 4 "_prepare_logs($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
@@ -2610,7 +2854,7 @@ _prepare_logs(){
 }
 
 _prepare_data(){
-	__debug --level 4 "_prepare_data($@)"
+	__debug --level 4 "_prepare_data($*)"
 	__debug --level 1 --levelcompare "eq" -n "Preparing data..."
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return 0
@@ -2636,6 +2880,29 @@ _prepare_data(){
 			__debug --level 3 "User and/or group not ok on $DATA_PATH. Fixing..."
 			__debug --level 6 "chown $DOCKER_USER.$DOCKER_USER $DATA_PATH"
 			chown $DOCKER_USER.$DOCKER_USER $DATA_PATH
+		fi
+	fi
+
+	if [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+		if [[ ! -d $MIP_PATH ]]; then
+			__debug --level 2 "MIP path '$MIP_PATH' missing. Creating it..."
+			mkdir -p $MIP_PATH
+		fi
+		local parentdir=$(dirname $MIP_PATH)
+		local lastdir=$(basename $MIP_PATH)
+		local lsline=$(ls -la $parentdir/|grep $lastdir)
+		local rights=$(echo $lsline|awk '{print $1}')
+		local user=$(echo $lsline|awk '{print $3}')
+		local group=$(echo $lsline|awk '{print $4}')
+		if [[ "$rights" != "drwxrwx---" ]]; then
+			__debug --level 3 "UNIX rights on $MIP_PATH=<$rights>. Fixing..."
+			__debug --level 6 "chmod 770 $MIP_PATH"
+			chmod 770 $MIP_PATH
+		fi
+		if [[ "$user" != "$DOCKER_USER" || "$group" != "$DOCKER_USER" ]]; then
+			__debug --level 3 "User and/or group not ok on $MIP_PATH. Fixing..."
+			__debug --level 6 "chown $DOCKER_USER.$DOCKER_USER $MIP_PATH"
+			chown $DOCKER_USER.$DOCKER_USER $MIP_PATH
 		fi
 	fi
 
@@ -2673,7 +2940,7 @@ _prepare_data(){
 }
 
 _prepare_keycloak(){
-	__debug --level 4 "_prepare_keycloak($@)"
+	__debug --level 4 "_prepare_keycloak($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
@@ -2796,7 +3063,7 @@ _prepare_keycloak(){
 }
 
 _postinstall(){
-	__debug --level 4 "_postinstall($@)"
+	__debug --level 4 "_postinstall($*)"
 	__debug --level 1 --levelcompare "eq" -n "Postinstall configuration..."
 	result=0
 	action=""
@@ -2854,7 +3121,7 @@ _postinstall(){
 }
 
 _remove_installer(){
-	__debug --level 4 "_remove_installer($@)"
+	__debug --level 4 "_remove_installer($*)"
 	__debug --level 1 --levelcompare "eq" "Removing installer..."
 	local result=0
 	local parentdir=$(dirname $0)
@@ -2881,7 +3148,7 @@ _remove_installer(){
 }
 
 _prepare_systemd(){
-	__debug --level 4 "_prepare_systemd($@)"
+	__debug --level 4 "_prepare_systemd($*)"
 	__debug --level 1 --levelcompare "eq" "Preparing Systemd Unit..."
 	local result=0
 	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_NODE_TYPE" = "wk" || "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
@@ -2893,7 +3160,7 @@ _prepare_systemd(){
 }
 
 _prepare_docker_compose(){
-	__debug --level 4 "_prepare_docker_compose($@)"
+	__debug --level 4 "_prepare_docker_compose($*)"
 	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" != "local" ]]; then
 		return 0
 	fi
@@ -2909,6 +3176,11 @@ _prepare_docker_compose(){
 version: '3.2'
 
 services:
+  frontend:
+    environment:
+      KEYCLOAK_AUTH_URL:
+      KEYCLOAK_LOGIN_URL:
+
   keycloak_db:
     entrypoint: ["echo", "Service keycloak_db disabled"]
 
@@ -2919,7 +3191,7 @@ EOF
 }
 
 _prepare_mip_env(){
-	__debug --level 4 "_prepare_mip_env($@)"
+	__debug --level 4 "_prepare_mip_env($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
@@ -2956,8 +3228,441 @@ _prepare_mip_env(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
+_ansible_services(){
+	__debug --level 4 "_run_ansible_services($*)"
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		return 0
+	fi
+
+	local ansible_playbook=$ANSIBLE_CMD
+	if [[ -f $ANSIBLE_VAULT_PASS_FILE ]]; then
+		ansible_playbook+="--vault-password-file $ANSIBLE_VAULT_PASS_FILE "
+	fi
+
+	local ret
+
+	if [[ $ARG_WITH_SECURE_PORTAINER -eq 1 ]]; then
+		local domain_name=""
+		local new_domain_name=""
+		if [[ "$(cat $ANSIBLE_PATH/group_vars/all.yaml|grep '^DOMAIN_NAME')" != "" ]]; then
+			domain_name=$(cat $ANSIBLE_PATH/group_vars/all.yaml|grep "^DOMAIN_NAME"|awk '{print $2}'|cut -d '"' -f2)
+		fi
+		if [[ "$domain_name" = "" ]]; then
+			local master_ip=$(cat $ANSIBLE_HOSTS_FILE|awk -F '=' '/^master ansible_host/ {print $2}')
+			echo -n "What is the Domain name for which a SSL certificate has been created in the Master machine ($master_ip)? "
+			read new_domain_name
+			domain_name=$new_domain_name
+		fi
+		local ansible_playbook_check="${ansible_playbook}$ANSIBLE_PATH/CheckDomain.yaml -e domain_name=${domain_name}"
+		echo "<$ansible_playbook_check>"
+		$ansible_playbook_check
+		ret=$?
+		if [[ $ret -ne 0 ]]; then
+			__red "Error when running <$ansible_playbook_check>!"
+			exit 1
+		fi
+		local ssl_ok="False"
+		if [[ -f domain.txt ]]; then
+			ssl_ok=$(cat domain.txt)
+			rm domain.txt
+		fi
+
+		if [[ "$ssl_ok" = "True" ]]; then
+			if [[ $ARG_WITH_PORTAINER -eq 1 ]]; then
+				unset ARG_WITH_PORTAINER
+			fi
+			if [[ "$new_domain_name" != "" ]]; then
+				if [[ "$(cat $ANSIBLE_PATH/group_vars/all.yaml|grep '^DOMAIN_NAME')" != "" ]]; then
+					sed --in-place "s/^DOMAIN_NAME.*/DOMAIN_NAME: \"$new_domain_name\"" $ANSIBLE_PATH/group_vars/all.yaml
+				else
+					sed --in-place "1 i\DOMAIN_NAME: \"$new_domain_name\"" $ANSIBLE_PATH/group_vars/all.yaml
+				fi
+				__yellow "DOMAIN_NAME <$new_domain_name> saved in $ANSIBLE_PATH/group_vars/$all.yaml!"
+			fi
+		else
+			__yellow "SSL certificate check failed for domain <$domain_name>. Will use Portainer in unsecure mode..."
+			unset ARG_WITH_SECURE_PORTAINER
+			ARG_WITH_PORTAINER=1
+		fi
+	fi
+
+	local tags=""
+	if [[ $ARG_WITHOUT_EXAREME -eq 1 ]]; then
+		if [[ $ARG_WITH_SECURE_PORTAINER -eq 1 ]]; then
+			tags="portainerSecure"
+		elif [[ $ARG_WITH_PORTAINER -eq 1 ]]; then
+			tags="portainer"
+		fi
+	else
+		tags="exareme"
+		if [[ $ARG_WITH_SECURE_PORTAINER -eq 1 ]]; then
+			tags+=",portainerSecure"
+		elif [[ $ARG_WITH_PORTAINER -eq 1 ]]; then
+			tags+=",portainer"
+		fi
+	fi
+
+	if [[ "$tags" = "" ]]; then
+		__red "No service selected! Available flags are [--without-exareme|--with-portainer|--with-secure-portainer]"
+		return 1
+	fi
+
+	case $1 in
+		start|stop|restart)
+			local ansible_playbook_stop="${ansible_playbook}$ANSIBLE_PATH/Stop-Services.yaml "
+			ansible_playbook_stop+="--tags $tags"
+			echo "<$ansible_playbook_stop>"
+			#$ansible_playbook_stop
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Error when running <$ansible_playbook_stop>!"
+				exit 1
+			fi
+			;;
+	esac
+
+	case $1 in
+		start|restart)
+			local ansible_playbook_start="${ansible_playbook}$ANSIBLE_PATH/Start-Exareme.yaml "
+			ansible_playbook_start+="--tags $tags"
+			echo "<$ansible_playbook_start>"
+			#$ansible_playbook_start
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Error when running <$ansible_playbook_start>!"
+				exit 1
+			fi
+			;;
+	esac
+}
+
+_node(){
+	__debug --level 4 "_node($*)"
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		return 0
+	fi
+
+	if [[ -f $SSH_PATH/.ssh/config ]]; then
+		local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+		local node
+		local nodecount=$(cat $SSH_PATH/.ssh/config|wc -l)
+		local nodeid=0
+		local nodeshortname
+		local localhostname
+		local nodeip
+		local ansiblenodename
+		__green "" >/dev/null 2>&1
+
+		local ret
+		local result=""
+	else
+		__red "SSH federation configuration file not found!"
+		exit 1
+	fi
+
+	local ansible_playbook="ansible-playbook --vault-password-file $HOME/.vault_pass.sh -i $ANSIBLE_PATH/hosts.ini -c paramiko -e@$ANSIBLE_PATH/vault.yaml "
+
+	case $NODE_ACTION in
+		list|status|deploy|start|stop|restart)
+			for node in $nodes; do
+				nodeshortname=$(cat $SSH_PATH/.ssh/config|grep "^Host .*\b$node\b"|awk '{print $2}')
+				localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$node\b"|awk '/Hostname / {print $2}')
+				_valid_IPv4 $localhostname
+				ret=$?
+				if [[ $ret -ne 0 ]]; then
+					nodeip=$(host $localhostname|awk '/has address/ {print $NF}')
+				else
+					nodeip=$localhostname
+				fi
+
+				_contains "$nodeid $nodeshortname $node $localhostname $nodeip" "$ARG_NODE"
+				ret=$?
+				if [[ -n $ARG_NODE && $ret -ne 0 ]]; then
+					nodeid=$(expr $nodeid + 1)
+					continue
+				fi
+
+				ansiblenodename=""
+				if [[ $nodeid -eq 0 ]]; then
+					ansiblenodename="master"
+				elif [[ $nodeid -gt 1 ]]; then
+					ansiblenodename="worker"$(echo $nodeip|sed 's/\./_/g')
+				fi
+
+				case $NODE_ACTION in
+					list)
+						case $nodeid in
+							0)
+								result="${result}Master node (${yellow}ms${reset})"
+								;;
+							1)
+								result="${result}Frontend node (${yellow}ui${reset})"
+								;;
+							*)
+								result="${result}Worker node $(expr $nodeid - 1) (${yellow}wk$(expr $nodeid - 1)${reset})"
+								;;
+						esac
+						if [[ $nodeid -lt 2 ]]; then
+							result="${result}@: ${magenta}${node}@${localhostname}${reset}@@"
+						else
+							result="${result}@: ${cyan}${node}@${localhostname}${reset}@@"
+						fi
+						;;
+					status)
+						case $nodeid in
+							0)
+								echo "Master node (${yellow}ms${reset}) / ${magenta}$node ($localhostname)${reset}"
+								;;
+							1)
+								if [[ ! -n $ARG_NODE ]]; then echo; fi
+								echo "Frontend node (${yellow}ui${reset}) / ${magenta}$node ($localhostname)${reset}"
+								;;
+							*)
+								if [[ ! -n $ARG_NODE ]]; then echo; fi
+								echo "Worker node $(expr $nodeid - 1) (${yellow}wk$(expr $nodeid - 1)${reset}) / ${cyan}$node ($localhostname)${reset}"
+								;;
+						esac
+						_remote_exec $node ${MIP_COMMAND} status 2>/dev/null
+						;;
+					deploy)
+						;;
+					start)
+
+						;;
+					stop)
+						if [[ "$nodeshortname" != "ui" && "$nodeshortname" != "ms" ]]; then
+							ansible_playbook_stop="${ansible_playbook}$ANSIBLE_PATH/Stop-Exareme-Worker.yaml -e my_host=${ansiblenodename}"
+							$ansible_playbook_stop
+						fi
+						;;
+					restart)
+						;;
+				esac
+				nodeid=$(expr $nodeid + 1)
+			done
+			if [[ "$NODE_ACTION" = "stop" && ! -n $ARG_NODE ]]; then
+				ansible_playbook_stop="${ansible_playbook}$ANSIBLE_PATH/Stop-Services.yaml"
+				if [[ $ARG_WITHOUT_PORTAINER -eq 1 && $ARG_WITHOUT_EXAREME -eq 1 ]]; then
+					__red "I guess you don't wanna stop anything then..."
+					return 0
+				elif [[ $ARG_WITHOUT_PORTAINER -eq 1 ]]; then
+					ansible_playbook_stop="${ansible_playbook_stop} --skip-tags portainer"
+				elif [[ $ARG_WITHOUT_EXAREME -eq 1 ]]; then
+					ansible_playbook_stop="${ansible_playbook_stop} --skip-tags exareme"
+				fi
+				$ansible_playbook_stop
+			fi
+
+			if [[ "$NODE_ACTION" = "list" ]]; then
+				echo $result | sed 's/@@/\n/g' | column -s '@' -t
+			fi
+			;;
+		*)
+			__red "Usage: $0 --pusher --federation <FEDERATION> (--node <NODE_SHORT_NAME/NODE_NAME/NODE_ID/NODE_IP>) node [list|status|deploy|start|stop|restart]"
+			exit 1
+	esac
+}
+
+_services(){
+	__debug --level 4 "_services($*)"
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		return 0
+	fi
+
+	if [[ -f $SSH_PATH/.ssh/config ]]; then
+		local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+		local node
+		local nodecount=$(cat $SSH_PATH/.ssh/config|wc -l)
+		local nodeid=0
+		local nodeshortname
+		local localhostname
+		local nodeip
+		local ansiblenodename
+		__green "" >/dev/null 2>&1
+
+		local ret
+		local result=""
+	else
+		__red "SSH federation configuration file not found!"
+		exit 1
+	fi
+
+	local orig_base_cmd="$0"
+	local arg
+	local i=$ORIG_ARGS_COUNT
+	for arg in $ORIG_ARGS; do
+		if [[ $i -eq 1 ]]; then
+			break
+		fi
+		orig_base_cmd+=" $arg"
+		i=$(expr $i - 1)
+	done
+
+	local ansible_playbook=$ANSIBLE_CMD
+	if [[ -f $ANSIBLE_VAULT_PASS_FILE ]]; then
+		ansible_playbook+="--vault-password-file $ANSIBLE_VAULT_PASS_FILE "
+	fi
+
+	local workers=0
+	local isworker=0
+	case $SERVICES_ACTION in
+		status|deploy|start|stop|restart)
+			for node in $nodes; do
+				nodeshortname=$(cat $SSH_PATH/.ssh/config|grep "^Host .*\b$node\b"|awk '{print $2}')
+				localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$node\b"|awk '/Hostname / {print $2}')
+				_valid_IPv4 $localhostname
+				ret=$?
+				if [[ $ret -ne 0 ]]; then
+					nodeip=$(host $localhostname|awk '/has address/ {print $NF}')
+				else
+					nodeip=$localhostname
+				fi
+
+				_contains "$nodeid $nodeshortname $node $localhostname $nodeip" "$ARG_NODE"
+				ret=$?
+				if [[ -n $ARG_NODE && $ret -ne 0 ]]; then
+					nodeid=$(expr $nodeid + 1)
+					continue
+				fi
+
+				isworker=0
+				if [[ $nodeid -ge 2 ]]; then
+					isworker=1
+				fi
+
+				ansiblenodename=""
+				if [[ $nodeid -eq 0 ]]; then
+					ansiblenodename="master"
+				elif [[ $nodeid -gt 1 ]]; then
+					ansiblenodename="worker"$(echo $nodeip|sed 's/\./_/g')
+					workers=$(expr $workers + 1)
+				fi
+
+				case $SERVICES_ACTION in
+					status)
+						case $nodeid in
+							0)
+								echo "Master node (${yellow}ms${reset}) / ${magenta}$node ($localhostname)${reset}"
+								;;
+							1)
+								if [[ ! -n $ARG_NODE ]]; then echo; fi
+								echo "Frontend node (${yellow}ui${reset}) / ${magenta}$node ($localhostname)${reset}"
+								;;
+							*)
+								if [[ ! -n $ARG_NODE ]]; then echo; fi
+								echo "Worker node $(expr $nodeid - 1) (${yellow}wk$(expr $nodeid - 1)${reset}) / ${cyan}$node ($localhostname)${reset}"
+								;;
+						esac
+						_remote_exec $node ${MIP_COMMAND} status 2>/dev/null
+						;;
+					deploy)
+						if [[ $nodeid -eq 0 ]]; then
+							local ansible_playbook_init="${ansible_playbook}$ANSIBLE_PATH/Init-Swarm.yaml"
+							echo "<$ansible_playbook_init>"
+							#$ansible_playbook_init
+							ret=$?
+							if [[ $ret -ne 0 ]]; then
+								__red "Error when running <$ansible_playbook_init>!"
+								exit 1
+							fi
+						elif [[ $isworker -eq 1 ]]; then
+							local ansible_playbook_join="${ansible_playbook}$ANSIBLE_PATH/Join-Workers.yaml -e my_host=${ansiblenodename}"
+							echo "<$ansible_playbook_join>"
+							#$ansible_playbook_join
+							ret=$?
+							if [[ $ret -ne 0 ]]; then
+								__red "Error when running <$ansible_playbook_join>!"
+								exit 1
+							fi
+						fi
+						;;
+					start|restart)
+						if [[ -n $ARG_NODE && $isworker -eq 1 ]]; then
+							$orig_base_cmd stop
+							local ansible_playbook_join="${ansible_playbook}$ANSIBLE_PATH/Join-Workers.yaml -e my_host=${ansiblenodename}"
+							echo "<$ansible_playbook_join>"
+							#$ansible_playbook_join
+							ret=$?
+							if [[ $ret -ne 0 ]]; then
+								__red "Error when running <$ansible_playbook_join>!"
+								exit 1
+							fi
+							local ansible_playbook_start="${ansible_playbook}$ANSIBLE_PATH/Start-Exareme-Worker.yaml -e my_host=${ansiblenodename}"
+							echo "<$ansible_playbook_start>"
+							#$ansible_playbook_start
+							ret=$?
+							if [[ $ret -ne 0 ]]; then
+								__red "Error when running <$ansible_playbook_start>!"
+								exit 1
+							fi
+						fi
+						;;
+					stop)
+						if [[ -n $ARG_NODE && $isworker -eq 1 ]]; then
+							local ansible_playbook_stop="${ansible_playbook}$ANSIBLE_PATH/Stop-Exareme-Worker.yaml -e my_host=${ansiblenodename}"
+							echo "<$ansible_playbook_stop>"
+							#$ansible_playbook_stop
+							ret=$?
+							if [[ $ret -ne 0 ]]; then
+								__red "Error when running <$ansible_playbook_stop>!"
+								exit 1
+							fi
+						fi
+						;;
+				esac
+				nodeid=$(expr $nodeid + 1)
+			done
+
+			case $SERVICES_ACTION in
+				deploy)
+					if [[ ! -n $ARG_NODE ]]; then
+						if [[ $workers -eq 0 ]]; then
+							__red "No workers found. Master node will leave the Swarm..."
+							local ansible_playbook_leave="${ansible_playbook}$ANSIBLE_PATH/Leave-Master.yaml"
+							echo "<$ansible_playbook_leave>"
+							#$ansible_playbook_leave
+							ret=$?
+							if [[ $ret -ne 0 ]]; then
+								__red "Error when running <$ansible_playbook_leave>!"
+								exit 1
+							fi
+						else
+							_ansible_services start
+						fi
+					fi
+					;;
+				start|stop|restart)
+					if [[ ! -n $ARG_NODE ]]; then
+						_ansible_services $SERVICES_ACTION
+					fi
+					;;
+			esac
+			;;
+		*)
+			__red "Usage: $0 --pusher --federation <FEDERATION> (--node <NODE_SHORT_NAME/NODE_NAME/NODE_ID/NODE_IP>) services [status|deploy|start|stop|restart]"
+			exit 1
+	esac
+}
+
+_version(){
+	__debug --level 4 "_version($*)"
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		return 0
+	fi
+	local result=0
+
+	case $VERSION_ACTION in
+		list)
+			;;
+		list-avail)
+			;;
+		upgrade)
+			;;
+	esac
+}
+
 _data(){
-	__debug --level 4 "_data($@)"
+	__debug --level 4 "_data($*)"
 	if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
 		return 0
 	fi
@@ -3001,8 +3706,11 @@ _data(){
 					__debug --level 5 "localhostname=<$localhostname>"
 					remotehostname=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "hostname" 2>/dev/null)
 					__debug --level 5 "remotehostname=<$remotehostname>"
+					if [[ "$host" != "ms" && "$host" != "ui" ]]; then echo; fi
 					__debug --level 0 -n "Checking if remote <$host/$remotehostname> ($localhostname) hostname matches SSH config file's content..."
-					if [[ $(_contains "$host $customhostname" "$remotehostname") -ne 0 ]]; then
+					_contains "$host $customhostname" "$remotehostname"
+					local ret=$?
+					if [[ $ret -ne 0 ]]; then
 						__red "SSH (and Ansible) defined host have to be the same than the corresponding 'machine hostname'!"
 						__red "SSH defined host: <$customhostname> ($localhostname), remote machine hostname: <$remotehostname>"
 						__red "Please fix it!"
@@ -3185,7 +3893,7 @@ _data(){
 }
 
 _federation_task(){
-	__debug --level 4 "_federation_task($@)"
+	__debug --level 4 "_federation_task($*)"
 	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 		return 0
 	fi
@@ -3221,7 +3929,7 @@ _federation_task(){
 					head -1 $DATA_PATH/$ARG_FEDERATION/$pathology/$dataset > /tmp/miptmpfeddata/$pathology/$dataset
 					sed --in-place 's/\r//g' /tmp/miptmpfeddata/$pathology/$dataset
 					total_columns=$(cat /tmp/miptmpfeddata/$pathology/$dataset|sed 's/,/\n/g'|nl|tail -1|awk '{print $1}')
-					dataset_column=$(cat /tmp/miptmpfeddata/$pathology/$dataset|sed 's/,/\n/g'|nl|awk '/\d?[ \t]?dataset$/ {print $1}')
+					dataset_column=$(cat /tmp/miptmpfeddata/$pathology/$dataset|sed 's/,/\n/g'|nl|grep -w dataset|awk '{print $1}')
 					dataset_name=$(head -2 $DATA_PATH/$ARG_FEDERATION/$pathology/$dataset|tail -1|sed 's/,/\n/g'|head -$dataset_column|tail -1)
 					__debug --level 5 "total_columns=<$total_columns>"
 					__debug --level 5 "dataset_column=<$dataset_column>"
@@ -3259,7 +3967,7 @@ _federation_task(){
 }
 
 _run_keycloak(){
-	__debug --level 4 "_run_keycloak($@)"
+	__debug --level 4 "_run_keycloak($*)"
 	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" != "local" || $MIP_ENV_KEYCLOAK_AUTHENTICATION -ne 1 ]]; then
 		return 0
 	fi
@@ -3308,7 +4016,7 @@ _run_keycloak(){
 }
 
 _services_up(){
-	__debug --level 4 "_services_up($@)"
+	__debug --level 4 "_services_up($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
@@ -3338,7 +4046,7 @@ _services_up(){
 }
 
 _services_down(){
-	__debug --level 4 "_services_down($@)"
+	__debug --level 4 "_services_down($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
@@ -3367,7 +4075,7 @@ _services_down(){
 }
 
 run_mip(){
-	__debug --level 4 "run_mip($@)"
+	__debug --level 4 "run_mip($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
@@ -3408,7 +4116,7 @@ run_mip(){
 }
 
 logs(){
-	__debug --level 4 "logs($@)"
+	__debug --level 4 "logs($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return 0
 	fi
@@ -3520,7 +4228,7 @@ logs(){
 }
 
 stop_mip(){
-	__debug --level 4 "stop_mip($@)"
+	__debug --level 4 "stop_mip($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
@@ -3563,7 +4271,7 @@ stop_mip(){
 
 delete_mip(){
 	__debug --level 1 --levelcompare "eq" "Deleting MIP..."
-	__debug --level 4 "delete_mip($@)"
+	__debug --level 4 "delete_mip($*)"
 	local answer=""
 	if [[ $ARG_YES -eq 1 ]]; then
 		answer="y"
@@ -3726,8 +4434,17 @@ main(){
 					exit 1
 			esac
 			;;
+		node)
+			_node $@
+			;;
+		services)
+			_services $@
+			;;
 		data)
 			_data $@
+			;;
+		version)
+			_version $@
 			;;
 		fedtask)
 			_federation_task $@
@@ -3737,8 +4454,19 @@ main(){
 			_manage_tmux_session
 			;;
 		*)
+			#if [[ $# -eq 0 ]]; then
+			#	local args
+			#	clear
+			#	while [[ True ]]; do
+			#		echo -n "> "
+			#		read args
+			#		$0 $args
+			#		echo
+			#	done
+			#fi
+
 			if [[ $ARG_PUSHER -eq 1 ]]; then
-				__red "Usage: $0 --pusher --federation <FEDERATION> [check-required|install|configure|uninstall|data]"
+				__red "Usage: $0 --pusher --federation <FEDERATION> [check-required|install|configure|uninstall|data|node|service]"
 			elif [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
 				__red "Usage: $0 --node-type ms [check-required|install|configure|uninstall|status|status-details|logs|cleanup]"
 			elif [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then

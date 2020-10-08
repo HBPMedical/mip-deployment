@@ -2,8 +2,13 @@ version: '3.2'
 
 services:
   exareme_keystore:
-    image: progrium/consul
-    command: -server -bootstrap
+    image: bitnami/consul:1.8.3
+    environment:
+      - CONSUL_AGENT_MODE=server
+      - CONSUL_BOOTSTRAP_EXPECT=1
+      - CONSUL_CLIENT_LAN_ADDRESS=0.0.0.0
+      - CONSUL_ENABLE_UI=true
+    restart: unless-stopped
 
   exareme_master:
     image: hbpmip/exareme:${EXAREME}
@@ -12,14 +17,16 @@ services:
       - FEDERATION_ROLE=master
       - NODE_NAME=miplocal
       - TEMP_FILES_CLEANUP_TIME=30
-      - NODE_COMMUNICATION_TIMEOUT=30000 # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
-      - ENVIRONMENT_TYPE=PROD
+      - NODE_COMMUNICATION_TIMEOUT=30000        # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
+      - ENVIRONMENT_TYPE=PROD                   # TEST / DEV / PROD
+      - LOG_LEVEL=INFO                          # INFO / DEBUG
     depends_on:
       - exareme_keystore
     ports:
       - '9090:9090'
     volumes:
       - ./data:/root/exareme/data/
+    restart: unless-stopped
 
   galaxy:
     image: hbpmip/galaxy:${GALAXY}
@@ -34,6 +41,7 @@ services:
       - '80'
     ports:
       - '8090:80'
+    restart: unless-stopped
 
   portalbackend_db:
     image: postgres:11.3-alpine
@@ -45,6 +53,7 @@ services:
     command: -p 5433
     expose:
       - 5433
+    restart: unless-stopped
 
   create_dbs:
     image: hbpmip/create-databases:1.1.0
@@ -94,13 +103,12 @@ services:
       USER_INFO_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
       TOKEN_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
       LOGOUT_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout
-
     depends_on:
       - create_dbs
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
-    restart: on-failure
+    restart: unless-stopped
 
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
@@ -120,7 +128,7 @@ services:
       GALAXY_URL: http://galaxy/nativeGalaxy
       KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
       KEYCLOAK_LOGIN_URL: http://keycloak:8095/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
-      restart: on-failure
+    restart: unless-stopped
 
   keycloak_db:
     image: postgres:12.2
@@ -130,9 +138,10 @@ services:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: password
+    restart: unless-stopped
 
   keycloak:
-    image: jboss/keycloak:9.0.2
+    image: jboss/keycloak:11.0.2
     command: -Djboss.http.port=8095
     volumes:
       - ./config/keycloak/keycloak.json:/tmp/mip.json
@@ -154,4 +163,4 @@ services:
       - '8443:8443'
     depends_on:
       - keycloak_db
-    restart: on-failure
+    restart: unless-stopped
