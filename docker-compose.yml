@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
 
   exareme_master:
-    image: hbpmip/exareme:${EXAREME}
+    image: eezacharia/myexareme:naivebayesgalaxy
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
@@ -29,7 +29,7 @@ services:
     restart: unless-stopped
 
   galaxy:
-    image: hbpmip/galaxy:${GALAXY}
+    image: thanasulas/galaxy:latest
     environment:
       - EXAREME_IP=exareme_master
       - EXAREME_PORT=9090
@@ -70,7 +70,7 @@ services:
     restart: on-failure
 
   portalbackend:
-    image: hbpmip/portal-backend:${PORTALBACKEND}
+    image: thanasulas/portal-backend:latest
     ports:
       - '8080:8080'
       - '8089:8089'
