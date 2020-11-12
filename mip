@@ -2928,7 +2928,7 @@ _prepare_data(){
 	# CSVs and metadata validation
 	echo -e "\nValidating if the CSVs match with the metadata..."
 	find $datapath -name '*.db' -delete # Removing previous .db files
-	$MIP_PATH/config/convert-csv-dataset-to-db.py -f $datapath -t "master" # Running the database creation script
+	$MIP_PATH/config/convert-csv-dataset-to-db.py -f $datapath # Running the database creation script
 	local ret=$?
 	if [[ $ret -ne 0 ]]; then
 		__red -n "The CSVs could not be parsed using the metadata. Exiting... "
