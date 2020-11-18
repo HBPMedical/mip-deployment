@@ -39,43 +39,38 @@ services:
 
   portalbackend:
     image: hbpmip/portal-backend:${PORTALBACKEND}
-    depends_on:
-      - create_dbs
     ports:
       - '8080:8080'
       - '8089:8089'
     environment:
-      PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5432/portal
-      PORTAL_DB_SERVER: portalbackend_db:5432
+      ### API ###
+      LOG_LEVEL: INFO
+      LOG_LEVEL_FRAMEWORK: INFO
+      PRODUCTION: true
+      AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
+      ### Database ###
+      PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
+      PORTAL_DB_SERVER: portalbackend_db:5433
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
-      CONTEXT_PATH: /services
-      AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
-      FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
-      FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_HOST}/
-      FRONTEND_AFTER_LOGOUT_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
-      LOGGING_LEVEL_WEB: INFO
-      LOGGING_LEVEL_HIBERNATE: INFO
-      SESSION_TIMEOUT: 2592000
-      RELEASE_STAGE: 'production'
-      DATACENTER_LOCATION: 'CHUV'
-      CONTAINER_ORCHESTRATION: 'docker-compose'
-      EXAREME_URL: http://${EXAREME_IP}:9090
+      ### Exareme ###
+      EXAREME_URL: http://exareme_master:9090
+      ### Galaxy ###
       GALAXY_URL: http://galaxy
-      GALAXY_CONTEXT: nativeGalaxy/workflows/list
       GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-      CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
-      CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-      AUTH_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
-      USER_INFO_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
-      TOKEN_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
-      LOGOUT_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout
-    restart: unless-stopped
+      ### Keycloak ###
+      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+    depends_on:
+      - create_dbs
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
+    restart: unless-stopped
 
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
@@ -94,6 +89,5 @@ services:
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
       DATACATALOGUE_SERVER: ${DATACATALOGUE_PROTOCOL}://${DATACATALOGUE_HOST}
-      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
-      KEYCLOAK_LOGIN_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
+      KEYCLOAK_AUTH_URL: /services/sso/login
     restart: unless-stopped

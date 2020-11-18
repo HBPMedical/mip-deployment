@@ -75,34 +75,28 @@ services:
       - '8080:8080'
       - '8089:8089'
     environment:
+      ### API ###
+      LOG_LEVEL: INFO
+      LOG_LEVEL_FRAMEWORK: INFO
+      PRODUCTION: true
+      AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
+      ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
       PORTAL_DB_SERVER: portalbackend_db:5433
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
-      CONTEXT_PATH: /services
-      AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
-      CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
-      CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-      FRONTEND_LOGIN_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
-      FRONTEND_AFTER_LOGIN_URL: http://${PUBLIC_MIP_HOST}/
-      FRONTEND_AFTER_LOGOUT_URL: http://${PUBLIC_MIP_HOST}/services/login/hbp
-      LOGGING_LEVEL_WEB: INFO
-      LOGGING_LEVEL_HIBERNATE: INFO
-      SESSION_TIMEOUT: 2592000
-      RELEASE_STAGE: 'production'
-      DATACENTER_LOCATION: 'CHUV'
-      CONTAINER_ORCHESTRATION: 'docker-compose'
+      ### Exareme ###
       EXAREME_URL: http://exareme_master:9090
+      ### Galaxy ###
       GALAXY_URL: http://galaxy
-      GALAXY_CONTEXT: nativeGalaxy/workflows/list
       GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
-      KEYCLOAK_URL: ${KEYCLOAK_URL}
-      AUTH_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
-      USER_INFO_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo
-      TOKEN_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
-      LOGOUT_URI: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout
+      ### Keycloak ###
+      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
     depends_on:
       - create_dbs
     volumes:
@@ -126,8 +120,7 @@ services:
       VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
-      KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
-      KEYCLOAK_LOGIN_URL: http://keycloak:8095/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
+      KEYCLOAK_AUTH_URL: /services/sso/login
     restart: unless-stopped
 
   keycloak_db:
