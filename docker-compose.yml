@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
 
   exareme_master:
-    image: hbpmip/exareme:${EXAREME}
+    image: thanasulas/exareme:response_refactor
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
