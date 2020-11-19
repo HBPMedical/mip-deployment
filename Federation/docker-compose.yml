@@ -46,7 +46,6 @@ services:
       ### API ###
       LOG_LEVEL: INFO
       LOG_LEVEL_FRAMEWORK: INFO
-      PRODUCTION: 1 
       AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
       ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
