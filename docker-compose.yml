@@ -71,7 +71,7 @@ services:
     restart: on-failure
 
   portalbackend:
-    image: hbpmip/portal-backend:${PORTALBACKEND}
+    image: kfilippopolitis/portal-backend:experiment_refactor_v1
     ports:
       - '8080:8080'
       - '8089:8089'
