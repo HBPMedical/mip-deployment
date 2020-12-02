@@ -71,7 +71,7 @@ services:
     restart: on-failure
 
   portalbackend:
-    image: kfilippopolitis/portal-backend:experiment_refactor_v1
+    image: kfilippopolitis/portal-backend:experiment_refactor_v2
     ports:
       - '8080:8080'
       - '8089:8089'
@@ -79,7 +79,7 @@ services:
       ### API ###
       LOG_LEVEL: INFO
       LOG_LEVEL_FRAMEWORK: INFO
-      AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
+      AUTHENTICATION: 0 #${KEYCLOAK_AUTHENTICATION}
       ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
       PORTAL_DB_SERVER: portalbackend_db:5433
@@ -105,7 +105,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: hbpmip/portal-frontend:${FRONTEND}
+    image: hbpmip/portal-frontend:6.4.9-5-g81ed53c3 #hbpmip/portal-frontend:${FRONTEND}
     depends_on:
       - portalbackend
     ports:
