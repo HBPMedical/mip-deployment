@@ -6,18 +6,19 @@ shopt -s extglob
 
 REQUIRED_OS_DISTRIBUTOR_ID="Ubuntu"
 REQUIRED_OS_RELEASE="18.04"
-REQUIRED_DOCKER_VERSION="19.03.6"
+REQUIRED_DOCKER_VERSION="20.10.0"
 ###########################################################################################
 INSTALL_PATH="/opt"
 ###########################################################################################
 DOCKER_DOWNLOAD_HOST="download.docker.com"
 DOCKER_USER="mipadmin"
 DOCKER_USER_PASSWD='$6$hZTew7vztbwhQHx$/F8I.cs78bBy9lO.rQ4AUICGrkZLVjPt7zkV3xXEC3.mip0rVrrxPmTgvrZQ0DcsNqpnb10Cn6InVt441BIUo0'
-CONFLICTING_PACKAGES="docker docker-engine docker.io containerd runc"
+CONFLICTING_PACKAGES="docker docker-engine docker.io docker-compose containerd runc"
 CONFLICTING_SNAP_PACKAGES="docker"
 PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates ssl-cert curl gnupg-agent software-properties-common net-tools whois lsof expect python3-pip"
-REQUIRED_PACKAGES="docker-ce docker-ce-cli containerd.io docker-compose"
+REQUIRED_PACKAGES="docker-ce docker-ce-cli docker-ce-rootless-extras containerd.io"
 REQUIRED_PIP3_PACKAGES="chardet"
+REQUIRED_CUSTOM_PACKAGES="docker-compose python2"
 DEFAULT_MIP_GITHUB_OWNER="HBPMedical"
 DEFAULT_MIP_GITHUB_PROJECT="mip-deployment"
 DEFAULT_MIP_BRANCH="master"
@@ -219,6 +220,11 @@ args_parser(){
 				shift
 				shift
 				;;
+			--container)
+				ARG_CONTAINER=$2
+				shift
+				shift
+				;;
 			--with-portainer)
 				ARG_WITH_PORTAINER=1
 				shift
@@ -317,34 +323,34 @@ __colored_msg(){
 		shift
 	fi
 	if [[ $ret -eq 0 ]]; then
-		echo "${arg}" "${!color}$*${reset}" >&2
+		echo ${arg} "${!color}$*${reset}" >&2
 	else
-		echo "${arg}" "$*" >&2
+		echo ${arg} "$*" >&2
 	fi
 }
 
 __red(){
-	__colored_msg "red" "$*"
+	__colored_msg "red" "$@"
 }
 
 __green(){
-	__colored_msg "green" "$*"
+	__colored_msg "green" "$@"
 }
 
 __yellow(){
-	__colored_msg "yellow" "$*"
+	__colored_msg "yellow" "$@"
 }
 
 __blue(){
-	__colored_msg "blue" "$*"
+	__colored_msg "blue" "$@"
 }
 
 __magenta(){
-	__colored_msg "magenta" "$*"
+	__colored_msg "magenta" "$@"
 }
 
 __cyan(){
-	__colored_msg "cyan" "$*"
+	__colored_msg "cyan" "$@"
 }
 
 __debug(){
@@ -444,6 +450,22 @@ __check_return(){
 	else
 		__red $arg "ko"
 	fi
+}
+
+__hourglass(){
+	if [[ "$HOURGLASSCHAR" = "" ]]; then
+		HOURGLASSCHAR="|"
+	elif [[ "$HOURGLASSCHAR" = "|" ]]; then
+		HOURGLASSCHAR="/"
+	elif [[ "$HOURGLASSCHAR" = "/" ]]; then
+		HOURGLASSCHAR="-"
+	elif [[ "$HOURGLASSCHAR" = "-" ]]; then
+		HOURGLASSCHAR="\\"
+	elif [[ "$HOURGLASSCHAR" = "\\" ]]; then
+		HOURGLASSCHAR="|"
+	fi
+
+	echo -en "\r$HOURGLASSCHAR $1"
 }
 
 _help(){
@@ -1017,7 +1039,7 @@ _check_os(){
 
 _check_conflicting_packages(){
 	__debug --level 1 --levelcompare "eq" -n "Checking conflicting packages..."
-	__debug --level 4 "_check_conflicting_packsges($*)"
+	__debug --level 4 "_check_conflicting_packages($*)"
 	local result=0
 	local packages=""
 	for package in $CONFLICTING_PACKAGES; do
@@ -1030,7 +1052,7 @@ _check_conflicting_packages(){
 	if [[ "$packages" != "" ]]; then
 		__debug --level 5 "packages=<$packages>"
 		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
-			__red "Conflicting packages detected			: $packages\n"
+			__red "Conflicting packages detected			: $packages"
 		fi
 		result=1
 	fi
@@ -1055,7 +1077,7 @@ _check_conflicting_snap_packages(){
 	if [[ "$packages" != "" ]]; then
 		__debug --level 5 "packages=<$packages>"
 		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
-			__red "Conflicting Snap packages detected		: $packages\n"
+			__red "Conflicting Snap packages detected		: $packages"
 		fi
 		result=1
 	fi
@@ -1138,7 +1160,7 @@ install_required_packages(){
 			if [[ "$1" = "pip3" ]]; then
 				match=$(pip3 list --format=columns|grep "^$package "|awk '{print $1}')
 			else
-				match=$(dpkg --list|grep "^ii.*$package ")
+				match=$(dpkg --list|grep "^ii\s*$package ")
 			fi
 			if [[ "$match" = "" ]]; then
 				packages="$packages $package"
@@ -1162,17 +1184,60 @@ install_required_packages(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
-_check_python2(){
-	__debug --level 1 --levelcompare "eq" -n "Checking Python2 requirements..."
-	__debug --level 4 "_check_python2($*)"
+_check_required_custom_packages(){
+	__debug --level 1 --levelcompare "eq" -n "Checking required custom packages..."
+	__debug --level 4 "_check_required_custom_packages($*)"
 	local result=0
-	if [[ ! $(command -v python2) ]]; then
-		if [[ "$1" != "-q" ]]; then
-			__red -n "Python 2 is missing! "
+	local packages=""
+	local required_packages=$REQUIRED_CUSTOM_PACKAGES
+	if [[ "$2" != "" ]]; then
+		required_packages=$2
+	fi
+
+	for package in $required_packages; do
+		if [[ "`echo $package|grep docker`" != "" && $ARG_PUSHER -eq 1 ]]; then
+			continue
 		fi
+
+		if [[ ! $(command -v $package) ]]; then
+			if [[ "$1" != "-q" ]]; then
+				__red -n "$package is missing! "
+			fi
+			packages="$packages $package"
+			result=1
+		fi
+	done
+
+	if [[ "$packages" != "" ]]; then
+		__debug --level 5 "missing required custom packages=<$packages>"
 		result=1
 	fi
 
+	__debug --level 5 "result=<$result>"
+	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+	return $result
+}
+
+install_required_custom_packages(){
+	__debug --level 1 --levelcompare "eq" -n "Installing required custom packages..."
+	__debug --level 4 "install_required_custom_packages($*)"
+	local result=0
+	local packages=""
+	for package in $REQUIRED_CUSTOM_PACKAGES; do
+		if [[ ! $(command -v $package) ]]; then
+			packages="$packages $package"
+		fi
+	done
+
+	if [[ "$packages" != "" ]]; then
+		__debug --level 5 "custom packages to be installed=<$packages>"
+	fi
+
+	for package in $packages; do
+		install_custom_package_$package
+	done
+
+	__debug --level 5 "result=<$result>"
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
 	return $result
 }
@@ -1199,10 +1264,26 @@ install_pyenv(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
-install_python2(){
+install_custom_package_docker-compose(){
+	__debug --level 1 --levelcompare "eq" -n "Installing docker-compose..."
+	__debug --level 4 "install_custom_package_docker-compose($*)"
+	_check_required_custom_packages -q docker-compose
+	local ret=$?
+	if [[ $ret -ne 0 ]]; then
+		__debug --level 6 "curl --silent \"https://api.github.com/repos/docker/compose/releases/latest\" | grep '\"tag_name\":' | sed -E 's/.*\"([^\"]+)\".*/\1/'"
+		local version=`curl --silent "https://api.github.com/repos/docker/compose/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'`
+		__debug --level 6 "sudo curl --silent -L \"https://github.com/docker/compose/releases/download/$version/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose"
+		sudo curl --silent -L "https://github.com/docker/compose/releases/download/$version/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+		__debug --level 6 "sudo chmod +x /usr/local/bin/docker-compose"
+		sudo chmod +x /usr/local/bin/docker-compose
+	fi
+	__debug --level 1 --levelcompare "eq" --color "green" "done"
+}
+
+install_custom_package_python2(){
 	__debug --level 1 --levelcompare "eq" -n "Installing Python2..."
-	__debug --level 4 "install_python2($*)"
-	_check_python2 -q
+	__debug --level 4 "install_custom_package_python2($*)"
+	_check_required_custom_packages -q python2
 	local ret=$?
 	if [[ $ret -ne 0 ]]; then
 		install_pyenv
@@ -1721,7 +1802,7 @@ check_required(){
 	if [[ $ret -ne 0 ]]; then
 		result=$ret
 	fi
-	_check_python2 $1
+	_check_required_custom_packages $1
 	ret=$?
 	if [[ $ret -ne 0 ]]; then
 		result=$ret
@@ -2073,11 +2154,13 @@ _configure_pusher(){
 		if [[ -f $SSH_PATH/.ssh/config.tmp ]]; then
 			rm $SSH_PATH/.ssh/config.tmp
 		fi
-		if [[ -f $SSH_PATH/.ssh/config ]]; then
+		if [[ -f $SSH_PATH/.ssh/config || -f $ANSIBLE_HOSTS_FILE || -f $ANSIBLE_VAULT_FILE ]]; then
 			echo -n "There's an existing hosts configuration. Would you like to erase it [y/n]? "
 			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 			if [[ "$answer" = "y" ]]; then
-				rm $SSH_PATH/.ssh/config
+				if [[ -f $SSH_PATH/.ssh/config ]]; then
+					rm $SSH_PATH/.ssh/config
+				fi
 				if [[ -f $ANSIBLE_HOSTS_FILE ]]; then
 					rm $ANSIBLE_HOSTS_FILE
 				fi
@@ -2093,6 +2176,8 @@ _configure_pusher(){
 			fi
 		fi
 
+		local localuser=$DOCKER_USER
+		local localhostname=$(hostname)
 		local goahead=1
 		local nodeid=1
 		local ansiblevaultpassword=""
@@ -2195,12 +2280,21 @@ _configure_pusher(){
 					nodeansiblename=$(cat $ANSIBLE_HOSTS_FILE|grep "ansible_host=$hostname"|awk '{print $1}')
 					if [[ "$nodeansiblename" != "" ]]; then
 						nodedatapath=$(cat $ANSIBLE_HOSTS_FILE|grep "^$nodeansiblename data_path"|awk -F '=' '{print $2}')
+						if [[ "$(echo $nodedatapath|rev|cut -c1)" = "/" ]]; then
+							nodedatapath=$(echo $nodedatapath|rev|cut -c2-|rev)
+							if [[ "$(echo $nodedatapath|awk -F '/' '{print $NF}')" = "$ARG_FEDERATION" ]]; then
+								nodedatapath=$(dirname $nodedatapath)
+							fi
+						fi
 						if [[ "$nodeansiblename" = "master" ]]; then
 							nodehomepath=$(cat $ANSIBLE_HOSTS_FILE|grep "^$nodeansiblename home_path"|awk -F '=' '{print $2}')
+							if [[ "$(echo $nodehomepath|rev|cut -c1)" = "/" ]]; then
+								nodehomepath=$(echo $nodehomepath|rev|cut -c2-|rev)
+							fi
 						fi
 						if [[ -s $ANSIBLE_VAULT_FILE ]]; then
-							noderemoteuser=$(cat $ANSIBLE_VAULT_FILE|grep "^${nodeansiblename}_remote_user"|awk -F ':' '{print $2}')
-							noderemotepasswd=$(cat $ANSIBLE_VAULT_FILE|grep "^${nodeansiblename}_ssh_pass"|awk -F ':' '{print $2}')
+							noderemoteuser=$(cat $ANSIBLE_VAULT_FILE|grep "^${nodeansiblename}_remote_user"|awk '{print $NF}')
+							noderemotepasswd=$(cat $ANSIBLE_VAULT_FILE|grep "^${nodeansiblename}_ssh_pass"|awk '{print $NF}')
 						fi
 					fi
 				fi
@@ -2276,16 +2370,32 @@ _configure_pusher(){
 					__magenta -n "$nodehostname"
 					__yellow -n "..."
 					__debug --level 6 "ssh-copy-id -f -i $SSH_PATH/.ssh/id_rsa.pub $SSH_OPTIONS $noderemoteuser@$nodehostname >/dev/null 2>&1"
-					expect >/dev/null 2>&1 << EOD
+					expect <(cat << EOD
+set timeout 10
 spawn ssh-copy-id -f -i $SSH_PATH/.ssh/id_rsa.pub $SSH_OPTIONS $noderemoteuser@$nodehostname
-expect "password"
-send "$noderemotepasswd\r"
+expect {
+    "assword:" {
+        send "$noderemotepasswd\n"
+        expect {
+            "denied" { exit 1 }
+            "added: 1" { exit 0 }
+            timeout { exit 1 }
+        }
+    }
+    "added: 1" { exit 0 }
+    timeout { exit 1 }
+}
 interact
+exit 1
 EOD
+) >/dev/null 2>&1
 					ret=$?
 					if [[ $ret -eq 0 ]]; then
 						__green "done"
 						__debug --level 5 "SSH identity copied successfully."
+						local pubkey=$(sed 's/\//\\\//g' $SSH_PATH/.ssh/id_rsa.pub)
+						__debug --level 6 'ssh -i '$SSH_PATH'/.ssh/id_rsa '$SSH_OPTIONS' '$noderemoteuser'@'$nodehostname' "sed -i \"\\\$!{/'$pubkey'/d;}\" ~/.ssh/authorized_keys" 2>/dev/null'
+						ssh -i $SSH_PATH/.ssh/id_rsa $SSH_OPTIONS $noderemoteuser@$nodehostname "sed -i \"\\\$!{/$pubkey/d;}\" ~/.ssh/authorized_keys" 2>/dev/null
 					else
 						goahead=0
 					fi
@@ -2307,9 +2417,11 @@ EOD
 
 				if [[ $goahead -eq 1 ]]; then
 					if [[ $nodeid -eq 1 ]]; then
+						__debug --level 6 "ssh -i $SSH_PATH/.ssh/id_rsa $SSH_OPTIONS $noderemoteuser@$nodehostname \"$MIP_COMMAND fedtask getvar MIP_PATH\" 2>/dev/null"
 						nodehomepath=$(ssh -i $SSH_PATH/.ssh/id_rsa $SSH_OPTIONS $noderemoteuser@$nodehostname "$MIP_COMMAND fedtask getvar MIP_PATH" 2>/dev/null)
 					fi
 					if [[ $nodeid -ne 2 ]]; then
+						__debug --level 6 "ssh -i $SSH_PATH/.ssh/id_rsa $SSH_OPTIONS $noderemoteuser@$nodehostname \"$MIP_COMMAND fedtask getvar DATA_PATH\" 2>/dev/null"
 						nodedatapath=$(ssh -i $SSH_PATH/.ssh/id_rsa $SSH_OPTIONS $noderemoteuser@$nodehostname "$MIP_COMMAND fedtask getvar DATA_PATH" 2>/dev/null)
 					fi
 				fi
@@ -3166,7 +3278,26 @@ _prepare_docker_compose(){
 	fi
 
 	if [[ $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 ]]; then
-		if [[ -f $DOCKER_COMPOSE_PATH/docker-compose.override.yml ]]; then
+		if [[ $MIP_ENV_KEYCLOAK_EXTERNAL -eq 1 ]]; then
+			__debug --level 5 "Keycloak authentication active, but externalized. Creating $DOCKER_COMPOSE_PATH/docker-compose.override.yml"
+			cat << EOF > $DOCKER_COMPOSE_PATH/docker-compose.override.yml
+version: '3.2'
+
+services:
+  frontend:
+    environment:
+      KEYCLOAK_AUTH_URL: \${KEYCLOAK_PROTOCOL}://\${KEYCLOAK_URL}/auth/
+      KEYCLOAK_LOGIN_URL: \${KEYCLOAK_PROTOCOL}://\${KEYCLOAK_URL}/auth/realms/\${KEYCLOAK_REALM}/protocol/openid-connect/auth
+
+  keycloak_db:
+    entrypoint: ["echo", "Service keycloak_db disabled"]
+    restart: on-failure
+
+  keycloak:
+    entrypoint: ["echo", "Service keycloak disabled"]
+    restart: on-failure
+EOF
+		elif [[ -f $DOCKER_COMPOSE_PATH/docker-compose.override.yml ]]; then
 			__debug --level 5 "Keycloak authentication active. Removing $DOCKER_COMPOSE_PATH/docker-compose.override.yml"
 			rm $DOCKER_COMPOSE_PATH/docker-compose.override.yml
 		fi
@@ -3183,9 +3314,11 @@ services:
 
   keycloak_db:
     entrypoint: ["echo", "Service keycloak_db disabled"]
+    restart: on-failure
 
   keycloak:
     entrypoint: ["echo", "Service keycloak disabled"]
+    restart: on-failure
 EOF
 	fi
 }
@@ -3968,7 +4101,7 @@ _federation_task(){
 
 _run_keycloak(){
 	__debug --level 4 "_run_keycloak($*)"
-	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" != "local" || $MIP_ENV_KEYCLOAK_AUTHENTICATION -ne 1 ]]; then
+	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" != "local" || $MIP_ENV_KEYCLOAK_AUTHENTICATION -ne 1 || $MIP_ENV_KEYCLOAK_EXTERNAL -eq 1 ]]; then
 		return 0
 	fi
 	__debug --level 1 --levelcompare "eq" -n "Running keycloak..."
@@ -4025,16 +4158,25 @@ _services_up(){
 	_check_installed_mip -q
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
-		# Deploying MIP services
-		echo -e "\nDeploying Services..."
-		local path=$(pwd)
-		cd $DOCKER_COMPOSE_PATH
-		__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME up -d"
-		_prepare_mip_env set
-		docker-compose --project-name $DOCKER_PROJECT_NAME up -d
-		ret=$?
-		_prepare_mip_env unset
-		cd $path
+		if [[ $(command -v docker-compose) ]]; then
+			# Deploying MIP services
+			echo -e "\nDeploying Services..."
+			local path=$(pwd)
+			cd $DOCKER_COMPOSE_PATH
+			__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME up -d"
+			_prepare_mip_env set
+			if [[ -n $ARG_CONTAINER ]]; then
+				docker-compose --project-name $DOCKER_PROJECT_NAME up $ARG_CONTAINER
+			else
+				docker-compose --project-name $DOCKER_PROJECT_NAME up -d
+			fi
+			ret=$?
+			_prepare_mip_env unset
+			cd $path
+		else
+			__red -n "docker-compose not found!"
+			ret=1
+		fi
 		if [[ $ret -ne 0 ]]; then
 			echo
 			__red -n "An error has occurred while deploying services! "
@@ -4056,14 +4198,18 @@ _services_down(){
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
 		echo -e "\nRemoving previous services..."
-		local path=$(pwd)
-		cd $DOCKER_COMPOSE_PATH
-		__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME down"
-		_prepare_mip_env set
-		docker-compose --project-name $DOCKER_PROJECT_NAME down
-		ret=$?
-		_prepare_mip_env unset
-		cd $path
+		if [[ $(command -v docker-compose) ]]; then
+			local path=$(pwd)
+			cd $DOCKER_COMPOSE_PATH
+			__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME down"
+			_prepare_mip_env set
+			docker-compose --project-name $DOCKER_PROJECT_NAME down
+			ret=$?
+			_prepare_mip_env unset
+			cd $path
+		else
+			__red -n "docker-compose not found!"
+		fi
 		if [[ $ret -ne 0 ]]; then
 			echo
 			__red -n "An error has occurred while removing services and networks! "
@@ -4123,108 +4269,176 @@ logs(){
 	__debug --level 1 --levelcompare "eq" "Getting logs..."
 
 	_prepare_logs
-	local image=""
-	local containers=$MIP_CONTAINERS
-	local logfile=""
-	local logpart=$LOGS_PART
-	local running=""
-	local exited=""
-	if [[ (( "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_NODE_TYPE" = "wk" )) && ! -n $logpart ]]; then
-		image=$HOSTNAME
-		__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
-		case $MIP_ENV_NODE_TYPE in
-			ms)
-				image=$image"_exareme-master"
-				;;
-			ui)
+	local logfail=0
+	local poll=1
+	local pollcount=0
+	local sequencetime=0.5
+	local elapsedsequencetime=0
+	local sequencecount=0
+	local sequencefactor=1
+	local sleeptime=0
+	local elapsedtime=0
+	while [[ $poll -eq 1 ]]; do
+		local image=""
+		local containers=$MIP_CONTAINERS
+		local logfile=""
+		local logpart=$LOGS_PART
+		local running=""
+		local exited=""
+		if [[ (( "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_NODE_TYPE" = "wk" )) && ! -n $logpart ]]; then
+			image=$HOSTNAME
+			__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
+			case $MIP_ENV_NODE_TYPE in
+				ms)
+					image=$image"_exareme-master"
+					;;
+				ui)
+					if [[ -f $LOGS_PATH/portal-backend.txt ]]; then
+						logfile=$LOGS_PATH/portal-backend.txt
+					else
+						image=${DOCKER_PROJECT_NAME}_portalbackend_1
+					fi
+					;;
+				wk)
+					image=$image"_exareme"
+					;;
+			esac
+			__debug --level 5 "image=<$image>"
+		elif [[ -n $logpart ]]; then
+			__debug --level 5 "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"
+			__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
+			image=$DOCKER_PROJECT_NAME"_"$logpart"_1"
+			case $MIP_ENV_NODE_TYPE in
+				ms)
+					image=$HOSTNAME"_"$logpart
+					containers="exareme-master exareme-keystore"
+					;;
+				wk)
+					image=$HOSTNAME"_"$logpart
+					containers="exareme"
+					;;
+			esac
+			if [[ "$MIP_ENV_MIP_TYPE" = "local" && "$logpart" = "portalbackend" ]]; then
 				if [[ -f $LOGS_PATH/portal-backend.txt ]]; then
 					logfile=$LOGS_PATH/portal-backend.txt
+				else
+					image=${DOCKER_PROJECT_NAME}_${logpart}
 				fi
-				;;
-			wk)
-				image=$image"_exareme"
-				;;
-		esac
-		__debug --level 5 "image=<$image>"
-	elif [[ -n $logpart ]]; then
-		__debug --level 5 "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"
-		__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
-		image=$DOCKER_PROJECT_NAME"_"$logpart"_1"
-		case $MIP_ENV_NODE_TYPE in
-			ms)
-				image=$HOSTNAME"_"$logpart
-				containers="exareme-master exareme-keystore"
-				;;
-			wk)
-				image=$HOSTNAME"_"$logpart
-				containers="exareme"
-				;;
-		esac
-		if [[ "$MIP_ENV_MIP_TYPE" = "local" && "$LOGS_PART" = "portalbackend" ]]; then
-			if [[ -f $LOGS_PATH/portal-backend.txt ]]; then
-				logfile=$LOGS_PATH/portal-backend.txt
 			fi
-		fi
-		__debug --level 5 "image=<$image>"
-		__debug --level 5 "containers=<$containers>"
-		_contains "$containers" $image
-		local ret=$?
-		if [[ $ret -ne 0 ]]; then
+			__debug --level 5 "image=<$image>"
+			__debug --level 5 "containers=<$containers>"
+			_contains "$containers" $image
+			local ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Usage: $0 logs [$MIP_COMPONENTS_LIST]"
+				if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
+				exit 1
+			fi
+		else
 			__red "Usage: $0 logs [$MIP_COMPONENTS_LIST]"
-			if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 			exit 1
 		fi
-	else
-		__red "Usage: $0 logs [$MIP_COMPONENTS_LIST]"
-		exit 1
-	fi
 
-	local follow=""
-	if [[ $ARG_FOLLOW -eq 1 ]]; then
-		__debug --level 5 "ARG_FOLLOW=<1>"
-		follow="-f"
-	fi
+		local follow=""
+		if [[ $ARG_FOLLOW -eq 1 ]]; then
+			__debug --level 5 "ARG_FOLLOW=<1>"
+			follow="-f"
+		fi
 
-	if [[ -n $logfile ]]; then
-		__debug --level 5 "MIP_ENV_NODE_TYPE=<ui>. Getting 100000 last lines of $logfile"
-		__debug --level 6 "tail -100000 $follow $logfile"
-		tail -n100000 $follow $logfile
-		if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
-		return 0
-	fi
+		if [[ -n $logfile ]]; then
+			__debug --level 5 "MIP_ENV_NODE_TYPE=<ui>. Getting 100000 last lines of $logfile"
+			__debug --level 6 "tail -100000 $follow $logfile"
+			tail -n100000 $follow $logfile
+			if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
+			return 0
+		fi
 
-	local status=""
-	__debug --level 6 "docker ps -a --filter name=$image|grep $image|awk '{print $1}'"
-	local process_ids=$(docker ps -a --filter name=$image|grep $image|awk '{print $1}')
-	__debug --level 5 "docker process_ids=<$process_ids>"
-	for id in $process_ids; do
-		status=$(docker inspect $id --format {{.State.Status}})
-		__debug --level 5 "status=<$status>"
-		case $status in
-			running)
-				running=$running" "$id
-				;;
-			exited)
-				exited=$exited" "$id
-				;;
-		esac
+		local status=""
+		__debug --level 6 "docker ps -a --filter name=$image|grep $image|awk '{print $1}'"
+		local process_ids=$(docker ps -a --filter name=$image|grep $image|awk '{print $1}')
+		__debug --level 5 "docker process_ids=<$process_ids>"
+		for id in $process_ids; do
+			status=$(docker inspect $id --format {{.State.Status}})
+			__debug --level 5 "status=<$status>"
+			case $status in
+				running)
+					running=$running" "$id
+					;;
+				exited)
+					exited=$exited" "$id
+					;;
+			esac
+		done
+		if [[ "$running" != "" ]]; then
+			for id in $running; do
+				logfail=0
+				__debug --level 6 "docker logs $follow $id"
+				docker logs $follow $id
+				echo -n ${reset}
+				break
+			done
+		elif [[ "$exited" != "" ]]; then
+			if [[ $ARG_FOLLOW -eq 1 ]]; then
+				logfail=1
+			else
+				__red "$logpart docker container is not running! Will display last logs in 5 seconds..."
+				sleep 5
+				for id in $exited; do
+					__debug --level 6 "docker logs $id"
+					docker logs $id
+					echo -n ${reset}
+					break
+				done
+			fi
+		else
+			if [[ $ARG_FOLLOW -eq 1 ]]; then
+				if [[ $logfail -ne 1 ]]; then
+					logfail=1
+				fi
+			else
+				__red "Can't find any matching dead or alive docker container!"
+			fi
+		fi
+
+		if [[ $ARG_FOLLOW -eq 1 ]]; then
+			if [[ $logfail -eq 1 ]]; then
+				if [[ $elapsedtime -eq 0 ]]; then
+					__red "Can't find any matching alive docker container!"
+					__yellow "But as following was required, I'll keep polling for it..."
+				fi
+				sleeptime=1
+				if [[ $(bc <<< "$elapsedtime % 120") -eq $elapsedtime ]]; then				# Up to 2 minutes (120 seconds), polling every 5 seconds
+					sleeptime=5
+				elif [[ $(bc <<< "$elapsedtime % 300") -eq $elapsedtime ]]; then			# Up to 5 minutes (300 seconds), polling every 30 seconds
+					sleeptime=30
+				elif [[ $(bc <<< "$elapsedtime % 600") -eq $elapsedtime ]]; then			# Up to 10 minutes (600 seconds), polling every minute (60 seconds)
+					sleeptime=60
+				elif [[ $(bc <<< "$elapsedtime % 3600") -eq $elapsedtime ]]; then			# Up to 1 hour (3600 seconds), polling every 5 minutes (300 seconds)
+					sleeptime=300
+				elif [[ $elapsedtime -ge 3600 ]]; then										# Passed 1 hour (3600 seconds), polling every 15 minutes (900 seconds)
+					sleeptime=900
+				fi
+				pollcount=$(($pollcount+1))
+
+				sequencecount=0
+				elapsedsequencetime=0
+				sequencefactor=$(bc <<< "$sleeptime / $sequencetime")
+				while [[ $sequencecount -lt $sequencefactor ]]; do
+					__hourglass "$elapsedsequencetime / $sleeptime seconds before new polling..."
+					sleep $sequencetime
+					sequencecount=$(($sequencecount+1))
+					elapsedsequencetime=$(bc <<< "$elapsedsequencetime + $sequencetime")
+				done
+				elapsedtime=$(bc <<< "$elapsedtime + $sleeptime")
+			else
+				pollcount=0
+				elapsedtime=0
+				elapsedsequencetime=0
+			fi
+		else
+			poll=0
+		fi
 	done
-	if [[ "$running" != "" ]]; then
-		for id in $running; do
-			__debug --level 6 "docker logs $follow $id"
-			docker logs $follow $id
-			echo -n ${reset}
-			break
-		done
-	elif [[ "$exited" != "" ]]; then
-		echo "$logpart docker container is not running! Last logs were:"
-		for id in $exited; do
-			__debug --level 6 "docker logs $follow $id"
-			docker logs $follow $id
-			echo -n ${reset}
-			break
-		done
-	fi
 }
 
 stop_mip(){
@@ -4288,7 +4502,7 @@ delete_mip(){
 		elif [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 			echo -n "Leave Docker Swarm [y/n]? "
 		fi
-		if [[ -n $answer ]]; then
+		if [[ "$answer" = "" ]]; then
 			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 		fi
 	fi
@@ -4390,7 +4604,7 @@ main(){
 			prepare_docker_apt_sources
 			install_required_packages required
 			install_required_packages pip3
-			install_python2
+			install_required_custom_packages
 			_check_exareme_required_ports
 			ret=$?
 			if [[ $ret -ne 0 ]]; then
