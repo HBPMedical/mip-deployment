@@ -11,9 +11,12 @@ A user can be authorized on two different aspects:
 2) Join the appropriate group for that user.
 ![img1](images/joinGroup.png)
 
-There are 2 available groups right now:
-  - All users in order to have access to MIP should belong to the `Researchers` group. 
-  - If you also want the user to have access to Galaxy, he should also belong to the `Data Managers` subgroup.
+The following GROUPS should exist:
+  - One group for each dataset, with the "MIP_RESEARCH_DATASET_" prefix. With the user joining this group, he is assigned to the according role with the "RESEARCH_DATASET_" prefix.
+  - One group for each pathology, with the "MIP_CONTROLLER_" prefix. With the user joining this group, he is assigned to the according role with the "RESEARCH_PATHOLOGY_" prefix. This user can edit/remove/add CDEs in the specific federation of the pathology.
+  - One role for each pathology, with the "MIP_RESEARCHER_" prefix. With the user joining this group, he is assigned to the according role with the "RESEARCH_PATHOLOGY_" prefix. This user can only conduct a federated analysis on the available data for this specific pathology.
+  - One "Super User" group (MIP_PROCESSOR). With the user joining this group, he is assigned to the (RESEARCH_DATASET_ALL) , (RESEARCH_PATHOLOGY_ALL) (RESEARCH_EXPERIMENT_ALL). Any "Administrator" users can join this group in order for them to have access to everything.
+  - One group (MIP_WORKFLOW_ADMIN). With the user joining this group, he is assigned to the (WORKFLOW_ADMIN) role.
 
 ### Authorize User to access Datasets
 
@@ -23,21 +26,28 @@ There are 2 available groups right now:
 ![img1](images/addRole.png)
 
 The following ROLES should exist:
-  - One role for each dataset, with the "DATASET_" prefix. Assigning that role to the user he gets access to the pathology and that specific dataset.
-  - One role for each pathology, with the "PATHOLOGY_" prefix. That role provides access to the pathology and all the datasets it contains.
-  - One "Super User" role (DATASET_ALL) with which the user gets access to all pathologies and datasets. You can assign this role to any "Administrator" users that you always want them to have access to everything.
+  - One role for each dataset, with the "RESEARCH_DATASET_" prefix. Assigning that role to the user he gets access to that specific dataset.
+  - One role for each pathology, with the "RESEARCH_PATHOLOGY_" prefix. That role provides access to the pathology and all the datasets it contains.
+  - One role (RESEARCH_DATASET_ALL) with which the user gets access to all datasets.
+  - One role (RESEARCH_PATHOLOGY_ALL) with which the user gets access to all pathologies.
+  - One role (RESEARCH_EXPERIMENT_ALL) with which the user gets access to all experiments.
+  - One role (WORKFLOW_ADMIN) with which the user is given the authorization to edit existing and create new workflows through the galaxy workflow engine editor.
 
 ### Adding a new dataset
 
 When a new dataset is added on MIP, the following configurations should be made:
   - Go to `Roles` -> `Realm Roles` -> `Add Role`
-  - On the Role Name you should enter the prefix `DATASET_` and then the code of the new dataset. Then Save that `Role`.
+  - On the Role Name you should enter the prefix `RESEARCH_DATASET_` and then the code of the new dataset. Then Save that `Role`.
 
 If the dataset belongs to a new pathology, you could also add a role that will contain all the pathology datasets.
-  - Follow the same process as with the dataset but with a "PATHOLOGY_" prefix and create a role for the pathology.
+  - Follow the same process as with the dataset but with a "RESEARCH_PATHOLOGY_" prefix and create a role for the pathology.
   - Select that role.
   - On the `Details` tab select the `Composite Roles` option.
   - Afterwards, select all the dataset roles that belong to this pathology.
   - When a new dataset is added on the pathology, you should add it to this role, too.
 
-With these configurations you can now assign a pathology role to a user and he will automatically gain access to all the pathology's datasets.
+With these configurations you can not assign a role to a user direclty. In order to do that the user needs to join the proper group which will automatically give the proper access rights.
+Example: In case you want to assign a user with the role (RESEARCH_DATASET_DEMO), the user needs to join the group (MIP_RESEARCH_DATASET_DEMO).
+Additionally if a user is assigned a pathology role, he will automatically gain access to all the pathology's datasets.
+Example: In case a user is assigned the role (RESEARCH_PATHOLOGY_MENTALHEALTH), the user will automatically gain access to (RESEARCH_DATASET_DEMO) role.
+
