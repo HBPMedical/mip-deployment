@@ -13,6 +13,10 @@
   "offlineSessionIdleTimeout" : 2592000,
   "offlineSessionMaxLifespanEnabled" : false,
   "offlineSessionMaxLifespan" : 5184000,
+  "clientSessionIdleTimeout" : 0,
+  "clientSessionMaxLifespan" : 0,
+  "clientOfflineSessionIdleTimeout" : 0,
+  "clientOfflineSessionMaxLifespan" : 0,
   "accessCodeLifespan" : 60,
   "accessCodeLifespanUserAction" : 300,
   "accessCodeLifespanLogin" : 1800,
@@ -38,24 +42,51 @@
   "failureFactor" : 30,
   "roles" : {
     "realm" : [ {
-      "id" : "291da0b5-fc74-4a81-9adb-c0a65d1e6d63",
-      "name" : "PATHOLOGY_MENTALHEALTH",
+      "id" : "8a24f616-df30-4b48-b203-89bc76a09db5",
+      "name" : "RESEARCH_PATHOLOGY_DEMENTIA",
       "composite" : true,
       "composites" : {
-        "realm" : [ "DATASET_DEMO" ]
+        "realm" : [ "RESEARCH_DATASET_FAKE_LONGITUDINAL", "RESEARCH_DATASET_PPMI", "RESEARCH_DATASET_DESD-SYNTHDATA", "RESEARCH_DATASET_EDSD" ]
       },
       "clientRole" : false,
       "containerId" : "MIP",
       "attributes" : { }
     }, {
-      "id" : "622ad494-575f-4201-853b-8969613e33ca",
-      "name" : "DATASET_FAKE_LONGITUDINAL",
+      "id" : "a594fa48-17c7-4988-aca8-3d3d8e5f1b44",
+      "name" : "RESEARCH_PATHOLOGY_MENTALHEALTH",
+      "composite" : true,
+      "composites" : {
+        "realm" : [ "RESEARCH_DATASET_DEMO" ]
+      },
+      "clientRole" : false,
+      "containerId" : "MIP",
+      "attributes" : { }
+    }, {
+      "id" : "4ef14c6b-6d8d-4085-b738-50d8f784f836",
+      "name" : "RESEARCH_DATASET_FAKE_LONGITUDINAL",
       "composite" : false,
       "clientRole" : false,
       "containerId" : "MIP",
       "attributes" : { }
     }, {
-      "id" : "1686f1ac-9431-41b4-bb98-2bf96cc9edbe",
+      "id" : "c2b9f384-b8ae-4f22-80ed-f70bb4d0df54",
+      "name" : "RESEARCH_DATASET_ALL",
+      "composite" : true,
+      "composites" : {
+        "realm" : [ "RESEARCH_DATASET_FAKE_LONGITUDINAL", "RESEARCH_DATASET_PPMI", "RESEARCH_DATASET_DESD-SYNTHDATA", "RESEARCH_DATASET_EDSD", "RESEARCH_DATASET_DEMO", "RESEARCH_DATASET_DUMMY_TBI" ]
+      },
+      "clientRole" : false,
+      "containerId" : "MIP",
+      "attributes" : { }
+    }, {
+      "id" : "7eac9549-b7e0-440c-8e0f-3c172a5fe087",
+      "name" : "WORKFLOW_ADMIN",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "MIP",
+      "attributes" : { }
+    }, {
+      "id" : "c7a8c326-8460-4a76-b7f9-c2805fb17136",
       "name" : "uma_authorization",
       "description" : "${role_uma_authorization}",
       "composite" : false,
@@ -63,77 +94,71 @@
       "containerId" : "MIP",
       "attributes" : { }
     }, {
-      "id" : "8ded72a0-6596-412a-a59e-93946080d68f",
-      "name" : "DATASET_EDSD",
-      "composite" : false,
-      "clientRole" : false,
-      "containerId" : "MIP",
-      "attributes" : { }
-    }, {
-      "id" : "2a5306dc-6af6-4588-bba7-679af15b495e",
-      "name" : "ROLE_Data Manager",
-      "composite" : false,
-      "clientRole" : false,
-      "containerId" : "MIP",
-      "attributes" : { }
-    }, {
-      "id" : "f7812fe9-eb41-41f7-b1a4-9508e7a4f0e4",
-      "name" : "DATASET_PPMI",
-      "composite" : false,
-      "clientRole" : false,
-      "containerId" : "MIP",
-      "attributes" : { }
-    }, {
-      "id" : "42065ead-df17-4f5b-aac2-2fef031f46a0",
-      "name" : "DATASET_DUMMY_TBI",
-      "composite" : false,
-      "clientRole" : false,
-      "containerId" : "MIP",
-      "attributes" : { }
-    }, {
-      "id" : "2f0402c9-818d-419d-a1d0-549dfea889c8",
-      "name" : "PATHOLOGY_DEMENTIA",
+      "id" : "0b516e72-45b8-40d5-a261-a66f52c495a1",
+      "name" : "RESEARCH_PATHOLOGY_TBI",
       "composite" : true,
       "composites" : {
-        "realm" : [ "DATASET_FAKE_LONGITUDINAL", "DATASET_PPMI", "DATASET_EDSD", "DATASET_DESD-SYNTHDATA" ]
+        "realm" : [ "RESEARCH_DATASET_DUMMY_TBI" ]
       },
       "clientRole" : false,
       "containerId" : "MIP",
       "attributes" : { }
     }, {
-      "id" : "5b79d6d2-5ab7-4217-b950-ddfe805759c2",
-      "name" : "PATHOLOGY_TBI",
+      "id" : "341db80f-78b3-423c-b75f-be6aa8fc631e",
+      "name" : "RESEARCH_PATHOLOGY_ALL",
       "composite" : true,
       "composites" : {
-        "realm" : [ "DATASET_DUMMY_TBI" ]
+        "realm" : [ "RESEARCH_PATHOLOGY_TBI", "RESEARCH_PATHOLOGY_MENTALHEALTH", "RESEARCH_PATHOLOGY_DEMENTIA" ]
       },
       "clientRole" : false,
       "containerId" : "MIP",
       "attributes" : { }
     }, {
-      "id" : "649f7e90-02d4-47a5-b5a7-96c806037d25",
-      "name" : "DATASET_ALL",
+      "id" : "10bdbbf8-296b-4226-ab81-a8ef79bcef39",
+      "name" : "RESEARCH_DATASET_DEMO",
       "composite" : false,
       "clientRole" : false,
       "containerId" : "MIP",
       "attributes" : { }
     }, {
-      "id" : "a0649c05-cf11-49fc-8af3-482167f64423",
-      "name" : "DATASET_DESD-SYNTHDATA",
+      "id" : "eed5f272-1d06-45cf-9ec9-ba66751b95c0",
+      "name" : "RESEARCH_DATASET_DUMMY_TBI",
       "composite" : false,
       "clientRole" : false,
       "containerId" : "MIP",
       "attributes" : { }
     }, {
-      "id" : "b4e73fb3-9c38-4162-bd9a-8294fc2939d9",
-      "name" : "DATASET_DEMO",
+      "id" : "90940506-2654-4753-a293-f631cb50be70",
+      "name" : "offline_access",
+      "description" : "${role_offline-access}",
       "composite" : false,
       "clientRole" : false,
       "containerId" : "MIP",
       "attributes" : { }
     }, {
-      "id" : "f601ddf5-a5f3-40b3-96ae-d77131627a6a",
-      "name" : "ROLE_Researcher",
+      "id" : "7ff21b13-e698-487d-b81c-7e79015ee4de",
+      "name" : "RESEARCH_EXPERIMENT_ALL",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "MIP",
+      "attributes" : { }
+    }, {
+      "id" : "62d3856e-c535-40e7-8a0f-4ebb50a59c7a",
+      "name" : "RESEARCH_DATASET_PPMI",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "MIP",
+      "attributes" : { }
+    }, {
+      "id" : "b43ee0e9-f4eb-4336-9e59-0a61ade7cec7",
+      "name" : "RESEARCH_DATASET_DESD-SYNTHDATA",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "MIP",
+      "attributes" : { }
+    }, {
+      "id" : "165e89b6-463f-41df-8d13-a39a8ec1eb3d",
+      "name" : "RESEARCH_DATASET_EDSD",
       "composite" : false,
       "clientRole" : false,
       "containerId" : "MIP",
@@ -383,23 +408,70 @@
     }
   },
   "groups" : [ {
-    "id" : "878aae4d-817d-4938-bddc-93cdfbe5f2fd",
-    "name" : "Researchers",
-    "path" : "/Researchers",
+    "id" : "12fecc3b-4e96-4ff7-b0eb-3051a78f98c4",
+    "name" : "MIP_CONTROLLER_DEMENTIA",
+    "path" : "/MIP_CONTROLLER_DEMENTIA",
     "attributes" : { },
-    "realmRoles" : [ "ROLE_Researcher" ],
+    "realmRoles" : [ "RESEARCH_PATHOLOGY_DEMENTIA" ],
     "clientRoles" : { },
-    "subGroups" : [ {
-      "id" : "e22056bc-c282-440b-acb5-4d6c3ddf816f",
-      "name" : "Data Managers",
-      "path" : "/Researchers/Data Managers",
-      "attributes" : { },
-      "realmRoles" : [ "ROLE_Data Manager" ],
-      "clientRoles" : { },
-      "subGroups" : [ ]
-    } ]
+    "subGroups" : [ ]
+  }, {
+    "id" : "e6ae3b44-dbc1-4793-9b34-05c7d436aba5",
+    "name" : "MIP_CONTROLLER_MENTALHEALTH",
+    "path" : "/MIP_CONTROLLER_MENTALHEALTH",
+    "attributes" : { },
+    "realmRoles" : [ "RESEARCH_PATHOLOGY_MENTALHEALTH" ],
+    "clientRoles" : { },
+    "subGroups" : [ ]
+  }, {
+    "id" : "b8382c8f-0b17-4482-8cc9-857ad1c68994",
+    "name" : "MIP_CONTROLLER_TBI",
+    "path" : "/MIP_CONTROLLER_TBI",
+    "attributes" : { },
+    "realmRoles" : [ "RESEARCH_PATHOLOGY_TBI" ],
+    "clientRoles" : { },
+    "subGroups" : [ ]
+  }, {
+    "id" : "93e53ea2-780e-4e74-a057-0e4ef6ae0b05",
+    "name" : "MIP_PROCESSOR",
+    "path" : "/MIP_PROCESSOR",
+    "attributes" : { },
+    "realmRoles" : [ "RESEARCH_PATHOLOGY_ALL", "RESEARCH_DATASET_ALL", "RESEARCH_EXPERIMENT_ALL" ],
+    "clientRoles" : { },
+    "subGroups" : [ ]
+  }, {
+    "id" : "b346966c-e377-4a81-9943-4ef2c7f275e5",
+    "name" : "MIP_RESEARCHER_DEMENTIA",
+    "path" : "/MIP_RESEARCHER_DEMENTIA",
+    "attributes" : { },
+    "realmRoles" : [ "RESEARCH_PATHOLOGY_DEMENTIA" ],
+    "clientRoles" : { },
+    "subGroups" : [ ]
+  }, {
+    "id" : "3279801f-c2d1-42b0-9e79-3def25579ac1",
+    "name" : "MIP_RESEARCHER_MENTALHEALTH",
+    "path" : "/MIP_RESEARCHER_MENTALHEALTH",
+    "attributes" : { },
+    "realmRoles" : [ "RESEARCH_PATHOLOGY_MENTALHEALTH" ],
+    "clientRoles" : { },
+    "subGroups" : [ ]
+  }, {
+    "id" : "79c86ad2-ce5f-48b1-9521-d6ead71d3887",
+    "name" : "MIP_RESEARCHER_TBI",
+    "path" : "/MIP_RESEARCHER_TBI",
+    "attributes" : { },
+    "realmRoles" : [ "RESEARCH_PATHOLOGY_TBI" ],
+    "clientRoles" : { },
+    "subGroups" : [ ]
+  }, {
+    "id" : "bbc8a9b9-dc62-429c-bde3-b3ff6796a458",
+    "name" : "MIP_WORKFLOW_ADMIN",
+    "path" : "/MIP_WORKFLOW_ADMIN",
+    "attributes" : { },
+    "realmRoles" : [ "WORKFLOW_ADMIN" ],
+    "clientRoles" : { },
+    "subGroups" : [ ]
   } ],
-  "defaultRoles" : [ "uma_authorization" ],
   "requiredCredentials" : [ "password" ],
   "otpPolicyType" : "totp",
   "otpPolicyAlgorithm" : "HmacSHA1",
@@ -429,27 +501,26 @@
   "webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister" : false,
   "webAuthnPolicyPasswordlessAcceptableAaguids" : [ ],
   "users" : [ {
-    "id" : "235c7703-e09d-4711-b732-7658d90f26fa",
-    "createdTimestamp" : 1579094923333,
+    "id" : "d348cef4-2d50-402c-ae74-b01d5111e5e9",
+    "createdTimestamp" : 1608116240650,
     "username" : "user",
     "enabled" : true,
     "totp" : false,
     "emailVerified" : false,
     "credentials" : [ {
-      "id" : "27ed3e3b-cd81-4400-9b34-63e3bb496eb6",
+      "id" : "ced0ebaa-018c-455c-8b7c-f8c42c9f7183",
       "type" : "password",
-      "createdDate" : 1579094937157,
-      "secretData" : "{\"value\":\"L7Ij8XvCoOYUfocJ5rB3Vu6KvPxYFv4YzBWbLl5ZAgp3Zmw1OMNEntjSOelLf4UarsF/IZkJTfyRmMH9uIphkw==\",\"salt\":\"yj8TKEZsa1JSMKEfGbYWGw==\"}",
+      "createdDate" : 1608116259236,
+      "secretData" : "{\"value\":\"b4cLqOSu/dEouxHCL6irVTJDfu9Cbg598f5KhRle4zNiOxKw4X+LRVh32r8vIh/1apkinjk6ec/0TKVj/KUMNg==\",\"salt\":\"sYLjmPDgf0eHN5zXtQizHQ==\"}",
       "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\"}"
     } ],
     "disableableCredentialTypes" : [ ],
-    "requiredActions" : [ ],
-    "realmRoles" : [ "DATASET_ALL" ],
+    "requiredActions" : [ "UPDATE_PASSWORD" ],
     "clientRoles" : {
       "account" : [ "manage-account", "view-profile" ]
     },
     "notBefore" : 0,
-    "groups" : [ "/Researchers/Data Managers" ]
+    "groups" : [ "/MIP_PROCESSOR" ]
   } ],
   "clientScopeMappings" : {
     "account" : [ {
@@ -497,7 +568,7 @@
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
-    "secret" : "6253cb1f-d108-4dca-8484-200639317067",
+    "secret" : "**********",
     "redirectUris" : [ "/realms/MIP/account/*" ],
     "webOrigins" : [ ],
     "notBefore" : 0,
@@ -587,7 +658,7 @@
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
-    "secret" : "dae83a6b-c769-4186-8383-f0984c6edf05",
+    "secret" : "**********",
     "redirectUris" : [ "*" ],
     "webOrigins" : [ ],
     "notBefore" : 0,
@@ -1221,7 +1292,7 @@
       "subType" : "anonymous",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "saml-user-property-mapper", "oidc-address-mapper", "oidc-usermodel-property-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-attribute-mapper", "saml-user-attribute-mapper", "saml-role-list-mapper", "oidc-full-name-mapper" ]
+        "allowed-protocol-mapper-types" : [ "oidc-full-name-mapper", "oidc-usermodel-property-mapper", "saml-user-property-mapper", "oidc-usermodel-attribute-mapper", "saml-user-attribute-mapper", "oidc-address-mapper", "saml-role-list-mapper", "oidc-sha256-pairwise-sub-mapper" ]
       }
     }, {
       "id" : "29bac688-484b-4f62-9b3b-24b742816eba",
@@ -1230,7 +1301,7 @@
       "subType" : "authenticated",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "oidc-usermodel-property-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-address-mapper", "oidc-usermodel-attribute-mapper", "saml-user-property-mapper", "saml-user-attribute-mapper", "saml-role-list-mapper", "oidc-full-name-mapper" ]
+        "allowed-protocol-mapper-types" : [ "oidc-usermodel-property-mapper", "saml-role-list-mapper", "oidc-full-name-mapper", "oidc-usermodel-attribute-mapper", "saml-user-property-mapper", "saml-user-attribute-mapper", "oidc-address-mapper", "oidc-sha256-pairwise-sub-mapper" ]
       }
     }, {
       "id" : "2f98f7eb-95f6-4f00-a2b3-66bd4dd73929",
@@ -1248,8 +1319,8 @@
       "providerId" : "hmac-generated",
       "subComponents" : { },
       "config" : {
-        "kid" : [ "02f3c9a5-701b-4fe6-9d5a-9971361d0624" ],
-        "secret" : [ "DiiEHlYLLQUtkbh5EznZ79TyMjCii7kmFpCgfgqeYRj0cQpFy_DU7paLtgZP3FBe6yM7MlabDT-KMTjJOXb9pQ" ],
+        "kid" : [ "ae260f4f-1ec7-40c6-afca-97b96add4956" ],
+        "secret" : [ "RS3yQNiemozJ7EDLhxlSnYltUEJNdHQrq5yEjZ1VXcs67fQMeI6Xh29dN3MXKfmJ01pNYjYWgg8_2C9n3P_Aig" ],
         "priority" : [ "100" ],
         "algorithm" : [ "HS256" ]
       }
@@ -1259,8 +1330,8 @@
       "providerId" : "rsa-generated",
       "subComponents" : { },
       "config" : {
-        "privateKey" : [ "MIIEpAIBAAKCAQEAzsGeFRoatxFZKV22HVBynct0X3UTyrPF57OlawaMy+40hJ2OXSLp8E1jBJ4uaCSLjSIhlwbI9RL0jYNMTyfDoJbhCPIQSlvmNiznhTH4BsG1FjBc1V1hBs/rI4WVvVE2l3y4OWmHJbSl+gd+7oqo0dw5ufDSSRHt+ZexPaRAiSFjIElSTWZZhULKxWPO+ucBgH8X1x1E7VC0nULiihVka53mlqYfPkX6inEsW33YLKo95AMcS/Ddu5SW8QegT1noNcaroaXAG3bNWdFAcZsMq7bTaXBvfd0uXt183DRbwpkvQyOBQ+sts8pW8UgohT3FXj7qm7/wYJRNzNDcajsiJQIDAQABAoIBAQDDxkJR6O3y+tJagQm4qDxffg8rdEjRX3i99TVlKkaXs263RBlRx4WMrTpdXQrEQhaCBReZUitnJBO9C95t9VEf9r4PImaagnpyQgLX9IDOpQ07fX/p6Qm+0ZHtiMhJA2WV+9rVQj9eTLf9EKv4ZAOG8+kVUBtOZVPZSvHhVG5naSnLWv/jSDOr7ll9M+8w+1zDoaq/0VbfMTpn+UzdlHLG4AAalrx43LyzaSOP3qapkdhlCTbVI+zST6hbceD9bUgD8uJiTNXisJ5Di+4XordJ3BrYHJkQjB9MT4Xn0xPlpN4ujeLmYBgH3H2lMFxdCVNrehBdBbp0eFv44LejW4cBAoGBAO+3H1V7VlnacqFiI97/IJgSi36juV6HUitByOVIenunRecDfUBIurfjFMQ3lFUr3ZG5/V2+HrPjapYUx6gi4d29p6E4YF6WUio/RtHZT2fyGQWa9UQWiWXy+7EzGc8pH3E49siB7Miprwq5+5sh3mA3HFiRk92Zd+Iczj8sSK0pAoGBANzNToIGiTiUVIMbUKbL+hpcGoxKaLlIKN9B+7wlpYjZH7NLpevMe+QqyR8AsH1TZwzEVdNJS+bB98uuPDjLnSVtWbnUsnx8LDDU/tueyytbLrLCmkDEmpLjwHQ07lf1JzhuhLNDBV1iEo/2jnOoMTkKsoLlN6BZZjZZuPNcj3CdAoGAK2uxKku3/XibMO5U7wype8JIMD0504yRbrJw0E9LmGBZQhoYsu85mxtv5IbowHC8pqvY4AUTDKSR5vOGoscGwKKc3ZAXrKpv4aUqj9JcFsj8jU5fROEMLEJSIuvNrf+V6W1XDkSyfjp2MWw0zgnZfPYelVBxRz+IPpXXKgw8cdkCgYB3UhuS+KU/BimFkEVNXf2SMSPHnI5rUiuEOswnKNED2xHeeor3mlF5RAXb0yuNDn0p0Q/wVjPGSBv43fd9WctaZnWOjvrFevUGjpQLawywKV5bC/7/8T73Ekz2f4Qt1DWVsWPU2+sSQ+V0FvF0Xvf6s2U0h1pANQ+fX20rVmHNoQKBgQCI9CWQhViCSXzOvPvRKBDf9awboAZBn8PCJAG1uL6+CixWfRrVewvjihUndUuBvSVvlNQovvWN2bD6FRL+E7OF6tCONg2TXcvIg05ktnQuEbS8cgefXpiCwsCqVKMoWsfKc4+vRvAX+ZtxFnk+SIa9NJ0D/BHZSomQI8wcuOzWUA==" ],
-        "certificate" : [ "MIIClTCCAX0CBgFvqUt08TANBgkqhkiG9w0BAQsFADAOMQwwCgYDVQQDDANNSVAwHhcNMjAwMTE1MTI1OTUyWhcNMzAwMTE1MTMwMTMyWjAOMQwwCgYDVQQDDANNSVAwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDOwZ4VGhq3EVkpXbYdUHKdy3RfdRPKs8Xns6VrBozL7jSEnY5dIunwTWMEni5oJIuNIiGXBsj1EvSNg0xPJ8OgluEI8hBKW+Y2LOeFMfgGwbUWMFzVXWEGz+sjhZW9UTaXfLg5aYcltKX6B37uiqjR3Dm58NJJEe35l7E9pECJIWMgSVJNZlmFQsrFY8765wGAfxfXHUTtULSdQuKKFWRrneaWph8+RfqKcSxbfdgsqj3kAxxL8N27lJbxB6BPWeg1xquhpcAbds1Z0UBxmwyrttNpcG993S5e3XzcNFvCmS9DI4FD6y2zylbxSCiFPcVePuqbv/BglE3M0NxqOyIlAgMBAAEwDQYJKoZIhvcNAQELBQADggEBAFvzXDymsODcVyXT+z91XKDyNUauAbA71c5UXT6hd0JY5XuRePUqmngLnR8hp9Qv/44Zcj1WMUBQbtPofjhgOdAod541pj7qaxCowA9jiuvKhkSk4uwYmQvvM/i5fYWyOUfTug2Cttr6gOn/FHrByeBqIYaf6rWnx5Te6hzXWEKPgZgnx6glrycEvyUiCqTLmtv97suRDCOR03MCnCGpmTa0f0XFC2eAf2mkfh14G9j5sfB+Rzow71FqlxVuU7yyyMlZz/ipulBbZnGIhcXOt0KXNNJOSkX1YnzS1xQNxEp/DmRtN2Hhx6WRX6CQkLnWmMohAF3cfEXBRdwblG6SFPk=" ],
+        "privateKey" : [ "MIIEowIBAAKCAQEAiTk8ox9Lh5gyhUexeMdOch00tuJzlNtdSu7YswgBDl/vfOHgV6caPKHfZR6UxS5Nn/amExbjII8O4YJEX6XpRUN2v4gikAI9O3Ihd1woZEOz3wzDQq2FSbgB2lI6U2ks4w3/YmuEEITVVG6AsI+3ODSJJHB6G5XPRGkvLQJPHVTzCNkK6zXggUCCxVwLaXk7ELJta6wUZd1BQG9RGVpJ65d/7Pfw9dYLK2h9vas4hsQ2om8u+rY3xhiIFv6fhWlveGiFfgQos102NW87QfRr4RSXPaCL0v0W1vDuHQ6GEB+76JtCX8HLmKndd3KOGu7g+uBFOBzYPQWaKGqThqZa0wIDAQABAoIBAGHkEv3LNXZlfKTXoCMpCy0c6J4OraVjWAo8mRoee6JljdLoz8G301+tmk/ooPiJL5cNvSuhCCYR5+u3ok8ZbG+c0PmRhBZ3gncF1BnyBF6Cba6QzDqkzpDoU2oLftBCF2NieO0dBflCyWyR5/wMigfucmcsVe+Xz2ReJOlW3FlvVKeZuy5bCeNVw9PRyQR0pYOcVLQfqpgQWlPXAec3dOLh/MzPFBj3yMkRziGK0j5xYMsRnB+sSrgKOkpqfHnupGTH1H+Yc1gKUQ5ndHgosvPcFlbVU8uNDjAIrr3YtWqNm+hXdefN3+z+CWGXSuHofk4Cynen0lhWb/Hm+jY/1gECgYEAxZOMNWKXEKXV1R1eKxOqvnjQdBYHnG6TozqYGI5w4iFNvV6yA7xfDHIT8WwgQvtqcVsacQmSBjMhAdUlDcPbwx1AjkxyntPXIvIXkFGVBiEgTkiv4nC6F/7n7JSYFx4NPkvxNfHyF5ax7B4dfj0bt0O8BEkOHuqqag7NbNVHcUsCgYEAsc0B/7fPCmPqugtmU4KASGtduRzvHtKxmUTTbBFX/fygfzB2zwrKZCxOSc2jjqNWGFqBNYY1qLOeaTuEBeeEC5Ib6XxRTa55aM+8lIM5fRLAidxYVcxEQZ6cuaf2PYPXOuhBGZMc7xX0fbRE34rWqo5PDJKdebcPnyU6b0AIz5kCgYEAghqLNYxalefeS5wvKoak5RCBlC/9ixF1vwMSrPj/dKkhnBYDe1pL7NIiN9RP2kvc6BBp9Q2sTtDUZ3SIFexnhrB4ljvZLqWpAaYRxkMysvqVX3eV+rLomGyPJMck7/QmHGO9zxwno0jkmOur2Dk9Sw0bfmbtGYbF+VkOBSDdDskCgYB1z7JwX7nnV5dz2RPfZ8xasBG1E8/563/UX/97Tu6wE9HBFTrUK4E56QWi74hdfisRDf8pmRk7BHGFpvLu+p3LEPA/wKkawO4fne6FtYHFN0Su1HsPtr7PgCq29e06i350wOpJ6Om2HiUXmfg86wEcmBkW6ps/yCWovQFAL/zmmQKBgHNkaA5YiyLIu5/Sknv7rKscDOrqCdKKPm0AH5efD8Mna3EJxGmAlts3dGsPJI2IX52WayElBxuqQEhG9P5es3fA1IQxskO3MeZDDq/On/i0iOaUQMrjdq9FQ7vMC1GIBa3rMsZHqhBUd++T42w3K1nOApqHyCDdl737gwDCYAoc" ],
+        "certificate" : [ "MIIClTCCAX0CBgF2azGTNDANBgkqhkiG9w0BAQsFADAOMQwwCgYDVQQDDANNSVAwHhcNMjAxMjE2MTA1NDM5WhcNMzAxMjE2MTA1NjE5WjAOMQwwCgYDVQQDDANNSVAwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCJOTyjH0uHmDKFR7F4x05yHTS24nOU211K7tizCAEOX+984eBXpxo8od9lHpTFLk2f9qYTFuMgjw7hgkRfpelFQ3a/iCKQAj07ciF3XChkQ7PfDMNCrYVJuAHaUjpTaSzjDf9ia4QQhNVUboCwj7c4NIkkcHoblc9EaS8tAk8dVPMI2QrrNeCBQILFXAtpeTsQsm1rrBRl3UFAb1EZWknrl3/s9/D11gsraH29qziGxDaiby76tjfGGIgW/p+FaW94aIV+BCizXTY1bztB9GvhFJc9oIvS/RbW8O4dDoYQH7vom0JfwcuYqd13co4a7uD64EU4HNg9BZooapOGplrTAgMBAAEwDQYJKoZIhvcNAQELBQADggEBAEKBxAaCJBgr8zOC2/vUrkPu7ERPi//OKGdHlrvTAq/ScYwhvBwRYyvRuTQ1eHFE5mPMPE07ZRGpKGDJkWw1OfBVHUaS9qNufzqKCM0XioFnYVqNEBCZW0Vh4QRCU0uIgp5zSerJwIOK/5iZ2DwGTLSFx1JX1oUNRfios2EUG36prB6aj2XPPX4uQS2xG0VGITyZbPEzx64vyKB9ne5QcBLbE+P3TEAUsv/foz7Mcv6DHz39sHTYsk2qmgi07UuYSSKptNnofMHFYQpaOUdvqtMcosGKVyNT/xi0utGWVybYlHqZJXpmuTC8nJIqX/qUUYMQr3zKWmfI2BQwcBNO5wQ=" ],
         "priority" : [ "100" ]
       }
     }, {
@@ -1269,8 +1340,8 @@
       "providerId" : "aes-generated",
       "subComponents" : { },
       "config" : {
-        "kid" : [ "bc5cc6f6-80ab-4643-af4e-39eb0f9faaf9" ],
-        "secret" : [ "IBPMD3InBSfLqcneQKWkIQ" ],
+        "kid" : [ "2252052f-7b23-43b7-bdb9-024463746cb0" ],
+        "secret" : [ "TgPZw95UIzTt8m0aaW8GyQ" ],
         "priority" : [ "100" ]
       }
     } ]
@@ -1278,7 +1349,7 @@
   "internationalizationEnabled" : false,
   "supportedLocales" : [ "" ],
   "authenticationFlows" : [ {
-    "id" : "360ca0c5-727f-43a9-89c7-39e2b753c9e0",
+    "id" : "9364dfe7-d569-47d8-9ab5-5617257a68d9",
     "alias" : "Account verification options",
     "description" : "Method with which to verity the existing account",
     "providerId" : "basic-flow",
@@ -1298,7 +1369,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "b93d7ca8-1c74-45aa-9dfb-08d90ac6000a",
+    "id" : "75136796-7992-454a-aa26-06a52a0ab837",
     "alias" : "Authentication Options",
     "description" : "Authentication options.",
     "providerId" : "basic-flow",
@@ -1324,7 +1395,7 @@
       "autheticatorFlow" : false
     } ]
   }, {
-    "id" : "16ade140-00ef-49a4-ae14-03cfefbd5a67",
+    "id" : "acddc5a6-bb96-43d1-91d3-cb78e4fefb3a",
     "alias" : "Browser - Conditional OTP",
     "description" : "Flow to determine if the OTP is required for the authentication",
     "providerId" : "basic-flow",
@@ -1344,7 +1415,7 @@
       "autheticatorFlow" : false
     } ]
   }, {
-    "id" : "78e9c95f-e78b-44f9-9d56-e7f846eec595",
+    "id" : "37f93977-9d7e-43af-96a0-026147802a44",
     "alias" : "Direct Grant - Conditional OTP",
     "description" : "Flow to determine if the OTP is required for the authentication",
     "providerId" : "basic-flow",
@@ -1364,7 +1435,7 @@
       "autheticatorFlow" : false
     } ]
   }, {
-    "id" : "aefe4b57-206e-46ee-b772-2aa1a43433b5",
+    "id" : "b907fa4a-b822-4c1e-8b3d-c19295038805",
     "alias" : "First broker login - Conditional OTP",
     "description" : "Flow to determine if the OTP is required for the authentication",
     "providerId" : "basic-flow",
@@ -1384,7 +1455,7 @@
       "autheticatorFlow" : false
     } ]
   }, {
-    "id" : "0eba0ebb-4df4-4382-8b20-7a59e1d461e4",
+    "id" : "8dbc664a-e2fd-489c-ba5e-697862870d1b",
     "alias" : "Handle Existing Account",
     "description" : "Handle what to do if there is existing account with same email/username like authenticated identity provider",
     "providerId" : "basic-flow",
@@ -1404,7 +1475,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "4be8474e-879b-4c98-84ac-c19bbfd4b599",
+    "id" : "b1a444b0-bf4d-4463-afd2-14b10f8b7aa7",
     "alias" : "Reset - Conditional OTP",
     "description" : "Flow to determine if the OTP should be reset or not. Set to REQUIRED to force.",
     "providerId" : "basic-flow",
@@ -1424,7 +1495,7 @@
       "autheticatorFlow" : false
     } ]
   }, {
-    "id" : "716eefc3-c301-4587-b139-4242da33e754",
+    "id" : "0ed1a6aa-11c8-4fad-ada2-747ad97b227f",
     "alias" : "User creation or linking",
     "description" : "Flow for the existing/non-existing user alternatives",
     "providerId" : "basic-flow",
@@ -1445,7 +1516,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "d8ef0e21-7094-407e-a300-b73f5803b271",
+    "id" : "382ab0c5-25e1-47e1-902c-8379d0043ec0",
     "alias" : "Verify Existing Account by Re-authentication",
     "description" : "Reauthentication of existing account",
     "providerId" : "basic-flow",
@@ -1465,7 +1536,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "3155bfa6-b145-4854-a750-6f434c4b4f74",
+    "id" : "d34db916-c05b-44b2-aa89-12f411d62456",
     "alias" : "browser",
     "description" : "browser based authentication",
     "providerId" : "basic-flow",
@@ -1497,7 +1568,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "ac092dc4-4c03-494c-9a82-d760eb124fc6",
+    "id" : "43701cbd-b227-4b83-b938-3fbdd70419b2",
     "alias" : "clients",
     "description" : "Base authentication for clients",
     "providerId" : "client-flow",
@@ -1529,7 +1600,7 @@
       "autheticatorFlow" : false
     } ]
   }, {
-    "id" : "a2c61060-16b4-409e-be31-336ec3b1b637",
+    "id" : "02381c0f-9dc9-47ef-ae09-a698aff94113",
     "alias" : "direct grant",
     "description" : "OpenID Connect Resource Owner Grant",
     "providerId" : "basic-flow",
@@ -1555,7 +1626,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "ed4a74c7-f8ae-48be-bbaa-8456b584ba6e",
+    "id" : "d0fcf7d1-26c9-4fd2-a8f3-4d5964985787",
     "alias" : "docker auth",
     "description" : "Used by Docker clients to authenticate against the IDP",
     "providerId" : "basic-flow",
@@ -1569,7 +1640,7 @@
       "autheticatorFlow" : false
     } ]
   }, {
-    "id" : "1d694e05-55f9-4671-ae72-21fc001b5221",
+    "id" : "8715c08f-41eb-434e-8d07-66916a3bbffb",
     "alias" : "first broker login",
     "description" : "Actions taken after first broker login with identity provider account, which is not yet linked to any Keycloak account",
     "providerId" : "basic-flow",
@@ -1590,7 +1661,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "dc358f43-9118-4a5e-87dd-17fac1832026",
+    "id" : "844214cc-414b-433c-a926-9277af1e96aa",
     "alias" : "forms",
     "description" : "Username, password, otp and other auth forms.",
     "providerId" : "basic-flow",
@@ -1610,7 +1681,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "a22ea84d-3a79-4b81-b750-bee86acb5066",
+    "id" : "55ccff88-8cb7-41e1-9a38-a91b16ed0932",
     "alias" : "http challenge",
     "description" : "An authentication flow based on challenge-response HTTP Authentication Schemes",
     "providerId" : "basic-flow",
@@ -1630,7 +1701,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "c972a387-0ba9-4596-9983-ba0f5c781fad",
+    "id" : "f8001444-3ee5-4fc7-8bda-669885e28c31",
     "alias" : "registration",
     "description" : "registration flow",
     "providerId" : "basic-flow",
@@ -1645,7 +1716,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "88e185bf-6230-44aa-9ad3-27c984a0f6e3",
+    "id" : "eb7990d7-fb07-4b23-9027-6305d150ba89",
     "alias" : "registration form",
     "description" : "registration form",
     "providerId" : "form-flow",
@@ -1677,7 +1748,7 @@
       "autheticatorFlow" : false
     } ]
   }, {
-    "id" : "d8228a80-f90e-4748-85dc-0e5e1f7924d1",
+    "id" : "5c9a7ab9-1b39-4f13-95ae-116f632a53e7",
     "alias" : "reset credentials",
     "description" : "Reset credentials for a user if they forgot their password or something",
     "providerId" : "basic-flow",
@@ -1709,7 +1780,7 @@
       "autheticatorFlow" : true
     } ]
   }, {
-    "id" : "43cfb334-8ed0-4db7-8422-cea0f638a42d",
+    "id" : "0b722ab3-6c23-4c8f-8619-3ffc3b86e65b",
     "alias" : "saml ecp",
     "description" : "SAML ECP Profile Authentication Flow",
     "providerId" : "basic-flow",
@@ -1724,13 +1795,13 @@
     } ]
   } ],
   "authenticatorConfig" : [ {
-    "id" : "b20ca818-cf03-4373-b2dd-b67ac6f89fa7",
+    "id" : "cf6b8e09-7112-48a2-ba2a-11b37179d479",
     "alias" : "create unique user config",
     "config" : {
       "require.password.update.after.registration" : "false"
     }
   }, {
-    "id" : "bcd1d4c4-c36a-4955-9d2d-77244b679dc0",
+    "id" : "a4eabfe2-e534-4f04-8582-c726024d04a0",
     "alias" : "review profile config",
     "config" : {
       "update.profile.on.first.login" : "missing"
@@ -1791,7 +1862,12 @@
   "resetCredentialsFlow" : "reset credentials",
   "clientAuthenticationFlow" : "clients",
   "dockerAuthenticationFlow" : "docker auth",
-  "attributes" : { },
-  "keycloakVersion" : "9.0.2",
+  "attributes" : {
+    "clientOfflineSessionMaxLifespan" : "0",
+    "clientSessionIdleTimeout" : "0",
+    "clientSessionMaxLifespan" : "0",
+    "clientOfflineSessionIdleTimeout" : "0"
+  },
+  "keycloakVersion" : "11.0.2",
   "userManagedAccessAllowed" : false
 }
