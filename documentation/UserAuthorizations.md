@@ -12,7 +12,6 @@ A user can be authorized on two different aspects:
 ![img1](images/joinGroup.png)
 
 The following GROUPS should exist:
-  - One group for each dataset, with the "MIP_RESEARCH_DATASET_" prefix. With the user joining this group, he is assigned to the according role with the "RESEARCH_DATASET_" prefix.
   - One group for each pathology, with the "MIP_CONTROLLER_" prefix. With the user joining this group, he is assigned to the according role with the "RESEARCH_PATHOLOGY_" prefix. This user can edit/remove/add CDEs in the specific federation of the pathology.
   - One role for each pathology, with the "MIP_RESEARCHER_" prefix. With the user joining this group, he is assigned to the according role with the "RESEARCH_PATHOLOGY_" prefix. This user can only conduct a federated analysis on the available data for this specific pathology.
   - One "Super User" group (MIP_PROCESSOR). With the user joining this group, he is assigned to the (RESEARCH_DATASET_ALL) , (RESEARCH_PATHOLOGY_ALL) (RESEARCH_EXPERIMENT_ALL). Any "Administrator" users can join this group in order for them to have access to everything.
@@ -47,7 +46,6 @@ If the dataset belongs to a new pathology, you could also add a role that will c
   - When a new dataset is added on the pathology, you should add it to this role, too.
 
 With these configurations you can not assign a role to a user direclty. In order to do that the user needs to join the proper group which will automatically give the proper access rights.
-Example: In case you want to assign a user with the role (RESEARCH_DATASET_DEMO), the user needs to join the group (MIP_RESEARCH_DATASET_DEMO).
-Additionally if a user is assigned a pathology role, he will automatically gain access to all the pathology's datasets.
+If a user is assigned a pathology role, he will automatically gain access to all the pathology's datasets.
 Example: In case a user is assigned the role (RESEARCH_PATHOLOGY_MENTALHEALTH), the user will automatically gain access to (RESEARCH_DATASET_DEMO) role.
 
