@@ -105,7 +105,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: hbpmip/portal-frontend:6.4.9-5-g81ed53c3 #hbpmip/portal-frontend:${FRONTEND}
+    image: hbpmip/portal-frontend:6.4.9.7 #hbpmip/portal-frontend:${FRONTEND}
     depends_on:
       - portalbackend
     ports:
