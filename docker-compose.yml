@@ -78,7 +78,7 @@ services:
     environment:
       ### API ###
       LOG_LEVEL: INFO
-      LOG_LEVEL_FRAMEWORK: INFO
+      LOG_LEVEL_FRAMEWORK: INFO 
       AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
       ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
@@ -97,6 +97,7 @@ services:
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_SSL_REQUIRED: NONE 
     depends_on:
       - create_dbs
     volumes:
