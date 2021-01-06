@@ -25,7 +25,7 @@
       ],
       "label": "Dataset",
       "units": "",
-      "type": "multinominal",
+      "type": "nominal",
       "methodology": "mip-cde"
     },
     {
@@ -1556,7 +1556,7 @@
           ],
           "label": "Alzheimer Broad Category",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": "mip-cde"
         },
         {
@@ -1612,7 +1612,7 @@
           ],
           "label": "Neurodegeneratives categories",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": "mip-cde"
         },
         {
@@ -1636,7 +1636,7 @@
           ],
           "label": "Parkinson Broad Category",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": "mip-cde"
         }
       ],
@@ -1665,7 +1665,7 @@
               ],
               "label": "ADNI category",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -1689,7 +1689,7 @@
               ],
               "label": "EDSD category",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -1729,7 +1729,7 @@
               ],
               "label": "PPMI category",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             }
           ],
@@ -1905,7 +1905,7 @@
               ],
               "label": "UPDRS HY",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -1958,7 +1958,7 @@
           ],
           "label": "agegroup",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": "mip-cde"
         },
         {
@@ -1978,7 +1978,7 @@
           ],
           "label": "Gender",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": "mip-cde"
         },
         {
@@ -2002,7 +2002,7 @@
           ],
           "label": "Handedness",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": "mip-cde"
         },
         {
@@ -2059,7 +2059,7 @@
               ],
               "label": "ApoE4",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2083,7 +2083,7 @@
               ],
               "label": "rs10498633_T",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2107,7 +2107,7 @@
               ],
               "label": "rs11136000_T",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2131,7 +2131,7 @@
               ],
               "label": "rs11767557_C",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2155,7 +2155,7 @@
               ],
               "label": "rs1476679_C",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2179,7 +2179,7 @@
               ],
               "label": "rs17125944_C",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2203,7 +2203,7 @@
               ],
               "label": "rs190982_G",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2227,7 +2227,7 @@
               ],
               "label": "rs2718058_G",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2251,7 +2251,7 @@
               ],
               "label": "rs3764650_G",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2275,7 +2275,7 @@
               ],
               "label": "rs3818361_T",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2299,7 +2299,7 @@
               ],
               "label": "rs3851179_A",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2323,7 +2323,7 @@
               ],
               "label": "rs3865444_T",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2347,7 +2347,7 @@
               ],
               "label": "rs610932_A",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             },
             {
@@ -2371,7 +2371,7 @@
               ],
               "label": "rs744373_C",
               "units": "",
-              "type": "multinominal",
+              "type": "nominal",
               "methodology": "mip-cde"
             }
           ],

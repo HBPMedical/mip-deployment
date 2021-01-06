@@ -13,7 +13,7 @@
       ],
       "label": "Dataset",
       "units": "",
-      "type": "multinominal",
+      "type": "nominal",
       "methodology": ""
     }
   ],
@@ -51,7 +51,7 @@
           ],
           "label": "Gender",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         }
       ],
@@ -93,7 +93,7 @@
           ],
           "label": "GCS eye",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -137,7 +137,7 @@
           ],
           "label": "GCS motor",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -177,7 +177,7 @@
           ],
           "label": "GCS verbal",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -209,7 +209,7 @@
           ],
           "label": "Pupil right",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -241,7 +241,7 @@
           ],
           "label": "Pupil left",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -313,7 +313,7 @@
           ],
           "label": "GSC total",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         }
       ],
@@ -343,7 +343,7 @@
           ],
           "label": "Cisternal compression",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -367,7 +367,7 @@
           ],
           "label": "Epidural hematoma",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -391,7 +391,7 @@
           ],
           "label": "Midline shift",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -423,7 +423,7 @@
           ],
           "label": "Marshall CT",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         }
       ],
@@ -457,7 +457,7 @@
           ],
           "label": "Hypoxia",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -485,7 +485,7 @@
           ],
           "label": "Hypotension",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         }
       ],
@@ -535,7 +535,7 @@
           ],
           "label": "GOS-E score",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         },
         {
@@ -565,7 +565,7 @@
           ],
           "label": "Mortality - GOS-E ",
           "units": "",
-          "type": "multinominal",
+          "type": "nominal",
           "methodology": ""
         }
       ],
