@@ -5,6 +5,34 @@
     "metadataHierarchy": {
       "variables": [
         {
+          "isCategorical": true,
+          "code": "dataset",
+          "sql_type": "text",
+          "description": "Variable used to differentiate datasets",
+          "enumerations": [
+            {
+              "code": "ppmi",
+              "label": "PPMI"
+            },
+            {
+              "code": "edsd",
+              "label": "EDSD"
+            },
+            {
+              "code": "desd-synthdata",
+              "label": "DESD-synthdata"
+            },
+            {
+              "code": "fake_longitudinal",
+              "label": "Longitudinal"
+            }
+          ],
+          "label": "Dataset",
+          "units": "",
+          "type": "nominal",
+          "methodology": "mip-cde"
+        },
+        {
           "isCategorical": false,
           "code": "subjectvisitid",
           "sql_type": "text",
@@ -1687,20 +1715,16 @@
                       "label": "Prodromal"
                     },
                     {
-                      "code": "GENPD”,”Genetic PD patients with a mutation (LRRK2",
-                      "label": "GBA or SNCA)"
+                      "code": "GENPD",
+                      "label": "Genetic PD patients with a mutation (LRRK2, GBA or SNCA)"
                     },
                     {
-                      "code": "REGUN”,”Genetic Unaffected patients with a mutation (LRRK2",
-                      "label": "GBA or SNCA)"
+                      "code": "REGUN",
+                      "label": "Genetic Unaffected patients with a mutation (LRRK2, GBA or SNCA)"
                     },
                     {
-                      "code": "REGPD”,”Genetic registry PD subjects with a mutation (LRRK2, GBA",
-                      "label": "or SNCA)"
-                    },
-                    {
-                      "code": "REGUN”,”Genetic registry unaffected subjects with a mutation (LRRK2, GBA",
-                      "label": "or SNCA)"
+                      "code": "REGPD",
+                      "label": "Genetic registry PD subjects with a mutation (LRRK2, GBA or SNCA)"
                     }
                   ],
                   "label": "PPMI category",
@@ -2435,7 +2459,24 @@
     "code": "mentalhealth",
     "label": "Mentalhealth",
     "metadataHierarchy": {
-      "variables": [],
+      "variables": [
+        {
+          "isCategorical": true,
+          "code": "dataset",
+          "sql_type": "text",
+          "description": "",
+          "enumerations": [
+            {
+              "code": "demo",
+              "label": "Demo"
+            }
+          ],
+          "label": "dataset",
+          "units": "",
+          "type": "nominal",
+          "methodology": ""
+        }
+      ],
       "code": "mentalhealth",
       "groups": [
         {
@@ -5180,7 +5221,24 @@
     "code": "tbi",
     "label": "Traumatic Brain Injury",
     "metadataHierarchy": {
-      "variables": [],
+      "variables": [
+        {
+          "isCategorical": true,
+          "code": "dataset",
+          "sql_type": "text",
+          "description": "",
+          "enumerations": [
+            {
+              "code": "dummy_tbi",
+              "label": "Dummy TBI"
+            }
+          ],
+          "label": "Dataset",
+          "units": "",
+          "type": "nominal",
+          "methodology": ""
+        }
+      ],
       "code": "tbi",
       "groups": [
         {
