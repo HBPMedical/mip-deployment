@@ -38,7 +38,7 @@ services:
     restart: on-failure
 
   portalbackend:
-    image: hbpmip/portal-backend:${PORTALBACKEND}
+    image: kfilippopolitis/portal-backend:experiment_refactor_v12
     ports:
       - '8080:8080'
       - '8089:8089'
@@ -89,5 +89,6 @@ services:
       TRACKER_ID: UA-80660232-5
       GALAXY_URL: http://galaxy/nativeGalaxy
       DATACATALOGUE_SERVER: ${DATACATALOGUE_PROTOCOL}://${DATACATALOGUE_HOST}
-      KEYCLOAK_AUTH_URL: /services/sso/login
+      KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
+      KEYCLOAK_LOGIN_URL: http://keycloak:8095/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
     restart: unless-stopped
