@@ -13,7 +13,7 @@
             ],
             "label": "dataset",
             "units": "",
-            "type": "multinominal",
+            "type": "nominal",
             "methodology": ""
         }
     ],
@@ -42,7 +42,7 @@
                     ],
                     "label": "sex",
                     "units": "none",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -66,7 +66,7 @@
                     ],
                     "label": "handedness",
                     "units": "none",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 }
             ],
@@ -92,7 +92,7 @@
                     ],
                     "label": "Special attachment to mother",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -112,7 +112,7 @@
                     ],
                     "label": "Special attachment to father",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -132,7 +132,7 @@
                     ],
                     "label": "Special attachment to another mother figure",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -152,7 +152,7 @@
                     ],
                     "label": "Special attachment to another father figure",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -172,7 +172,7 @@
                     ],
                     "label": "Special attachment to one or more grandparents",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -192,7 +192,7 @@
                     ],
                     "label": "Special attachment to one or more other adult relatives",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -212,7 +212,7 @@
                     ],
                     "label": "Special attachment to childminder, nanny, au pair",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -232,7 +232,7 @@
                     ],
                     "label": "Special attachment to one or more teachers",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -252,7 +252,7 @@
                     ],
                     "label": "Special attachment to one or more adult non-relatives",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -272,7 +272,7 @@
                     ],
                     "label": "Special attachment to one or more brothers, sisters or other young relatives",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -292,7 +292,7 @@
                     ],
                     "label": "Special attachment to one or more friends",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -312,7 +312,7 @@
                     ],
                     "label": "Concern about separation over the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -336,7 +336,7 @@
                     ],
                     "label": "Concern about loss of, or harm of attachment figures over the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -360,7 +360,7 @@
                     ],
                     "label": "Unrealistic concern about being taken away from attachment figures over the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -384,7 +384,7 @@
                     ],
                     "label": "Not wanting to go to school due to fear of harm to attachment figure while at school in the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -408,7 +408,7 @@
                     ],
                     "label": "Concern about sleeping alone in the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -432,7 +432,7 @@
                     ],
                     "label": "Sleeping with or checking on attachment figures at night in the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -456,7 +456,7 @@
                     ],
                     "label": "Concern about sleeping in a strange place in the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -480,7 +480,7 @@
                     ],
                     "label": "Afraid of being alone at home for the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -504,7 +504,7 @@
                     ],
                     "label": "Nightmares about separation from attachment figures in the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -528,7 +528,7 @@
                     ],
                     "label": "Somatic symptoms linked to separations in the past 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -552,7 +552,7 @@
                     ],
                     "label": "Anticipatory anxiety of separations",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -572,7 +572,7 @@
                     ],
                     "label": "Presence of separation worries for at least 4 weeks",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -610,7 +610,7 @@
                     ],
                     "label": "Distress due to these worries",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -638,7 +638,7 @@
                     ],
                     "label": "Impact on family life",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -666,7 +666,7 @@
                     ],
                     "label": "Impact on frienships",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -694,7 +694,7 @@
                     ],
                     "label": "Impact on learning or class work",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -722,7 +722,7 @@
                     ],
                     "label": "Impact on leisure",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -750,7 +750,7 @@
                     ],
                     "label": "Worries leading to burden on others",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 }
             ],
@@ -780,7 +780,7 @@
                     ],
                     "label": "Fear of animals",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -804,7 +804,7 @@
                     ],
                     "label": "Fear of some aspects of the natural environment (e.g. storms, thunder, heights or water)",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -828,7 +828,7 @@
                     ],
                     "label": "Fear of the dark",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -852,7 +852,7 @@
                     ],
                     "label": "Fear of loud noises",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -876,7 +876,7 @@
                     ],
                     "label": "Fear of blood - injection - injury",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -900,7 +900,7 @@
                     ],
                     "label": "Fear of dentists or doctors",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -924,7 +924,7 @@
                     ],
                     "label": "Fear of vomitting, choking or getting particular diseases",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -948,7 +948,7 @@
                     ],
                     "label": "Fear of using particular types of transport",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -972,7 +972,7 @@
                     ],
                     "label": "Fear of small enclosed spaces",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -996,7 +996,7 @@
                     ],
                     "label": "Fear od using the toilet",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1020,7 +1020,7 @@
                     ],
                     "label": "Fear od specific types of people, e.g. clowns",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1044,7 +1044,7 @@
                     ],
                     "label": "Fear of imaginary or supernatural things",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1078,7 +1078,7 @@
                     ],
                     "label": "Fear is a nuisance to person or others",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1102,7 +1102,7 @@
                     ],
                     "label": "Duration in months",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1126,7 +1126,7 @@
                     ],
                     "label": "Anxiety or very upset when fear is triggered",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1146,7 +1146,7 @@
                     ],
                     "label": "Upset every time confronted with fears",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1174,7 +1174,7 @@
                     ],
                     "label": "How often is fear triggered",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1198,7 +1198,7 @@
                     ],
                     "label": "Avoidance of the phobic stimulus",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1222,7 +1222,7 @@
                     ],
                     "label": "Interference of avoidance on daily life",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1246,7 +1246,7 @@
                     ],
                     "label": "Others think fear is excessive",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1270,7 +1270,7 @@
                     ],
                     "label": "Person themselves think fear is excessive",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 },
                 {
@@ -1298,7 +1298,7 @@
                     ],
                     "label": "Fears leading to burden on others",
                     "units": "",
-                    "type": "multinominal",
+                    "type": "nominal",
                     "methodology": ""
                 }
             ],
