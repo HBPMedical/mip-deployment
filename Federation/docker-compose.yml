@@ -56,7 +56,7 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       ### Exareme ###
-      EXAREME_URL: http://exareme_master:9090
+      EXAREME_URL: http://${EXAREME_IP}:9090
       ### Galaxy ###
       GALAXY_URL: http://galaxy
       GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
