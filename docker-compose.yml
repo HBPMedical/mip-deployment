@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
 
   exareme_master:
-    image: hbpmip/exareme:23.5.0
+    image: hbpmip/exareme:${EXAREME}
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
