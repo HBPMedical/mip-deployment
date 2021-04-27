@@ -9,22 +9,23 @@ REQUIRED_OS_RELEASE="18.04"
 REQUIRED_DOCKER_VERSION="20.10.0"
 ###########################################################################################
 INSTALL_PATH="/opt"
+BACKUP_PATH="/var/backups"
 ###########################################################################################
 DOCKER_DOWNLOAD_HOST="download.docker.com"
 DOCKER_USER="mipadmin"
 DOCKER_USER_PASSWD='$6$hZTew7vztbwhQHx$/F8I.cs78bBy9lO.rQ4AUICGrkZLVjPt7zkV3xXEC3.mip0rVrrxPmTgvrZQ0DcsNqpnb10Cn6InVt441BIUo0'
 CONFLICTING_PACKAGES="docker docker-engine docker.io docker-compose containerd runc"
 CONFLICTING_SNAP_PACKAGES="docker"
-PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates ssl-cert curl gnupg-agent software-properties-common net-tools whois lsof jq expect python3-pip"
+PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates ssl-cert curl gnupg-agent software-properties-common neofetch net-tools mtr-tiny inetutils-traceroute whois lsof jq expect python3-pip"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli docker-ce-rootless-extras containerd.io"
-REQUIRED_PIP3_PACKAGES="chardet"
+REQUIRED_PIP3_PACKAGES="chardet bpytop"
 REQUIRED_CUSTOM_PACKAGES="docker-compose python2"
 DEFAULT_MIP_GITHUB_OWNER="HBPMedical"
 DEFAULT_MIP_GITHUB_PROJECT="mip-deployment"
-DEFAULT_MIP_BRANCH="master"
+DEFAULT_MIP_BRANCH=""
 EXAREME_GITHUB_OWNER="madgik"
 EXAREME_GITHUB_PROJECT="exareme"
-EXAREME_BRANCH="master"
+EXAREME_BRANCH=""
 
 GITHUB_APP_TOKEN="pLLmECIPFpoNKJINBkPk43ADmHCJkLBPBpLmECIEDpLNKJB2DD3K4CIlmpnKoJBOBlLli52DFpgNIJJ2Bl3K2KBFnKlg===="
 DOCKERHUB_USER="hbpmiphip"
@@ -53,7 +54,7 @@ DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_ID="MIP"
 DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_SECRET="dae83a6b-c769-4186-8383-f0984c6edf05"
 
 DEFAULT_FED_MIP_ENV_KEYCLOAK_PROTOCOL="https"
-DEFAULT_FED_MIP_ENV_KEYCLOAK_URL="iam.humanbrainproject.eu"
+DEFAULT_FED_MIP_ENV_KEYCLOAK_URL="iam.ebrains.eu"
 DEFAULT_FED_MIP_ENV_KEYCLOAK_REALM="MIP"
 DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_ID="mipfedqa"
 DEFAULT_FED_MIP_ENV_KEYCLOAK_CLIENT_SECRET="492ddb7d-a7c6-4143-89ae-dbfa6f970aca"
@@ -75,8 +76,6 @@ VERBOSE_LEVEL=0
 MIP_COMMAND="mip"
 
 args_parser(){
-	ORIG_ARGS=$@
-	ORIG_ARGS_COUNT=$#
 	POSITIONAL=()
 	local key=""
 	while [[ $# -gt 0 ]]; do
@@ -95,8 +94,6 @@ args_parser(){
 				;;
 			logs)
 				ACTION=$1
-				LOGS_PART=$2
-				shift
 				shift
 				;;
 			node)
@@ -121,6 +118,22 @@ args_parser(){
 				ACTION=$1
 				VERSION_ACTION=$2
 				shift
+				shift
+				;;
+			backup)
+				ACTION=$1
+				shift
+				;;
+			restore)
+				ACTION=$1
+				shift
+				;;
+			ssh)
+				ACTION=$1
+				shift
+				;;
+			ssh-mc)
+				ACTION=$1
 				shift
 				;;
 			fedtask)
@@ -184,6 +197,11 @@ args_parser(){
 				shift
 				shift
 				;;
+			--component)
+				ARG_COMPONENT=$2
+				shift
+				shift
+				;;
 			--exareme-ip)
 				ARG_EXAREME_IP=$2
 				shift
@@ -244,8 +262,36 @@ args_parser(){
 				ARG_WITHOUT_EXAREME=1
 				shift
 				;;
-			--lines)
-				ARG_LINES=$2
+			--limit)
+				ARG_LIMIT=$2
+				shift
+				shift
+				;;
+			--all)
+				ARG_ALL=1
+				shift
+				;;
+			--latest)
+				ARG_LATEST=1
+				shift
+				;;
+			--branch)
+				ARG_BRANCH=$2
+				shift
+				shift
+				;;
+			--version)
+				ARG_VERSION=$2
+				shift
+				shift
+				;;
+			--component-version)
+				ARG_COMPONENT_VERSION=$2
+				shift
+				shift
+				;;
+			--commit)
+				ARG_COMMIT=$2
 				shift
 				shift
 				;;
@@ -301,6 +347,15 @@ args_parser(){
 	if [[ $ARG_QUIET -eq 1 && $DEBUG_LEVEL -gt 0 ]]; then
 		ARG_QUIET=0
 	fi
+}
+
+__save_args(){
+	ORIG_ARGS=()
+	ORIG_ARGS_COUNT=$#
+	while [[ $# -gt 0 ]]; do
+		ORIG_ARGS+=("$1")
+		shift
+	done
 }
 
 __config_colors(){
@@ -386,21 +441,61 @@ __config_colors(){
 }
 
 __echo(){
-	local echopath=$(which echo)
-	local args=""
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		return 0
+	fi
 
-	while [[ $# -gt 1 ]]; do
-		if [[ "$args" != "" ]]; then
-			args+=" "
-		fi
-		args+=$1
+	local echopath=$(which echo)
+
+	local args=()
+	local msg=""
+
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			-n|-e|-ne|-en)
+				args+=("$1")
+				shift
+				;;
+			*)
+				if [[ "$msg" != "" ]]; then
+					msg+=" "
+				fi
+				msg+="$(echo "$1" | sed 's/"/\\"/g')"
+				shift
+				;;
+		esac
+	done
+	set -- "${args[@]}"
+	local cmdargs=()
+	while [[ $# -gt 0 ]]; do
+		cmdargs+=("$1")
 		shift
 	done
+	set -- "${cmdargs[@]}"
 
 	if [[ $ARG_RAW_COLOR_CODES -eq 1 ]]; then
-		$echopath $args "$@"
+		$echopath $@ "$msg"
 	else
-		eval "$echopath $args \"$@\""
+		local result=$($echopath $@ "$msg")
+		local trailingnewlines=""
+		local trailingnewlinescount=$(echo "$msg" | sed 's/\\n/¦/g' | rev | awk -F '¦' '{for (i=1;i<=NF && ($i=="");i++); print i-1}')
+		if [[ "$(echo $trailingnewlinescount | grep -E '^[0-9]+$')" != "" ]]; then
+			while [[ $trailingnewlinescount -gt 0 ]]; do
+				trailingnewlines+="\n"
+				trailingnewlinescount=$(expr $trailingnewlinescount - 1)
+			done
+			result+="$trailingnewlines"
+		fi
+
+		set -- "${args[@]}"
+		cmdargs=()
+		while [[ $# -gt 0 ]]; do
+			cmdargs+=("$1")
+			shift
+		done
+		set -- "${cmdargs[@]}"
+
+		eval "echo $@ \"$result\""
 	fi
 }
 
@@ -409,15 +504,33 @@ __colored_msg(){
 		return 0
 	fi
 
-	local color=$1
+	local color="$1"
 	shift
 
-	local arg=""
-	if [[ "$1" = "-n" ]]; then
-		arg=$1
-		shift
-	fi
-	__echo ${arg} "\${$color}$*\${reset}"
+	local args=()
+	local msg=""
+
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			-n|-e|-ne|-en)
+				args+=("$1")
+				shift
+				;;
+			*)
+				if [[ "$msg" != "" ]]; then
+					msg+=" "
+				fi
+				msg+="$(echo "$1" | sed 's/"/\\"/g')"
+				shift
+				;;
+		esac
+	done
+
+	msg="\${$color}$msg\${reset}"
+	args+=("$msg")
+	set -- "${args[@]}"
+
+	__echo $@
 }
 
 # <standard colors>
@@ -508,15 +621,16 @@ __debug(){
 		return 0
 	fi
 
-	local positional=()
 	local level=0
 	local compare="ge"
 	local print=0
 	local msg=""
-	local msgarg=""
+	local args=()
 	local crbegin=0
 	local crend=0
 	local color=""
+
+	local positional=()
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--level)
@@ -533,11 +647,6 @@ __debug(){
 				shift
 				shift
 				;;
-			--msg)
-				msg=$2
-				shift
-				shift
-				;;
 			--color)
 				color=$2
 				shift
@@ -547,21 +656,23 @@ __debug(){
 				crbegin=1
 				shift
 				;;
-			-e) # Add additional new line after message
+			-a) # Add additional new line after message
 				crend=1
 				shift
 				;;
-			-n)
-				msgarg=$1
+			-n|-e|-ne|-en)
+				positional+=("$1")
 				shift
 				;;
 			*)
-				positional+=("$1")
+				if [[ "$msg" != "" ]]; then
+					msg+=" "
+				fi
+				msg+="$(echo "$1" | sed 's/"/\\"/g')"
 				shift
 				;;
 		esac
 	done
-
 	set -- "${positional[@]}"
 
 	if [[ "$compare" = "eq" ]]; then
@@ -574,17 +685,26 @@ __debug(){
 		fi
 	fi
 
-	if [[ -n $* && $print -eq 1 ]]; then
-		if [[ $crbegin -eq 1 ]]; then
-			echo ""
-		fi
+	if [[ "$msg" != "" && $print -eq 1 ]]; then
+		local cmd="__echo"
 		if [[ "$color" != "" ]]; then
-			__colored_msg "$color" "$msgarg" $@
-		else
-			echo "$msgarg" $@
+			cmd="__colored_msg"
+			args+=("$color")
 		fi
+
+		while [[ $# -gt 0 ]]; do
+			args+=("$1")
+			shift
+		done
+		args+=("$msg")
+		set -- "${args[@]}"
+
+		if [[ $crbegin -eq 1 ]]; then
+			__echo "" >/dev/stderr
+		fi
+		$cmd "$@" >/dev/stderr
 		if [[ $crend -eq 1 ]]; then
-			echo ""
+			__echo "" >/dev/stderr
 		fi
 	fi
 }
@@ -619,7 +739,7 @@ __hourglass(){
 		HOURGLASSCHAR="|"
 	fi
 
-	echo -en "\r$HOURGLASSCHAR $1"
+	__echo -en "\r$HOURGLASSCHAR $1"
 }
 
 __graphql_compacter(){
@@ -668,14 +788,10 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 											Used in "local" MIP or "ui" federation node.
 		status-details							Same than status, but with much detailed output on Docker
 											containers.
-		logs [MIP_COMPONENT]						Get logs of the passed component. The MIP_COMPONENT parameter is MANDATORY for the
-											"local" MIP, but for a federation node, no MIP_COMPONENT will output the logs for
+		logs								Get logs of the passed component. The --component [MIP_COMPONENT] parameter is MANDATORY for the
+											"local" MIP, but for a federation node, not giving any MIP_COMPONENT will output the logs for
 											the main component related to the node type.
 											Can be used with "-f|--follow" flag, the "tail" way. It can also be used with --lines.
-			MIP_COMPONENT for "local" MIP:
-				[frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
-			MIP_COMPONENT for "ui" federation node:
-				[frontend|portalbackend|portalbackend_db|galaxy|create_dbs]
 		cleanup								Clean the unused/old MIP Docker images.
 		version [VERSION_ACTION]
 			list							List the components versions on the node. In a federation, it can be used from the pusher to
@@ -683,6 +799,14 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 			list-avail [LIST_AVAIL_PART]
 				mip						List the available (online) releases of the MIP.
 				exareme						List the available (online) releases of Exareme.
+											Can also be used with --limit, --all, and --latest parameters.
+											If --component parameter is used, it may not consider the LIST_AVAIL_PART argument.
+		backup								Do a backup of the current MIP installation.
+		backup [BACKUP_ACTION]
+			list							List the MIP backups currently available.
+			show [BACKUP_FILE]					Show the details of a backup file.
+		restore --backup-file [BACKUP_FILE]				Do a restore from the specified backup file.
+										Can also be used with additional parameters: --partial-restore-path, or --no-version
 
 		FEDERATION SPECIFIC ACTION
 		==========================
@@ -711,11 +835,14 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 											Can be limited to one node with --node option
 			stop							(PUSHER action) Stop the federation services on all nodes.
 											Can be limited to one node with --node option
+		ssh								(PUSHER action) Connect with SSH to a node in the federation. Works with --node option.
+		ssh-mc								(PUSHER action) Open a Midnight Commander with a remote pane on a node in the federation
+											(to exchange files with the pusher). Works with --node option.
 
 		OPTION
 		======
 		--no-run							Don't automatically start the MIP after install.
-		--lines [NUM]							Output the last NUM lines
+		--limit [NUM]							Output the last NUM lines
 	-f,	--follow							Used with logs, exactly the same way than in "tail".
 		--force								May be used at least with configure, to force reconfigure.
 		--purge								In case of MIP uninstall, also remove all Docker images.
@@ -731,6 +858,12 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 
 		Next parameters may be used mainly with "configure" action, but not exclusively.
 		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen. For "local" installation and "ui" federation node.
+		--component [MIP_COMPONENT]					Specific MIP component which can be targetted (in logs, install, or version action).
+			Typical MIP_COMPONENT for "local" MIP:
+				[frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
+			Typical MIP_COMPONENT for "ui" federation node:
+				[frontend|portalbackend|portalbackend_db|galaxy|create_dbs]
+
 		--with-keycloak-authentication					Use Keycloak authentication. Complementary keycloak parameters may be set, or they may be asked at
 											configuration step.
 		--without-keycloak-authentication				Deactivate Keycloak authentication.
@@ -744,6 +877,17 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--datacatalogue-host [DATACATALOGUE_HOST]			Set the Data Catalogue host (<HOSTNAME> or <HOSTNAME>:<PORT>)
 		--review-dataset-labels						Force the user review of pathologies and datasets labels before generating and deploying
 											files to federation nodes.
+		--all								Display all output, without filter (typically in version, it will display the unstable versions as well)
+		--latest							Represents the latest item version.
+		--commit [COMMIT]						Specific commit ID. It has precedence over --version and --branch
+		--version [VERSION]						Specific version. It has precedence over --branch
+		--component-version [VERSION]					Specific container version (e.g. madgik/exareme:24.1.0)
+		--branch [BRANCH]						Specific branch.
+
+		--backup-file							With the "restore" action, provides the full path to the backup file to restore.
+		--partial-restore-path						With the "restore" action, provides a path (without leading /) or a series of paths (separated by space) to restore.
+		--no-version							With the "restore" action, excludes the files linked to the version that was backuped. It's more like
+											an import of old configuration.
 
 		FEDERATION SPECIFIC OPTION
 		==========================
@@ -759,6 +903,9 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 											can manage many different federations.
 		--node [NODE]							Limit the action to the specified NODE. Used in case of "node" or "service" action.
 			NODE can be the node "short name" (ms|ui|wk1|wk2...), the node "name" (real hostname), the node "id" (1=master, 2=ui, 3..n for workers) or the node "IP".
+		--without-exareme						Can be used to remove exareme (included by default) from the list of tasks in "service [deploy|start|restart|stop]".
+		--with-portainer						Can be used to add portainer (excluded by default) from the list of tasks in "service [deploy|start|restart|stop]".
+		--with-secure-portainer						Can be used to add SSL portainer (excluded by default) from the list of tasks in "service [deploy|start|restart|stop]".
 EOF
 	exit 0
 }
@@ -1057,10 +1204,11 @@ load_mip_env(){
 		MIP_BRANCH=$EXAREME_BRANCH
 		__debug --level 6 "Setting global var: MIP_PATH=<$INSTALL_PATH/$ARG_FEDERATION/exareme>"
 		MIP_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
+		EXAREME_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
 		__debug --level 6 "Setting global var: MIPENVFILE=<$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME>"
 		MIPENVFILE=$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME
-		__debug --level 6 "Setting global var: ANSIBLE_PATH=<$MIP_PATH/Federated-Deployment/Docker-Ansible>"
-		ANSIBLE_PATH=$MIP_PATH/Federated-Deployment/Docker-Ansible
+		__debug --level 6 "Setting global var: ANSIBLE_PATH=<$EXAREME_PATH/Federated-Deployment/Docker-Ansible>"
+		ANSIBLE_PATH=$EXAREME_PATH/Federated-Deployment/Docker-Ansible
 		__debug --level 6 "Setting global var: ANSIBLE_HOSTS_FILE=<$ANSIBLE_PATH/hosts.ini>"
 		ANSIBLE_HOSTS_FILE=$ANSIBLE_PATH/hosts.ini
 		__debug --level 6 "Setting global var: ANSIBLE_VAULT_FILE=<$ANSIBLE_PATH/vault.yaml>"
@@ -1079,12 +1227,12 @@ load_mip_env(){
 		REQUIRED_PACKAGES=""
 		__debug --level 6 "Setting global var: REQUIRED_PIP3_PACKAGES=<chardet paramiko>"
 		REQUIRED_PIP3_PACKAGES="chardet paramiko"
-		__debug --level 6 "Setting global var: SSH_PATH=<$MIP_PATH>"
-		SSH_PATH=$MIP_PATH
+		__debug --level 6 "Setting global var: SSH_PATH=<$EXAREME_PATH>"
+		SSH_PATH=$EXAREME_PATH
 		__debug --level 6 "Setting global var: SSH_OPTIONS=<-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no>"
 		SSH_OPTIONS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$MIP_PATH/Federated-Deployment/Compose-Files>"
-		DOCKER_COMPOSE_PATH=$MIP_PATH/Federated-Deployment/Compose-Files
+		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$EXAREME_PATH/Federated-Deployment/Compose-Files>"
+		DOCKER_COMPOSE_PATH=$EXAREME_PATH/Federated-Deployment/Compose-Files
 	elif [[ $ARG_PUSHER -eq 1 && ! -n $ARG_FEDERATION ]]; then
 		__red "Federation name required!"
 		exit 1
@@ -1228,6 +1376,59 @@ _has_minimum_version(){
 	return $result
 }
 
+_compare_component_list(){
+	local result=""
+
+	if [[ "$1" = "" || "$2" = "" ]]; then
+		return 99
+	fi
+
+	if [[ "$1" = "$2" ]]; then
+		result="equal"
+	else
+		for left_line in $(echo -e "$1" | tr ',' '\n'); do
+			left_component=$(echo "$left_line" | cut -d';' -f1)
+			left_image=$(echo "$left_line" | cut -d';' -f2)
+			left_version=$(echo "$left_image" | cut -d: -f2)
+			left_image=$(echo "$left_image" | cut -d: -f1)
+			for right_line in $(echo -e "$2" | tr ',' '\n'); do
+				right_component=$(echo "$right_line" | cut -d';' -f1)
+				right_image=$(echo "$right_line" | cut -d';' -f2)
+				right_version=$(echo "$right_image" | cut -d: -f2)
+				right_image=$(echo "$right_image" | cut -d: -f1)
+
+				if [[ "$right_component" = "$left_component" ]]; then
+					if [[ "$right_image" != "$left_image" ]]; then
+						if [[ "$result" != "" ]]; then
+							result+=","
+						fi
+						result+="unknown::$right_component;$right_image:$right_version"
+					else
+						if [[ "$right_version" != "$left_version" ]]; then
+							_compare_versions "$left_version" "$right_version"
+							ret=$?
+							if [[ $ret -gt 0 ]]; then
+								if [[ "$result" != "" ]]; then
+									result+=","
+								fi
+								if [[ $ret -eq 1 ]]; then
+									result+="downgrade::$right_component;$right_image:$right_version"
+								elif [[ $ret -eq 2 ]]; then
+									result+="upgrade::$right_component;$right_image:$right_version"
+								fi
+							fi
+						fi
+					fi
+					break
+				fi
+			done
+		done
+	fi
+
+	echo "$result"
+	return 0
+}
+
 _check_os(){
 	__debug --level 1 --levelcompare "eq" -n "Checking OS requirements..."
 	__debug --level 4 "_check_os($*)"
@@ -1305,14 +1506,16 @@ _check_conflicting_snap_packages(){
 }
 
 _get_git_tags(){
-	local positional=()
 	local server
 	local releases=0
 	local all=0
 	local owner
 	local repo
+	local filter
 	local limit
 	local latest=0
+
+	local positional=()
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--server)
@@ -1338,6 +1541,11 @@ _get_git_tags(){
 				shift
 				shift
 				;;
+			--filter)
+				filter=$2
+				shift
+				shift
+				;;
 			--limit)
 				limit=$2
 				shift
@@ -1353,7 +1561,6 @@ _get_git_tags(){
 				;;
 		esac
 	done
-
 	set -- "${positional[@]}"
 
 	local url
@@ -1473,6 +1680,10 @@ _get_git_tags(){
 		limit=1
 	fi
 
+	if [[ -n $filter ]]; then
+		tags=$(echo "$tags" | grep -F "$filter")
+	fi
+
 	if [[ -n $limit ]]; then
 		tags=$(echo "$tags"|head -$limit)
 	fi
@@ -1480,11 +1691,11 @@ _get_git_tags(){
 }
 
 __test(){
-	_get_dockerhub_infos --mode image --owner hbpmip
+	#_get_dockerhub_infos --mode image --owner hbpmip
 	#_get_dockerhub_infos --mode tag --owner hbpmip --image exareme
-	return 0
-	local owner="docker"
-	local repo="compose"
+	#return 0
+	#local owner="docker"
+	#local repo="compose"
 	local query='query {
 	repository(owner: "'$owner'", name: "'$repo'") {
 		releases(first:100, orderBy:{field:CREATED_AT, direction:DESC}) {
@@ -1498,8 +1709,28 @@ __test(){
 	}
 }'
 
+	local httpcode
+	local mode="readfile"
+	local owner="$MIP_GITHUB_OWNER"
+	local repo="$MIP_GITHUB_PROJECT"
+	local branch=""
+	local tag=""
+	local path=""
+	local filename=".versions_env"
+	local targetpath=""
+	#local mode="file"
+	#local owner="$EXAREME_GITHUB_OWNER"
+	#local repo="$EXAREME_GITHUB_PROJECT"
+	#local branch=""
+	#local tag=""
+	#local path="Federated-Deployment/Docker-Ansible/scripts"
+	#local filename="deploy.sh"
+	#local targetpath="deploy.sh"
+	_get_github_file --httpcodevar 'httpcode' --owner "$owner" --repo "$repo" --mode "$mode" --branch "$branch" --tag "$tag" --onthefly-tagging --path "$path" --filename "$filename" --targetpath "$targetpath"
+	#__echo "httpcode=<$httpcode>"
+
 	#_get_git_tags --server https://github.com --owner docker --repo compose --releases --all
-	local result=$(_get_git_tags --server https://github.com --owner madgik --repo exareme --releases --all --latest)
+	#local result=$(_get_git_tags --server https://github.com --owner madgik --repo exareme --releases --all --latest)
 	#local result=$(_get_git_commits --owner HBPMedical --repo mip-deployment --limit 10)
 
 	#__github_graphql_query "$query"
@@ -1508,32 +1739,40 @@ __test(){
 	#result=$(echo $result | jq -r '.data.repository.releases.nodes' | awk '/"name":/ {print $NF}' | cut -c2- | rev | cut -c2- | rev)
 	#result=$(echo "$result"|head -10)
 
-	#echo $result
+	#__echo $result
 	#local item
 	#for item in $result; do
-	#	echo $item
+	#	__echo $item
 	#done
 
 	#install_custom_package_docker-compose
-	install_custom_package_convert-csv-dataset-to-db.py
+	#install_custom_package_convert-csv-dataset-to-db.py
 }
 
 _get_github_file(){
-	local positional=()
 	local result=1
 	local httpcodevar=""
+	local onthefly_tagging=0
 	local owner
 	local repo
+	local commit
 	local tag
+	local branch
 	local mode
 	local path
 	local filename
 	local targetpath
+
+	local positional=()
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--httpcodevar)
 				httpcodevar=$2
 				shift
+				shift
+				;;
+			--onthefly-tagging)
+				onthefly_tagging=1
 				shift
 				;;
 			--owner)
@@ -1551,8 +1790,18 @@ _get_github_file(){
 				shift
 				shift
 				;;
+			--commit)
+				commit=$2
+				shift
+				shift
+				;;
 			--tag)
 				tag=$2
+				shift
+				shift
+				;;
+			--branch)
+				branch=$2
 				shift
 				shift
 				;;
@@ -1577,52 +1826,212 @@ _get_github_file(){
 				;;
 		esac
 	done
-
 	set -- "${positional[@]}"
 
 	local url="https://github.com/$owner/$repo"
 	case $mode in
-		file)
-			url+="/raw/$tag/$path/$filename"
+		file|readfile)
+			url+="/raw"
+
+			if [[ "$commit" != "" ]]; then
+				local gql_query='query {
+	repository(owner: "'$owner'", name: "'$repo'") {
+		object(expression: "'$commit'") {
+			... on Commit {
+				oid
+			}
+		}
+	}
+}'
+				local gql_result=$(__github_graphql_query "$gql_query")
+				local oid=$(echo "$gql_result" | jq .data.repository.object.oid | awk -F '"' '{print $2}')
+				if [[ "$(echo $oid | grep -E "^$commit")" != "" ]]; then
+					url+="/$oid"
+					commit="$oid"
+				fi
+			elif [[ "$tag" != "" ]]; then
+				url+="/$tag"
+			elif [[ "$branch" != "" ]]; then
+				url+="/$branch"
+			else
+				branch="master"
+				url+="/$branch"
+			fi
+
+			if [[ "$path" != "" ]]; then
+				url+="/$path"
+			fi
+
+			if [[ "$filename" != "" ]]; then
+				url+="/$filename"
+			else
+				url=""
+			fi
 			;;
 		release_download)
-			url+="/releases/download/$tag/$filename"
+			if [[ "$tag" != "" && "$filename" != "" ]]; then
+				url+="/releases/download/$tag/$filename"
+			else
+				url=""
+			fi
 			;;
 		release_archive)
-			url+="/archive/$tag.tar.gz"
+			if [[ "$tag" != "" ]]; then
+				url+="/archive/$tag.tar.gz"
+			else
+				url=""
+			fi
 			;;
 	esac
 
-	local tmpfilename="/tmp/$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c32)"
-	__debug --level 6 "curl --silent -L $url -w \"%{http_code}\" -o $tmpfilename 2>/dev/null"
-	local returncode=$(curl --silent -L $url -w "%{http_code}" -o $tmpfilename 2>/dev/null)
+	if [[ "$url" = "" ]]; then
+		return $result
+	fi
+
+	local returncodes=""
+	local returncode=""
+
+	local tagging_msg=""
+	if [[ $onthefly_tagging -eq 1 ]]; then
+		if [[ "$owner" != "" ]]; then
+			tagging_msg+="owner:$owner"
+		fi
+		if [[ "$repo" != "" ]]; then
+			if [[ "$tagging_msg" != "" ]]; then
+				tagging_msg+=";"
+			fi
+			tagging_msg+="repo:$repo"
+		fi
+		if [[ "$tag" != "" ]]; then
+			if [[ "$tagging_msg" != "" ]]; then
+				tagging_msg+=";"
+			fi
+			tagging_msg+="tag:$tag"
+		fi
+		if [[ "$branch" != "" ]]; then
+			if [[ "$tagging_msg" != "" ]]; then
+				tagging_msg+=";"
+			fi
+			tagging_msg+="branch:$branch"
+		fi
+		if [[ "$commit" != "" ]]; then
+			if [[ "$tagging_msg" != "" ]]; then
+				tagging_msg+=";"
+			fi
+			tagging_msg+="commit:$commit"
+		fi
+
+		if [[ "$tagging_msg" != "" ]]; then
+			tagging_msg="provider:github;date:$(date +'%Y%m%d%H%M%S');$tagging_msg"
+		fi
+	fi
+
+	if [[ "$mode" != "readfile" ]]; then
+		local tmpfilename="/tmp/$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c32)"
+		__debug --level 6 "curl --silent -L $url -w \"%{http_code}\" -o $tmpfilename 2>/dev/null"
+		returncode=$(curl --silent -L $url -w "%{http_code}" -o $tmpfilename 2>/dev/null)
+
+		if [[ -f $tmpfilename && -s $tmpfilename ]]; then
+			if [[ $returncode -eq 200 ]]; then
+				grep -qI . $tmpfilename
+				local ret=$?
+				if [[ $ret -eq 0 ]]; then		# Check if it's a non-binary file
+					__debug --level 6 "tr -d '\015' < $tmpfilename > $tmpfilename.tmp && mv $tmpfilename.tmp $tmpfilename"
+					tr -d '\015' < $tmpfilename > $tmpfilename.tmp && mv $tmpfilename.tmp $tmpfilename
+					ret=$?
+
+					if [[ $ret -eq 0 && $onthefly_tagging -eq 1 ]]; then
+						if [[ "$tagging_msg" != "" ]]; then
+							if [[ "$(head -1 $tmpfilename | grep -E '^#\!')" != "" ]]; then		# Check if there's a shebang or if we can write at the first line
+								sed --in-place "2i#$tagging_msg" $tmpfilename
+							else
+								sed --in-place "1i#$tagging_msg" $tmpfilename
+							fi
+						fi
+					fi
+				else
+					ret=0
+				fi
+
+				if [[ $ret -eq 0 ]]; then
+					__debug --level 6 "mv $tmpfilename $targetpath >/dev/null 2>&1"
+					mv $tmpfilename $targetpath >/dev/null 2>&1
+					ret=$?
+				else
+					__red "Something went wrong while trying to clean the downloaded file ($tmpfilename)!"
+				fi
+
+				if [[ $ret -eq 0 ]]; then
+					result=0
+				else
+					__red "Something went wrong while trying to move the downloaded file ($tmpfilename) to another location ($targetpath)!"
+					rm $tmpfilename >/dev/null 2>&1
+				fi
+			else
+				rm $tmpfilename >/dev/null 2>&1
+			fi
+		fi
+	else
+		__debug --level 6 "curl --silent -Li $url | tr -d '\r'"
+		local full_content=$(curl --silent -Li $url | tr -d '\r')
+		local file_content=""
+		local previousline=""
+		local endofheader=0
+		local i=1
+		__debug --level 6 "Parsing curl query result..."
+		while IFS= read -r content_line; do
+			if [[ $endofheader -ne 1 && "$(echo $content_line | grep -E '^HTTP')" != "" ]]; then
+				__debug --level 6 -n "Got HTTP code in header : "
+				returncode=$(echo $content_line | awk '{print $2}')
+				if [[ "$returncodes" != "" ]]; then
+					returncodes+=" "
+				fi
+				returncodes+="$returncode"
+				__debug --level 6 "<$returncode>"
+			fi
+
+			if [[ $endofheader -eq 0 ]]; then
+				if [[ "$previousline" = "" && "$(echo $content_line | grep -E '^HTTP/')" = "" ]]; then
+					__debug --level 6 "Just reached end of result's headers, at line $i"
+					endofheader=1
+				else
+					i=$(expr $i + 1)
+					previousline=$content_line
+					continue
+				fi
+			fi
+			previousline=$content_line
+
+			if [[ $endofheader -eq 1 && $returncode -eq 200 ]]; then
+				if [[ "$file_content" != "" ]]; then
+					file_content+="
+"
+				fi
+				file_content+="$content_line"
+			fi
+
+			i=$(expr $i + 1)
+		done <<< "$(echo -e "$full_content")"
+
+		if [[ "$file_content" != "" ]]; then
+			result="$file_content"
+		fi
+	fi
+
 	if [[ "$httpcodevar" != "" ]]; then
 		__debug --level 6 "eval \"$httpcodevar='$returncode'\""
 		eval "$httpcodevar='$returncode'"
 	fi
-	if [[ -f $tmpfilename && -s $tmpfilename ]]; then
-		if [[ $returncode -eq 200 ]]; then
-			grep -qI . $tmpfilename
-			local ret=$?
-			if [[ $ret -eq 0 ]]; then		# Check if it's a non-binary file
-				__debug --level 6 "tr -d '\015' < $tmpfilename > $tmpfilename.tmp && mv $tmpfilename.tmp $tmpfilename"
-				tr -d '\015' < $tmpfilename > $tmpfilename.tmp && mv $tmpfilename.tmp $tmpfilename
-			fi
-			__debug --level 6 "mv $tmpfilename $targetpath >/dev/null 2>&1"
-			mv $tmpfilename $targetpath >/dev/null 2>&1
-			local ret=$?
-			if [[ $ret -eq 0 ]]; then
-				result=0
-			else
-				__red "Something went wront when trying to move the downloaded file ($tmpfilename) to another location ($targetpath)!"
-				rm $tmpfilename
-			fi
-		else
-			rm $tmpfilename
-		fi
-	fi
 
-	return $result
+	if [[ "$mode" = "readfile" ]]; then
+		if [[ $returncode -eq 200 ]]; then
+			echo "$result"
+		else
+			echo ""
+		fi
+	else
+		return $result
+	fi
 }
 
 _get_git_commits(){
@@ -1682,16 +2091,19 @@ _get_git_commits(){
 }
 
 _get_dockerhub_infos(){
-	local positional=()
+	local result=""
 	local tmpresult=""
 	local owner
 	local tag
+	local tmp_tag
 	local mode
 	local image
 	local url
 	local token
 	local repositories
 	local img
+
+	local positional=()
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--owner)
@@ -1709,13 +2121,17 @@ _get_dockerhub_infos(){
 				shift
 				shift
 				;;
+			--tag)
+				tag=$2
+				shift
+				shift
+				;;
 			*)
 				positional+=("$1")
 				shift
 				;;
 		esac
 	done
-
 	set -- "${positional[@]}"
 
 	url="https://hub.docker.com/v2"
@@ -1724,29 +2140,47 @@ _get_dockerhub_infos(){
 		__debug --level 6 "curl --silent -H \"Content-Type: application/json\" -X POST --data '{\"username\": \"'$DOCKERHUB_USER'\", \"password\": \"<APP_TOKEN>\"}' $url/users/login/ | jq -r .token 2>/dev/null"
 		token=$(curl --silent -H "Content-Type: application/json" -X POST --data '{"username": "'$DOCKERHUB_USER'", "password": "'$(echo $DOCKERHUB_APP_TOKEN|tr q-zQ-Za-pA-P a-zA-Z|base32 -d|base64 -d)'"}' $url/users/login/ | jq -r .token 2>/dev/null)
 
-		__debug --level 6 "curl --silent -H \"Authorization: JWT <TOKEN>\" $url/repositories/$owner/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null"
-		repositories=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null)
-		if [[ "$mode" = "tag" && "$image" != "" ]]; then
-			for img in $repositories; do
-				if [[ "$img" != "$image" ]]; then
-					continue
-				else
-					__debug --level 6 "curl --silent -H \"Authorization: JWT <TOKEN>\" $url/repositories/$owner/$image/tags/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null"
-					tag=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/$image/tags/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null)
-					tmpresult="$tmpresult $tag"
-				fi
-			done
+		if [[ "$mode" = "tag" && "$tag" != "" ]]; then
+			__debug --level 6 "curl --silent -H \"Authorization: JWT <TOKEN>\" $url/repositories/$owner/$image/tags/$tag | jq -r '.name' 2>/dev/null"
+			tmp_tag=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/$image/tags/$tag | jq -r '.name' 2>/dev/null)
+			if [[ "$tmp_tag" = "$tag" ]]; then
+				tmpresult="$tmp_tag"
+			fi
 		else
-			tmpresult=$repositories
+			__debug --level 6 "curl --silent -H \"Authorization: JWT <TOKEN>\" $url/repositories/$owner/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null"
+			repositories=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null)
+			if [[ "$mode" = "tag" && "$image" != "" ]]; then
+				for img in $repositories; do
+					if [[ "$img" != "$image" ]]; then
+						continue
+					else
+						__debug --level 6 "curl --silent -H \"Authorization: JWT <TOKEN>\" $url/repositories/$owner/$image/tags/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null"
+						tmp_tag=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/$image/tags/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null)
+						tmpresult="$tmpresult $tmp_tag"
+					fi
+				done
+			else
+				tmpresult=$repositories
+			fi
 		fi
 	fi
 
 	if [[ "$tmpresult" != "" ]]; then
 		local item
 		for item in $tmpresult; do
-			echo $item
+			if [[ "$(echo $item | grep -E 'latest$')" != "" ]]; then
+				continue
+			fi
+
+			if [[ "$result" != "" ]]; then
+				result+="
+"
+			fi
+			result+="$item"
 		done
 	fi
+
+	echo "$result" | sort -rh
 }
 
 uninstall_conflicting_snap_packages(){
@@ -1864,7 +2298,7 @@ _check_required_custom_packages(){
 	fi
 
 	for package in $required_packages; do
-		if [[ "`echo $package|grep docker`" != "" && $ARG_PUSHER -eq 1 ]]; then
+		if [[ "$(echo $package|grep docker)" != "" && $ARG_PUSHER -eq 1 ]]; then
 			continue
 		fi
 
@@ -1981,7 +2415,7 @@ install_custom_package_python2(){
 			fi
 			__debug --level 6 "Python 2.7 not found in pyenv environments. apt-get install build-essential zlib1g-dev libreadline-dev libbz2-dev libsqlite3-dev libssl-dev"
 			apt-get install $aptoption build-essential zlib1g-dev libreadline-dev libbz2-dev libsqlite3-dev libssl-dev
-			echo "Installing Python 2.7. This may take a while..."
+			__echo "Installing Python 2.7. This may take a while..."
 			__debug --level 6 "pyenv install 2.7.17"
 			pyenv install 2.7.17
 		fi
@@ -2024,8 +2458,8 @@ install_custom_package_convert-csv-dataset-to-db.py(){
 		local targetpath="/usr/local/bin/$filename"
 		local httpcode
 		local exaremeversion=$(_get_remote_var ui EXAREME getversion)
-		echo "<$exaremeversion>"
-		_get_github_file --httpcodevar 'httpcode' --owner $EXAREME_GITHUB_OWNER --repo $EXAREME_GITHUB_PROJECT --mode file --tag $exaremeversion --path "$path" --filename "$filename" --targetpath "$targetpath"
+		__echo "<$exaremeversion>"
+		_get_github_file --httpcodevar 'httpcode' --owner $EXAREME_GITHUB_OWNER --repo $EXAREME_GITHUB_PROJECT --mode file --tag "$exaremeversion" --path "$path" --filename "$filename" --targetpath "$targetpath"
 		ret=$?
 		if [[ $ret -eq 0 ]]; then
 			chmod +x /usr/local/bin/convert-csv-dataset-to-db.py
@@ -2432,7 +2866,7 @@ _check_exareme_required_ports(){
 			__debug --level 6 "$check"
 			if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
 				__red -n "Exareme: required ports currently in use"
-				echo "$check"
+				__echo "$check"
 			fi
 			result=1
 		fi
@@ -2448,7 +2882,7 @@ _check_installed_mip(){
 	__debug --level 4 "_check_installed_mip($*)"
 	local result=0
 	if [[ (( $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) )) && ! -d $MIP_PATH ]]; then
-		__debug --level 5 "Federation folder $MIP_PATH does not exist"
+		__debug --level 5 "MIP folder $MIP_PATH does not exist"
 		if [[ "$1" != "-q" ]]; then
 			if [[ $ARG_PUSHER -eq 1 ]]; then
 				__red -n "Federation $ARG_FEDERATION exareme not found! "
@@ -2566,7 +3000,7 @@ _prerunning_backend_guard(){
 	_check_exareme_required_ports -q
 	local ret=$?
 	if [[ $ret -eq 1 ]]; then
-		echo "It seems something is already using/locking required ports. Maybe you should call $0 restart"
+		__red "It seems something is already using/locking required ports. Maybe you should call $0 restart"
 		exit $ret
 	fi
 }
@@ -2790,13 +3224,13 @@ check_running_swarm(){
 						fi
 					fi
 
-					if [[ $verbose_level -ge 2 && $node_count -ge 2 ]]; then echo; fi
+					if [[ $verbose_level -ge 2 && $node_count -ge 2 ]]; then __echo; fi
 					if [[ "$node_role" = "master" ]]; then
 						__echo -n "\${magenta}$node_role\${reset}"
 					elif [[ "$node_role" = "worker" ]]; then
 						__echo -n "\${cyan}$node_role\${reset}"
 					fi
-					echo -n " node: "
+					__echo -n " node: "
 					if [[ "$node_role" = "master" ]]; then
 						__echo -n "\${magenta}$node_name\${reset}"
 					elif [[ "$node_role" = "worker" ]]; then
@@ -2804,13 +3238,13 @@ check_running_swarm(){
 					fi
 
 					if [[ $verbose_level -ge 2 ]]; then
-						echo -n " ("
+						__echo -n " ("
 						if [[ "$node_availability" = "active" ]]; then
 							__echo -n "\${green}$node_availability\${reset}"
 						else
 							__echo -n "\${red}$node_availability\${reset}"
 						fi
-						echo -n "/"
+						__echo -n "/"
 						if [[ "$node_state" = "ready" ]]; then
 							__echo -n "\${green}$node_state\${reset}"
 						else
@@ -2819,7 +3253,7 @@ check_running_swarm(){
 
 						if [[ $verbose_level -ge 3 ]]; then
 							if [[ "$node_role" = "master" ]]; then
-								echo -n "/"
+								__echo -n "/"
 								if [[ "$node_manager_reachability" = "reachable" ]]; then
 									__echo -n "\${green}$node_manager_reachability\${reset}"
 								else
@@ -2834,9 +3268,9 @@ check_running_swarm(){
 							fi
 						fi
 
-						echo -n ")"
+						__echo -n ")"
 					fi
-					echo
+					__echo
 				fi
 				if [[ "$tmp_service_name" != "$service_name" ]]; then
 					service_name=$tmp_service_name
@@ -2846,14 +3280,14 @@ check_running_swarm(){
 					else
 						__echo -n "\${red}$service_replicas\${reset}"
 					fi
-					echo -n " replicas"
+					__echo -n " replicas"
 					if [[ $verbose_level -ge 2 ]]; then
 						__echo -n " with image \${yellow}$image_name\${reset}"
 					fi
 					if [[ $verbose_level -ge 4 && "$service_ip" != "" ]]; then
 						__echo -n ". Networking: service IP \${yellow}$service_ip\${reset}"
 					fi
-					echo ")"
+					__echo ")"
 				fi
 
 				j=0
@@ -2873,9 +3307,9 @@ check_running_swarm(){
 					container_errmsg=$(_get_container_info_item $container_id "/Status/Err")
 					container_ip=$(_get_container_info_item $container_id "/NetworksAttachments/Addresses" "range" | cut -c2- | rev | cut -c2- | rev)
 
-					echo -n "		"
+					__echo -n "		"
 					if [[ $j -gt 0 ]]; then
-						echo -n "\\_"
+						__echo -n "\\_"
 					fi
 
 					__echo -n "Created at \${Bblue}$container_created_at\${reset}, "
@@ -2891,7 +3325,7 @@ check_running_swarm(){
 					if [[ $verbose_level -ge 4 && "$container_ip" != "" ]]; then
 						__echo -n ". Networking: container IP \${yellow}$container_ip\${reset}"
 					fi
-					echo
+					__echo
 
 					if [[ $verbose_level -lt 3 ]]; then
 						break
@@ -2990,7 +3424,7 @@ check_running_details(){
 	local docker_ps=$(docker ps 2>/dev/null|awk '!/^CONTAINER/')
 	if [[ "$docker_ps" != "" ]]; then
 		if [[ $ARG_QUIET -ne 1 ]]; then
-			echo "$docker_ps"
+			__echo "$docker_ps"
 		fi
 	else
 		_check_exareme_required_ports -q
@@ -3033,9 +3467,9 @@ download_mip(){
 				fi
 
 				if [[ $ARG_PUSHER -eq 1 ]]; then
-					echo -n "EXAREME not found. Download it [y/n]? "
+					__echo -n "EXAREME not found. Download it [y/n]? "
 				elif [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-					echo -n "MIP not found. Download it [y/n]? "
+					__echo -n "MIP not found. Download it [y/n]? "
 				fi
 				read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 			fi
@@ -3078,7 +3512,7 @@ _configure_user(){
 			if [[ $ARG_YES -eq 1 || $ARG_QUIET -eq 1 ]]; then
 				answer="y"
 			else
-				echo -n "Do you want the system to create the user '$DOCKER_USER' to manage this host? [y/n] "
+				__echo -n "Do you want the system to create the user '$DOCKER_USER' to manage this host? [y/n] "
 				read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 			fi
 			if [[ "$answer" = "y" ]]; then
@@ -3166,7 +3600,7 @@ _configure_pusher(){
 			rm $SSH_PATH/.ssh/config.tmp
 		fi
 		if [[ -f $SSH_PATH/.ssh/config || -f $ANSIBLE_HOSTS_FILE || -f $ANSIBLE_VAULT_FILE ]]; then
-			echo -n "There's an existing hosts configuration. Would you like to erase it [y/n]? "
+			__echo -n "There's an existing hosts configuration. Would you like to erase it [y/n]? "
 			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 			if [[ "$answer" = "y" ]]; then
 				if [[ -f $SSH_PATH/.ssh/config ]]; then
@@ -3213,12 +3647,12 @@ _configure_pusher(){
 		local isworker=0
 		local ret=0
 
-		echo "Configuration of federation nodes. Here, you'll have the possibility to setup everything required to operate"
-		echo "federation nodes. First you'll have to set ms (master) and ui (frontend), and then, the workers."
+		__echo "Configuration of federation nodes. Here, you'll have the possibility to setup everything required to operate"
+		__echo "federation nodes. First you'll have to set ms (master) and ui (frontend), and then, the workers."
 		__yellow "Just make sure all the nodes are installed and configured, prior to run this!"
-		echo "Press [ENTER] to continue, or CTRL-C to cancel."
+		__echo "Press [ENTER] to continue, or CTRL-C to cancel."
 		read
-		echo
+		__echo
 
 		local vaultok=0
 		while [[ $vaultok -ne 1 ]]; do
@@ -3311,13 +3745,13 @@ _configure_pusher(){
 				fi
 
 				if [[ $goahead -eq 1 ]]; then
-					echo -n "Reconfigure '$autonodename' node "
+					__echo -n "Reconfigure '$autonodename' node "
 					__yellow -n "$host"
-					echo -n " ("
+					__echo -n " ("
 					__cyan -n "$user"
 					__yellow -n "@"
 					__magenta -n "$hostname"
-					echo -n ") [y/n]? "
+					__echo -n ") [y/n]? "
 					read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 					if [[ "$answer" = "y" ]]; then
 						doconfig=1
@@ -3328,23 +3762,23 @@ _configure_pusher(){
 			fi
 
 			if [[ $doconfig -eq 1 ]]; then
-				echo
+				__echo
 				case $nodeid in
 					1)
-						echo "Configuring ms (master):"
+						__echo "Configuring ms (master):"
 						nodeprompttext="Master"
 						;;
 					2)
-						echo "Configuring ui (frontend):"
+						__echo "Configuring ui (frontend):"
 						nodeprompttext="Frontend"
 						;;
 					*)
-						echo "Configuring worker$(expr $nodeid - 2):"
+						__echo "Configuring worker$(expr $nodeid - 2):"
 						nodeprompttext="Worker$(expr $nodeid - 2)"
 						;;
 				esac
 
-				echo -n "	$nodeprompttext node hostname/IP? [empty to finish] "
+				__echo -n "	$nodeprompttext node hostname/IP? [empty to finish] "
 				read nodehostname
 				if [[ "$nodehostname" = "" ]]; then
 					goahead=0
@@ -3358,7 +3792,7 @@ _configure_pusher(){
 				fi
 
 				if [[ $goahead -eq 1 ]]; then
-					echo -n "	$nodeprompttext node remote user (i.e. $DOCKER_USER)? [empty to finish] "
+					__echo -n "	$nodeprompttext node remote user (i.e. $DOCKER_USER)? [empty to finish] "
 					read noderemoteuser
 					if [[ "$noderemoteuser" = "" ]]; then
 						goahead=0
@@ -3366,7 +3800,7 @@ _configure_pusher(){
 				fi
 
 				if [[ $goahead -eq 1 ]]; then
-					echo -n "	$nodeprompttext node remote password for user <$noderemoteuser>? [empty to finish] "
+					__echo -n "	$nodeprompttext node remote password for user <$noderemoteuser>? [empty to finish] "
 					read -s noderemotepasswd
 					if [[ "$noderemotepasswd" = "" ]]; then
 						goahead=0
@@ -3374,7 +3808,7 @@ _configure_pusher(){
 				fi
 
 				if [[ $goahead -eq 1 ]]; then
-					echo
+					__echo
 					__yellow -n "	Copying SSH identity to "
 					__cyan -n "$noderemoteuser"
 					__yellow -n "@"
@@ -3732,7 +4166,7 @@ EOF
 selectp -t 0
 setw synchronize-panes on
 
-neww -n deploy -c $MIP_PATH/Federated-Deployment/Docker-Ansible/scripts ./deploy.sh
+neww -n deploy -c $MIP_PATH/Federated-Deployment/Docker-Ansible/scripts echo "\nTHIS SCRIPT IS NOW DEPRECATED! PLEASE RUN THE COMMANDS BELOW IN A PUSHER TERMINAL (TMUX WINDOW 0)\n\nChoose one of the below:\n1: Deploy the exareme swarm and start services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service deploy\n		Also, try:\n			mip --pusher --federation [FEDERATION] node list\n			mip --pusher --federation [FEDERATION] node status\n			mip --pusher --federation [FEDERATION] service status\n\n2: (Re)Start all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service start\n\n3: (Re)Start one service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service start\n"'		NODE can be the node "short name" (ms|ui|wk1|wk2...), the node "name" (real hostname), the node "id" (1=master, 2=ui, 3..n for workers) or the node "IP".'"\n		Also, try:\n			mip --pusher --federation [FEDERATION] --node [NODE] node status\n			mip --pusher --federation [FEDERATION] --node [NODE] service status\n\n4: Stop all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service stop\n\n5: Stop a Worker service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service stop\n\n6: Create or modify the exareme docker image version (exareme.yaml).\n	From now on, this will also be done by the install function.\n\n7: (Re)Initialize the exareme swarm target machines' information (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n8: Add a new worker to the exareme swarm information files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n9: Remove a worker from the exareme swarm inforation files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher"
 set remain-on-exit on
 respawn-window -k
 EOF
@@ -3827,13 +4261,13 @@ _configure_host(){
 
 	# Checking the PUBLIC_MIP_HOST env variable
 	local first_int_ip=$(hostname -I|awk '{print $1}')
-	echo -e "\nPUBLIC_MIP_HOST. It's the HOSTNAME/IP:PORT where MIP will be reachable at.\nIt IS very important that you understand that BOTH YOU and THIS machine MUST be able to access this PUBLIC_MIP_HOST with the exact HOSTNAME/IP:PORT that you give here!\nIf you only want to install it on your local machine, you can initialize it with your internal IP ($first_int_ip).\n127.0.0.1 (or anything which points to this IP) is NOT allowed, as it's in use by the MIP."
+	__echo -e "\nPUBLIC_MIP_HOST. It's the HOSTNAME/IP:PORT where MIP will be reachable at.\nIt IS very important that you understand that BOTH YOU and THIS machine MUST be able to access this PUBLIC_MIP_HOST with the exact HOSTNAME/IP:PORT that you give here!\nIf you only want to install it on your local machine, you can initialize it with your internal IP ($first_int_ip).\n127.0.0.1 (or anything which points to this IP) is NOT allowed, as it's in use by the MIP."
 
 	local tmpval=""
 
 	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST ]]; then
-		echo -e "\n'PUBLIC_MIP_HOST' is set to value: $MIP_ENV_PUBLIC_MIP_HOST"
-		echo -ne "\nWould you like to change it? [y/n] "
+		__echo -e "\n'PUBLIC_MIP_HOST' is set to value: $MIP_ENV_PUBLIC_MIP_HOST"
+		__echo -ne "\nWould you like to change it? [y/n] "
 		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 		if [[ "$answer" != "y" ]]; then
 			return 0
@@ -3841,13 +4275,13 @@ _configure_host(){
 	fi
 
 	# Read HOST from the user
-	echo -ne "\nPlease provide a value for the variable 'PUBLIC_MIP_HOST' (directly hit ENTER for default $first_int_ip): "
+	__echo -ne "\nPlease provide a value for the variable 'PUBLIC_MIP_HOST' (directly hit ENTER for default $first_int_ip): "
 	read answer
 	if [[ "$answer" = "" ]]; then
 		answer=$first_int_ip
 	fi
 	while [[ "$answer" = "127.0.0.1" ]]; do
-		echo
+		__echo
 		__red -n "'$answer' is not a valid HOSTNAME. Try again: "
 		read answer
 		if [[ "$answer" = "" ]]; then
@@ -3877,8 +4311,8 @@ _configure_exareme_ip(){
 	local answer=""
 
 	if [[ -n $MIP_ENV_EXAREME_IP ]]; then
-		echo -e "\n'EXAREME_IP' is set to value: $MIP_ENV_EXAREME_IP"
-		echo -ne "\nWould you like to change it? [y/n] "
+		__echo -e "\n'EXAREME_IP' is set to value: $MIP_ENV_EXAREME_IP"
+		__echo -ne "\nWould you like to change it? [y/n] "
 		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 		if [[ "$answer" != "y" ]]; then
 			return 0
@@ -3886,13 +4320,13 @@ _configure_exareme_ip(){
 	fi
 
 	# Read IP from the user
-	echo -ne "\nPlease provide a value for the variable 'EXAREME_IP': "
+	__echo -ne "\nPlease provide a value for the variable 'EXAREME_IP': "
 	read answer
 	_valid_IPv4 $answer
 	local ret=$?
 	while [[ $ret -ne 0 ]]; do
 		answer=""
-		echo
+		__echo
 		__red -n "'$answer' is not a valid IPv4 address. Try again: "
 		read answer
 		_valid_IPv4 $answer
@@ -4069,7 +4503,7 @@ _prepare_data(){
 
 	local datapath=$MIP_PATH/data
 	# CSVs and metadata validation
-	echo -e "\nValidating if the CSVs match with the metadata..."
+	__echo -e "\nValidating if the CSVs match with the metadata..."
 	find $datapath -name '*.db' -delete # Removing previous .db files
 	$MIP_PATH/config/convert-csv-dataset-to-db.py -f $datapath # Running the database creation script
 	local ret=$?
@@ -4142,7 +4576,7 @@ _prepare_keycloak(){
 		fi
 	fi
 
-	echo -ne "\nEnable Keycloak authentication? [y/n] "
+	__echo -ne "\nEnable Keycloak authentication? [y/n] "
 	read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 	if [[ "$answer" != "y" ]]; then
 		__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_AUTHENTICATION=<0>"
@@ -4155,7 +4589,7 @@ _prepare_keycloak(){
 	__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_AUTHENTICATION=<1>"
 	export MIP_ENV_KEYCLOAK_AUTHENTICATION=1
 
-	echo -ne "\nKeycloak Protocol [http/https]? (directly hit ENTER for default) "
+	__echo -ne "\nKeycloak Protocol [http/https]? (directly hit ENTER for default) "
 	read answer
 	if [[ "$answer" = "" ]]; then
 		export MIP_ENV_KEYCLOAK_PROTOCOL=$DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL
@@ -4164,7 +4598,7 @@ _prepare_keycloak(){
 	fi
 	__debug --level 6 "Just set env var: MIP_ENV_KEYCLOAK_PROTOCOL=<$MIP_ENV_KEYCLOAK_PROTOCOL>"
 
-	echo -ne "\nKeycloak URL (without http(s))? (directly hit ENTER for default) "
+	__echo -ne "\nKeycloak URL (without http(s))? (directly hit ENTER for default) "
 	read answer
 	if [[ "$answer" = "" ]]; then
 		export MIP_ENV_KEYCLOAK_URL=$DEFAULT_MIP_ENV_KEYCLOAK_URL
@@ -4173,7 +4607,7 @@ _prepare_keycloak(){
 	fi
 	__debug --level 6 "Just set env var: MIP_ENV_KEYCLOAK_URL=<$MIP_ENV_KEYCLOAK_URL>"
 
-	echo -ne "\nKeycloak Realm? (directly hit ENTER for default) "
+	__echo -ne "\nKeycloak Realm? (directly hit ENTER for default) "
 	read answer
 	if [[ "$answer" = "" ]]; then
 		export MIP_ENV_KEYCLOAK_REALM=$DEFAULT_MIP_ENV_KEYCLOAK_REALM
@@ -4182,7 +4616,7 @@ _prepare_keycloak(){
 	fi
 	__debug --level 6 "Just set env var: MIP_ENV_KEYCLOAK_REALM=<$MIP_ENV_KEYCLOAK_REALM>"
 
-	echo -ne "\nKeycloak Client ID? (directly hit ENTER for default) "
+	__echo -ne "\nKeycloak Client ID? (directly hit ENTER for default) "
 	read answer
 	if [[ "$answer" = "" ]]; then
 		export MIP_ENV_KEYCLOAK_CLIENT_ID=$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_ID
@@ -4191,7 +4625,7 @@ _prepare_keycloak(){
 	fi
 	__debug --level 6 "Just set env var: MIP_ENV_KEYCLOAK_CLIENT_ID=<$MIP_ENV_KEYCLOAK_CLIENT_ID>"
 
-	echo -ne "\nKeycloak Client Secret? (directly hit ENTER for default) "
+	__echo -ne "\nKeycloak Client Secret? (directly hit ENTER for default) "
 	read answer
 	if [[ "$answer" = "" ]]; then
 		export MIP_ENV_KEYCLOAK_CLIENT_SECRET=$DEFAULT_MIP_ENV_KEYCLOAK_CLIENT_SECRET
@@ -4243,7 +4677,7 @@ _remove_installer(){
 			if [[ $ARG_QUIET -eq 1 ]]; then
 				result=1
 			fi
-			echo "Remove installer [y/n]? "
+			__echo "Remove installer [y/n]? "
 			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 		fi
 		if [[ "$answer" = "y" ]]; then
@@ -4404,6 +4838,124 @@ _prepare_mip_env(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
+_get_node(){
+	local machine=""
+	local node_var=""
+	local node_id_var=""
+	local node_shortname_var=""
+	local node_localhostname_var=""
+	local node_ip_var=""
+	local node_user_var=""
+	local node_identity_var=""
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--node)
+				machine=$2
+				shift
+				shift
+				;;
+			--node-return-var)
+				node_var=$2
+				shift
+				shift
+				;;
+			--node-id-return-var)
+				node_id_var=$2
+				shift
+				shift
+				;;
+			--node-shortname-return-var)
+				node_shortname_var=$2
+				shift
+				shift
+				;;
+			--node-localhostname-return-var)
+				node_localhostname_var=$2
+				shift
+				shift
+				;;
+			--node-ip-return-var)
+				node_ip_var=$2
+				shift
+				shift
+				;;
+			--node-user-return-var)
+				node_user_var=$2
+				shift
+				shift
+				;;
+			--node-identity-return-var)
+				node_identity_var=$2
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
+	if [[ "$machine" != "" ]]; then
+		if [[ -f $SSH_PATH/.ssh/config ]]; then
+			local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+			local res_nodeid=0
+			local res_nodeshortname
+			local res_nodelocalhostname
+			local res_nodeip
+			local res_nodeuser
+			local res_nodeidentity
+			for res_node in $nodes; do
+				res_nodeshortname=$(cat $SSH_PATH/.ssh/config|grep "^Host .*\b$res_node\b"|awk '{print $2}')
+				res_nodelocalhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$res_node\b"|awk '/Hostname / {print $2}')
+				_valid_IPv4 $res_nodelocalhostname
+				ret=$?
+				if [[ $ret -ne 0 ]]; then
+					res_nodeip=$(host $res_nodelocalhostname|awk '/has address/ {print $NF}')
+				else
+					res_nodeip=$res_nodelocalhostname
+				fi
+				res_nodeuser=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$res_node\b"|awk '/User / {print $2}')
+				res_nodeidentity=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$res_node\b"|awk '/IdentityFile / {print $2}')
+
+				_contains "$res_nodeid $res_nodeshortname $res_node $res_nodelocalhostname $res_nodeip" "$machine"
+				ret=$?
+				if [[ -n $ARG_NODE && $ret -ne 0 ]]; then
+					res_nodeid=$(expr $res_nodeid + 1)
+					continue
+				fi
+
+				break
+			done
+
+			if [[ "$node_var" != "" ]]; then
+				eval "$node_var='$res_node'"
+			fi
+			if [[ "$node_id_var" != "" ]]; then
+				eval "$node_id_var='$res_nodeid'"
+			fi
+			if [[ "$node_shortname_var" != "" ]]; then
+				eval "$node_shortname_var='$res_nodeshortname'"
+			fi
+			if [[ "$node_localhostname_var" != "" ]]; then
+				eval "$node_localhostname_var='$res_nodelocalhostname'"
+			fi
+			if [[ "$node_ip_var" != "" ]]; then
+				eval "$node_ip_var='$res_nodeip'"
+			fi
+			if [[ "$node_user_var" != "" ]]; then
+				eval "$node_user_var='$res_nodeuser'"
+			fi
+			if [[ "$node_identity_var" != "" ]]; then
+				eval "$node_identity_var='$res_nodeidentity'"
+			fi
+		fi
+	fi
+}
+
 _ansible_services(){
 	__debug --level 4 "_run_ansible_services($*)"
 	if [[ $ARG_PUSHER -ne 1 ]]; then
@@ -4426,7 +4978,7 @@ _ansible_services(){
 		fi
 		if [[ "$domain_name" = "" ]]; then
 			local master_ip=$(cat $ANSIBLE_HOSTS_FILE|awk -F '=' '/^master ansible_host/ {print $2}')
-			echo -n "What is the Domain name for which a SSL certificate has been created in the Master machine ($master_ip)? "
+			__echo -n "What is the Domain name for which a SSL certificate has been created in the Master machine ($master_ip)? "
 			read new_domain_name
 			domain_name=$new_domain_name
 		fi
@@ -4609,11 +5161,11 @@ _node(){
 								__echo "Master node (\${yellow}ms\${reset}) / \${magenta}$node ($localhostname)\${reset}"
 								;;
 							1)
-								if [[ ! -n $ARG_NODE ]]; then echo; fi
+								if [[ ! -n $ARG_NODE ]]; then __echo; fi
 								__echo "Frontend node (\${yellow}ui\${reset}) / \${magenta}$node ($localhostname)\${reset}"
 								;;
 							*)
-								if [[ ! -n $ARG_NODE ]]; then echo; fi
+								if [[ ! -n $ARG_NODE ]]; then __echo; fi
 								__echo "Worker node $(expr $nodeid - 1) (\${yellow}wk$(expr $nodeid - 1)\${reset}) / \${cyan}$node ($localhostname)\${reset}"
 								;;
 						esac
@@ -4691,7 +5243,7 @@ _services(){
 				local exaremeimagecheck=$(curl -s -f https://index.docker.io/v1/repositories/$exareme_image/tags/$exareme_version 2>/dev/null)
 				if [[ "$exaremeimagecheck" != "" ]]; then
 					__green "ok"
-					echo -n "Would you like to set it now [y/n]? "
+					__echo -n "Would you like to set it now [y/n]? "
 					read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 					if [[ "$answer" = "y" ]]; then
 						echo "EXAREME_IMAGE: \"$exareme_image\"" > $ANSIBLE_PATH/group_vars/exareme.yaml
@@ -4745,11 +5297,11 @@ _services(){
 								__echo "Master node (\${yellow}ms\${reset}) / \${magenta}$node ($localhostname)\${reset}"
 								;;
 							1)
-								if [[ ! -n $ARG_NODE ]]; then echo; fi
+								if [[ ! -n $ARG_NODE ]]; then __echo; fi
 								__echo "Frontend node (\${yellow}ui\${reset}) / \${magenta}$node ($localhostname)\${reset}"
 								;;
 							*)
-								if [[ ! -n $ARG_NODE ]]; then echo; fi
+								if [[ ! -n $ARG_NODE ]]; then __echo; fi
 								__echo "Worker node $(expr $nodeid - 1) (\${yellow}wk$(expr $nodeid - 1)\${reset}) / \${cyan}$node ($localhostname)\${reset}"
 								;;
 						esac
@@ -4845,9 +5397,935 @@ _services(){
 			esac
 			;;
 		*)
-			__red "Usage: $0 --pusher --federation <FEDERATION> (--node <NODE_SHORT_NAME/NODE_NAME/NODE_ID/NODE_IP>) services [status|deploy|start|stop|restart]"
+			__red "Usage: $0 --pusher --federation <FEDERATION> (--node <NODE_SHORT_NAME/NODE_NAME/NODE_ID/NODE_IP>) service [status|deploy|start|stop|restart]"
 			exit 1
 	esac
+}
+
+_extract_advanced_component_version(){
+	local result=0
+
+	local version
+	local component_var
+	local image_owner_var
+	local image_var
+	local version_var
+	local docker_image_var
+
+	local advanced_detail=0
+	local res_component=""
+	local res_image=""
+	local res_owner=""
+	local res_version=""
+	local res_docker_image=""
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--version)
+				version=$2
+				shift
+				shift
+				;;
+			--component-return-var)
+				component_var=$2
+				shift
+				shift
+				;;
+			--image-owner-return-var)
+				image_owner_var=$2
+				shift
+				shift
+				;;
+			--image-return-var)
+				image_var=$2
+				shift
+				shift
+				;;
+			--version-return-var)
+				version_var=$2
+				shift
+				shift
+				;;
+			--docker-image-return-var)
+				docker_image_var=$2
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				;;
+		esac
+	done
+	set -- "${positional[$@]}"
+
+	if [[ "$(echo "$version" | grep -E "[;:/]")" != "" ]]; then
+		advanced_detail=1
+		result=1
+	fi
+
+	if [[ $advanced_detail -eq 1 ]]; then
+		if [[ "$(echo $version | grep -F ';')" != "" ]]; then
+			res_component=$(echo $version | cut -d';' -f1)
+			res_image=$(echo $version | cut -d';' -f2)
+		else
+			res_image=$version
+		fi
+
+		if [[ "$(echo $res_image | grep -F '/')" != "" ]]; then
+			res_owner=$(echo $res_image | cut -d/ -f1)
+			res_image=$(echo $res_image | cut -d/ -f2)
+		fi
+
+		if [[ "$(echo $res_image | grep -F ':')" != "" ]]; then
+			res_version=$(echo $res_image | cut -d: -f2)
+			res_image=$(echo $res_image | cut -d: -f1)
+		else
+			res_version=$res_image
+			res_image=""
+		fi
+	fi
+
+	if [[ "$res_image" != "" ]]; then
+		if [[ "$res_owner" != "" ]]; then
+			res_docker_image="$res_owner/$res_image"
+		else
+			res_docker_image="$res_image"
+		fi
+
+		if [[ "$res_docker_image" != "" && "$res_version" != "" ]]; then
+			res_docker_image+=":$res_version"
+		fi
+	fi
+
+	if [[ "$component_var" != "" ]]; then
+		eval "$component_var='$res_component'"
+	fi
+	if [[ "$image_var" != "" ]]; then
+		eval "$image_var='$res_image'"
+	fi
+	if [[ "$image_owner_var" != "" ]]; then
+		eval "$image_owner_var='$res_owner'"
+	fi
+	if [[ "$version_var" != "" ]]; then
+		eval "$version_var='$res_version'"
+	fi
+	if [[ "$docker_image_var" != "" ]]; then
+		eval "$docker_image_var='$res_docker_image'"
+	fi
+
+	return $result
+}
+
+_get_mip(){
+	local arg_mode
+	local arg_part
+	local arg_release=0
+	local arg_component
+	local arg_tag
+	local arg_component_version
+	local arg_branch
+	local arg_commit
+
+	local part_var
+	local git_owner_var
+	local git_repo_var
+	local tag_var
+	local mip_tag_var
+	local branch_var
+	local commit_var
+	local component_var
+	local component_image_owner_var
+	local component_image_var
+	local component_version_var
+	local dockerhub_image_var
+	local component_list_var
+
+	local ret_part=""
+	local ret_git_owner=""
+	local ret_git_repo=""
+	local ret_tag=""
+	local ret_mip_tag=""
+	local ret_branch=""
+	local ret_commit=""
+	local ret_component=""
+	local ret_component_image_owner=""
+	local ret_component_image=""
+	local ret_component_version=""
+	local ret_dockerhub_image=""
+	local ret_component_list=""
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--mode)
+				arg_mode=$2
+				shift
+				shift
+				;;
+			--part)
+				arg_part=$2
+				shift
+				shift
+				;;
+			--release)
+				arg_release=1
+				shift
+				;;
+			--component)
+				arg_component=$2
+				shift
+				shift
+				;;
+			--tag)
+				arg_tag=$2
+				shift
+				shift
+				;;
+			--component-version)
+				arg_component_version=$2
+				shift
+				shift
+				;;
+			--branch)
+				arg_branch=$2
+				shift
+				shift
+				;;
+			--commit)
+				arg_commit=$2
+				shift
+				shift
+				;;
+			--part-return-var)
+				part_var=$2
+				shift
+				shift
+				;;
+			--git-owner-return-var)
+				git_owner_var=$2
+				shift
+				shift
+				;;
+			--git-repo-return-var)
+				git_repo_var=$2
+				shift
+				shift
+				;;
+			--tag-return-var)
+				tag_var=$2
+				shift
+				shift
+				;;
+			--mip-tag-return-var)
+				mip_tag_var=$2
+				shift
+				shift
+				;;
+			--branch-return-var)
+				branch_var=$2
+				shift
+				shift
+				;;
+			--commit-return-var)
+				commit_var=$2
+				shift
+				shift
+				;;
+			--component-return-var)
+				component_var=$2
+				shift
+				shift
+				;;
+			--component-image-owner-return-var)
+				component_image_owner_var=$2
+				shift
+				shift
+				;;
+			--component-image-return-var)
+				component_image_var=$2
+				shift
+				shift
+				;;
+			--component-version-return-var)
+				component_version_var=$2
+				shift
+				shift
+				;;
+			--dockerhub-image-return-var)
+				dockerhub_image_var=$2
+				shift
+				shift
+				;;
+			--component-list-return-var)
+				component_list_var=$2
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
+	case $mode in
+		wanted)
+			local target_version=""
+			local target_mip_version=""
+			local target_exareme_version=""
+			local target_component_version=""
+			local image=""
+			local image_version=""
+			local cmd=""
+			local cmdargs=""
+			local cmdargs_component=""
+
+			local advanced_detail=0
+
+			local part="mip"
+			local component=""
+			local default_branch="master"
+
+			if [[ "$arg_part" = "mip" || "$arg_part" = "exareme" ]]; then
+				case $arg_part in
+					mip)
+						if [[ "$MIP_BRANCH" != "$default_branch" ]]; then
+							default_branch="$MIP_BRANCH"
+						fi
+						;;
+					exareme)
+						if [[ "$EXAREME_BRANCH" != "$default_branch" ]]; then
+							default_branch="$EXAREME_BRANCH"
+						fi
+						;;
+				esac
+
+				local cmd="_list_avail_version"
+				local cmdargs=" --part $part"
+
+				if [[ "$arg_part" = "exareme" ]]; then
+					if [[ "$arg_component" != "" ]]; then
+						# Services are written with '-' in exareme's docker-compose files and with '_' in mip's docker-compose files. Yeah, very annoying...
+						if [[ "$(echo $arg_component | sed 's/-/_/g')" = "exareme_master" || "$(echo $arg_component | sed 's/-/_/g')" = "exareme_keystore" ]]; then
+							component="$(echo $arg_component | sed 's/-/_/g')"		# We'll ask for component list from mip in all cases, not exareme
+						fi
+					else
+						component="exareme_master"									# We'll ask for component list from mip in all cases, not exareme
+					fi
+				elif [[ "$arg_part" = "mip" ]]; then
+					if [[ "$arg_component" != "" ]]; then
+						component="$arg_component"
+					fi
+				fi
+
+				if [[ "$arg_component" != "" && "$component" = "" ]]; then
+					return
+				fi
+
+				if [[ $ARG_ALL -eq 1 || $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
+					cmdargs+=" --all"
+				fi
+				if [[ $ARG_LATEST -eq 1 ]]; then
+					cmdargs+=" --latest"
+				fi
+				if [[ "$component" != "" ]]; then
+					cmdargs_component=" --component $component"
+				fi
+				if [[ "$arg_component_version" != "" ]]; then
+					cmdargs_component+=" --component-version $arg_component_version"
+				fi
+				cmdargs+=" --limit 1"
+				if [[ "$arg_commit" != "" ]]; then
+					cmdargs+=" --commit $arg_commit"
+				fi
+				if [[ "$arg_tag" != "" ]]; then
+					cmdargs+=" --tag $arg_tag"
+				fi
+				if [[ "$arg_branch" != "" ]]; then
+					cmdargs+=" --branch $arg_branch"
+				fi
+				if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
+					cmdargs+=" --force-unstable"
+				fi
+
+				${cmd}${cmdargs}${cmdargs_component} --version-return-var "target_version" --part-version-return-var "target_mip_version"
+				ret_mip_tag="$target_mip_version"
+
+				if [[ "$arg_part" = "exareme" ]]; then
+					if [[ "$(echo $target_version | grep -E '^[a-zA-Z]+_[a-zA-Z]+;.*:.*$')" != "" ]]; then
+						component=$(echo $target_version | cut -d';' -f1 | sed 's/_/-/g')
+						target_version="${component};$(echo $target_version | cut -d';' -f2)"
+					fi
+				fi
+
+				local branch="$arg_branch"
+				if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
+					if [[ "$arg_component" = "" && "$arg_tag" = "" && "$arg_branch" = "" && "$arg_commit" = "" ]]; then
+						branch="$default_branch"
+					fi
+				fi
+
+				if [[ "$arg_component" != "" || "$arg_commit" != "" || "$branch" != "" ]]; then
+					arg_release=0
+					if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
+						local owner=""
+						local repo=""
+						local path=""
+						local filename=""
+						local httpreturncode
+						if [[ "$arg_part" = "mip" ]]; then
+							owner="$DEFAULT_MIP_GITHUB_OWNER"
+							repo="$DEFAULT_MIP_GITHUB_PROJECT"
+							if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+								path=""
+							elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+								path="Federation"
+							fi
+							filename="docker-compose.yml"
+						elif [[ "$arg_part" = "exareme" ]]; then
+							owner="$EXAREME_GITHUB_OWNER"
+							repo="$EXAREME_GITHUB_PROJECT"
+							path="Federated-Deployment/Compose-Files"
+							filename="docker-compose-master.yml"
+						fi
+
+						_get_github_file --owner "$owner" --repo "$repo" --mode "readfile" --branch "$branch" --tag "$arg_tag" --commit "$arg_commit" --path "$path" --filename "$filename" --httpcodevar "httpreturncode" >/dev/null
+						if [[ $httpreturncode -eq 200 ]]; then
+							if [[ "$arg_component" = "" ]]; then
+								ret_part="$arg_part"
+								ret_git_owner="$owner"
+								ret_git_repo="$repo"
+								ret_tag="$arg_tag"
+								ret_branch="$branch"
+								ret_commit="$arg_commit"
+							fi
+						else
+							return
+						fi
+					else
+						return
+					fi
+				fi
+
+				if [[ "$component" != "" ]]; then
+					target_component_version=$target_version
+				fi
+				if [[ "$arg_part" = "exareme" ]]; then
+					if [[ "$(echo $component | sed 's/_/-/g')" = "exareme-master" ]]; then
+						target_exareme_version=$target_version
+					else
+						${cmd}${cmdargs} --component exareme_master --version-return-var "target_exareme_version"
+						if [[ "$(echo $target_exareme_version | cut -d';' -f1)" = "exareme_master" ]]; then
+							target_exareme_version="exareme-master;$(echo $target_exareme_version | cut -d';' -f2)"
+						fi
+					fi
+				fi
+
+				if [[ "$target_version" != "" ]]; then
+					target_version="$(echo $target_version | head -1)"
+
+					if [[ "$arg_part" = "exareme" ]]; then
+						part="exareme"
+					fi
+
+					if [[ $arg_release -eq 1 ]]; then
+						if [[ "$arg_component" = "" ]]; then
+							ret_part="$part"
+						fi
+
+						if [[ "$ret_part" = "mip" ]]; then
+							ret_git_owner="$DEFAULT_MIP_GITHUB_OWNER"
+							ret_git_repo="$DEFAULT_MIP_GITHUB_PROJECT"
+							ret_tag="$target_mip_version"
+						elif [[ "$ret_part" = "exareme" ]]; then
+							ret_git_owner="$EXAREME_GITHUB_OWNER"
+							ret_git_repo="$EXAREME_GITHUB_PROJECT"
+							_extract_advanced_component_version --version $target_exareme_version --version-return-var ret_tag
+						fi
+					fi
+
+					if [[ "$ret_part" = "exareme" && "$arg_component" = "" && "$ret_component" = "" && "$target_exareme_version" != "" ]]; then
+						_extract_advanced_component_version --version $target_exareme_version --image-owner-return-var ret_component_image_owner --image-return-var ret_component_image --docker-image-return-var ret_dockerhub_image --version-return-var ret_component_version
+					fi
+
+					if [[ "$arg_component" != "" && $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
+						_extract_advanced_component_version --version $target_version --component-return-var ret_component --image-owner-return-var ret_component_image_owner --image-return-var ret_component_image --docker-image-return-var ret_dockerhub_image --version-return-var ret_component_version
+						advanced_detail=$?
+					fi
+				fi
+
+				if [[ "$component_list_var" != "" ]]; then
+					tag="$ret_tag"
+					if [[ "$ret_component_version" != "" ]]; then
+						tag="$ret_component_version"
+					fi
+					local component_list=$(_get_mip_component_version --part "$ret_part" --branch "$ret_branch" --tag "$tag" --commit "$ret_commit" | tr '\n' ',')
+					if [[ "$component_list" != "" ]]; then
+						if [[ "$(echo $component_list | rev | cut -c1)" = "," ]]; then
+							ret_component_list=$(echo $component_list | rev | cut -c2- | rev)
+						fi
+					fi
+				fi
+			fi
+			;;
+		installed)
+			if [[ ! -d $MIP_PATH ]]; then
+				return 1
+			fi
+
+			local installed_mip_version
+			local installed_exareme_version
+
+			if [[ "$arg_part" = "mip" || "$arg_part" = "exareme" ]]; then
+				ret_part="$arg_part"
+			else
+				return 1
+			fi
+
+			oldpath=$(pwd)
+			cd $MIP_PATH
+
+			if [[ -d .git ]]; then
+				local mip_path=$(git rev-parse --show-toplevel)
+				cd $mip_path
+
+				ret_branch=$(git branch --show current)
+				local remote_origin=$(git config remote.origin.url | sed 's/\.git$//')
+				ret_git_owner=$(basename $(dirname $remote_origin))
+				ret_git_repo=$(basename $remote_origin)
+				local commit=$(git rev-parse HEAD)
+				local tag=$(git name-rev --tags --name-only $commit)
+				if [[ "$tag" = "undefined" ]]; then
+					tag=""
+				fi
+				if [[ "$tag" != "" ]]; then
+					ret_tag="$tag"
+				fi
+				if [[ "$arg_commit" != "" ]]; then
+					ret_commit="$commit"
+				fi
+			fi
+
+			local component_list=$(_get_mip_component_version --from-installed --part "$ret_part" --branch "$ret_branch" --tag "$ret_tag" --commit "$ret_commit" | tr '\n' ',')
+			if [[ "$component_list" != "" ]]; then
+				if [[ "$(echo $component_list | rev | cut -c1)" = "," ]]; then
+					ret_component_list=$(echo $component_list | rev | cut -c2- | rev)
+				fi
+			fi
+
+			local tmp_component_name
+			local tmp_component_image_owner
+			local tmp_component_image
+			local tmp_dockerhub_image
+			local tmp_component_version
+			if [[ "$ret_component_list" != "" ]]; then
+				for tmp_component in $(echo "$ret_component_list" | sed 's/,/ /g'); do
+					_extract_advanced_component_version --version $tmp_component --component-return-var tmp_component_name --image-owner-return-var tmp_component_image_owner --image-return-var tmp_component_image --docker-image-return-var tmp_dockerhub_image --version-return-var tmp_component_version
+					advanced_detail=$?
+					if [[ (( "$arg_component" != "" && "$(echo $tmp_component_name | sed 's/-/_/g')" = "$(echo $arg_component | sed 's/-/_/g')" )) || (( "$arg_component" = "" && "$ret_part" = "exareme" && "$(echo $tmp_component_name | sed 's/-/_/g')" = "exareme_master" )) ]]; then
+						ret_component_image_owner="$tmp_component_image_owner"
+						ret_component_image="$tmp_component_image"
+						ret_dockerhub_image="$tmp_dockerhub_image"
+						ret_component_version="$tmp_component_version"
+						if [[ "$(echo $tmp_component_name | sed 's/-/_/g')" = "$(echo $arg_component | sed 's/-/_/g')" ]]; then
+							ret_component="$tmp_component_name"
+						fi
+					fi
+				done
+			fi
+
+			if [[ "$arg_component" != "" ]]; then
+				ret_part=""
+				ret_git_owner=""
+				ret_git_repo=""
+				ret_tag=""
+				ret_branch=""
+				ret_commit=""
+				ret_component_list=""
+			fi
+
+			cd $oldpath
+			;;
+	esac
+
+	for varname in $(echo "part git_owner git_repo tag mip_tag branch commit component component_image_owner component_image component_version dockerhub_image component_list"); do
+		retvarname="ret_${varname}"
+		varname="${varname}_var"
+		varname=${!varname}
+		if [[ "$varname" != "" ]]; then
+			retcontent=${!retvarname}
+			eval "$varname='$retcontent'"
+		fi
+	done
+}
+
+_get_mip_component_version(){
+	__debug --level 4 "_get_mip_component_version($*)"
+
+	local result=""
+
+	local httpcodevar=""
+	local owner
+	local repo
+	local part="mip"
+	local branch
+	local tag
+	local commit
+	local component
+	local component_version
+	local dockerhub=0
+	local installed=0
+	local path
+	local filename
+	local targetpath
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--part)
+				part=$2
+				shift
+				shift
+				;;
+			--component)
+				component=$2
+				shift
+				shift
+				;;
+			--branch)
+				branch=$2
+				shift
+				shift
+				;;
+			--tag)
+				tag=$2
+				shift
+				shift
+				;;
+			--commit)
+				commit=$2
+				shift
+				shift
+				;;
+			--component-version)
+				component_version=$2
+				shift
+				shift
+				;;
+			--from-dockerhub)
+				dockerhub=1
+				shift
+				;;
+			--from-installed)
+				installed=1
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
+	case $part in
+		mip)
+			owner="$DEFAULT_MIP_GITHUB_OWNER"
+			repo="$DEFAULT_MIP_GITHUB_PROJECT"
+			path=""
+			filename="docker-compose.yml"
+			;;
+		exareme)
+			owner="$EXAREME_GITHUB_OWNER"
+			repo="$EXAREME_GITHUB_PROJECT"
+			path="Federated-Deployment/Compose-Files"
+			filename="docker-compose-master.yml"
+
+			if [[ "$component" = "exareme_master" ]]; then
+				component="exareme-master"
+			elif [[ "$component" = "exareme_keystore" ]]; then
+				component="exareme-keystore"
+			fi
+			;;
+	esac
+
+	local version
+	local image
+
+	local docker_compose_content=""
+	local versions_env_content=""
+	if [[ $installed -eq 1 ]]; then
+		case $part in
+			mip)
+				if [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+					path="Federation"
+				fi
+
+				if [[ -f $MIP_PATH/$path/$filename ]]; then
+					docker_compose_content=$(cat $MIP_PATH/$path/$filename)
+				fi
+
+				path=""
+				filename=".versions_env"
+
+				if [[ -f $MIP_PATH/$path/$filename ]]; then
+					versions_env_content=$(cat $MIP_PATH/$path/$filename)
+				fi
+				;;
+			exareme)
+				path="Federated-Deployment/Docker-Ansible/group_vars"
+				filename="exareme.yaml"
+
+				if [[ -f $MIP_PATH/$path/$filename ]]; then
+					versions_env_content=$(cat $MIP_PATH/$path/$filename)
+				fi
+				;;
+		esac
+	else
+		if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+			path="Federation"
+		fi
+		docker_compose_content=$(_get_github_file --owner "$owner" --repo "$repo" --mode "readfile" --branch "$branch" --tag "$tag" --commit "$commit" --path "$path" --filename "$filename")
+
+		path=""
+		filename=".versions_env"
+		versions_env_content=$(_get_github_file --owner "$owner" --repo "$repo" --mode "readfile" --branch "$branch" --tag "$tag" --commit "$commit" --path "$path" --filename "$filename")
+	fi
+
+	local indent_pattern=$(echo "$docker_compose_content" | grep -A100000 '^services:$' | grep -E '^[ \t]+.*:$' | head -1)
+	local indent_pattern=$(echo "$indent_pattern" | sed 's/\(^\s*\).*\([a-zA-Z]\).*:$/\1/p' | tr '\n' '@' | cut -d@ -f1)
+	local components=$(echo "$docker_compose_content" | grep -A100000 '^services:$' | grep -w "^${indent_pattern}[a-zA-Z].*:$" | awk '{print $NF}' | rev | cut -c2- | rev)
+
+	if [[ "$component" != "" ]]; then
+		components=$(echo "$components" | grep -wF "$component")
+	fi
+
+	if [[ "$component_version" != "" && "$(echo $component_version | grep ':')" != "" ]]; then
+		component_version=$(echo $component_version | cut -d: -f2)
+	fi
+
+	while IFS=$'\n' read -r item; do
+		image=""
+		version=""
+		image=$(echo "$docker_compose_content" | grep -A10 -F "$item:" | grep -F 'image: ' | head -1 | awk -F 'image: ' '{print $2}')
+		if [[ "$image" = '${EXAREME_IMAGE}' ]]; then
+			if [[ $installed -eq 1 ]]; then
+				if [[ "$versions_env_content" != "" ]]; then
+					local tmp_exareme_image=$(echo "$versions_env_content" | grep -E '^EXAREME_IMAGE:' | awk -F ':' '{print $2}' | cut -d'"' -f2- | rev | cut -d'"' -f2- | rev)
+					local tmp_exareme_tag=$(echo "$versions_env_content" | grep -E '^EXAREME_TAG:' | awk -F ':' '{print $2}' | cut -d'"' -f2- | rev | cut -d'"' -f2- | rev)
+					if [[ "$tmp_exareme_image" != "" && "$tmp_exareme_tag" != "" ]]; then
+						image="${tmp_exareme_image}:${tmp_exareme_tag}"
+					fi
+				fi
+			else
+				image="hbpmip/exareme:$tag"
+			fi
+		fi
+		if [[ "$image" != "" && "$(echo $image | grep ':')" != "" ]]; then
+			version=$(echo $image | cut -d: -f2)
+			image=$(echo $image | cut -d: -f1)
+			if [[ "$version" != "" ]]; then
+				if [[ "echo '$version' | grep -E '^\${.*}$')" != "" ]]; then
+					local version_var=$(echo $version | cut -c3- | rev | cut -c2- | rev)
+					local version_env=$(echo "$versions_env_content" | grep -E "^$version_var=")
+					if [[ "$version_env" != "" && "$(echo $version_env | grep -F '=')" != "" ]]; then
+						version=$(echo $version_env | cut -d= -f2)
+					fi
+				fi
+			fi
+
+			if [[ $dockerhub -eq 1 && "$image" != "" ]]; then
+				local dockerhub_owner="$(echo $image | cut -d/ -f1)"
+				local dockerhub_image="$(echo $image | cut -d/ -f2)"
+				local tmp_dockerhub_result="$(_get_dockerhub_infos --owner "$dockerhub_owner" --mode "tag" --image "$dockerhub_image" --tag "$component_version")"
+				local dockerhub_result=""
+				while IFS=$'\n' read -r tmp_res; do
+					if [[ "$result" != "" ]]; then
+						result+="
+"
+					fi
+					result+="$(echo "$item;$image:$tmp_res")"
+				done <<< "$(echo -e "$tmp_dockerhub_result")"
+			elif [[ $dockerhub -ne 1 && "$image" != "" ]]; then
+				if [[ "$result" != "" ]]; then
+					result+="
+"
+				fi
+				result+="$(echo "$item;$image:$version")"
+			fi
+		fi
+	done <<< "$(echo -e "$components")"
+
+	echo "$result"
+}
+
+_list_avail_version(){
+	local part
+	local all=0
+	local latest=0
+	local component
+	local limit
+	local commit
+	local tag
+	local branch
+	local component_version
+	local unstable=0
+
+	local version_var=""
+	local partversion_var=""
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--part)
+				part="$2"
+				shift
+				shift
+				;;
+			--all)
+				all=1
+				shift
+				;;
+			--latest)
+				latest=1
+				shift
+				;;
+			--component)
+				component=$2
+				shift
+				shift
+				;;
+			--limit)
+				limit=$2
+				shift
+				shift
+				;;
+			--commit)
+				commit=$2
+				shift
+				shift
+				;;
+			--tag)
+				tag=$2
+				shift
+				shift
+				;;
+			--branch)
+				branch=$2
+				shift
+				shift
+				;;
+			--component-version)
+				component_version=$2
+				shift
+				shift
+				;;
+			--force-unstable)
+				unstable=1
+				shift
+				;;
+			--version-return-var)
+				version_var=$2
+				shift
+				shift
+				;;
+			--part-version-return-var)
+				partversion_var=$2
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
+	#local result=$(_get_git_tags --server https://github.com --owner madgik --repo exareme --releases --all --latest)
+	#local result=$(_get_git_commits --owner HBPMedical --repo mip-deployment --limit 10)
+	local result_str=""
+	local cmd=""
+
+	if [[ "$part" = "mip" ]]; then
+		cmd="_get_git_tags --owner $DEFAULT_MIP_GITHUB_OWNER --repo $DEFAULT_MIP_GITHUB_PROJECT"
+	elif [[ "$part" = "exareme" ]]; then
+		cmd="_get_git_tags --owner $EXAREME_GITHUB_OWNER --repo $EXAREME_GITHUB_PROJECT"
+	fi
+
+	if [[ "$cmd" != "" ]]; then
+		if [[ $all -ne 1 ]]; then
+			cmd+=" --releases"
+		fi
+		if [[ "$tag" != "" ]]; then
+			cmd+=" --filter $tag"
+		fi
+		if [[ $latest -eq 1 ]]; then
+			cmd+=" --latest"
+		elif [[ -n $limit ]]; then
+			cmd+=" --limit $limit"
+		fi
+	fi
+
+	if [[ "$cmd" != "" ]]; then
+		result_str="$($cmd)"
+		if [[ "$partversion_var" != "" ]]; then
+			eval "$partversion_var='$result_str'"
+		fi
+		cmd=""
+	fi
+
+	if [[ "$component" != "" || "$commit" != "" || "$tag" != "" || "$branch" != "" ]]; then
+		local go_ahead=1
+		if [[ "$result_str" = "" ]]; then
+			go_ahead=0
+		fi
+
+		if [[ $go_ahead -eq 1 ]]; then
+			cmd="_get_mip_component_version --part $part --mode list-avail"
+
+			if [[ "$component" != "" ]]; then
+				cmd+=" --component $component"
+			fi
+
+			if [[ "$result_str" != "" && "$commit" = "" && "$tag" = "" && "$branch" = "" ]]; then
+				result_str="$(echo "$result_str" | tr '\n' '@' | cut -d'@' -f1)"
+				cmd+=" --tag $result_str"
+			elif [[ "$commit" != "" ]]; then
+				cmd+=" --commit $commit"
+			elif [[ "$tag" != "" ]]; then
+				cmd+=" --tag $tag"
+			elif [[ "$branch" != "" ]]; then
+				cmd+=" --branch $branch"
+			fi
+
+			if [[ "$component_version" != "" ]]; then
+				cmd+=" --component-version $component_version"
+			fi
+
+			if [[ $unstable -eq 1 && "$commit" = "" && "$tag" = "" && "$branch" = "" ]]; then
+				cmd+=" --from-dockerhub"
+			fi
+		fi
+	fi
+
+	if [[ "$cmd" != "" ]]; then
+		result_str="$($cmd)"
+
+		if [[ $unstable -eq 1 ]]; then
+			if [[ $latest -eq 1 ]]; then
+				result_str="$(echo "$result_str" | head -1)"
+			elif [[ -n $limit ]]; then
+				result_str="$(echo "$result_str" | head -$limit)"
+			fi
+		fi
+	fi
+
+	if [[ "$version_var" != "" ]]; then
+		eval "$version_var='$result_str'"
+	fi
 }
 
 _version_show(){
@@ -4908,7 +6386,7 @@ _version_show(){
 			ms|wk)
 				for component in $MIP_COMPONENTS; do
 					container_image=$(docker ps --filter name=$component | grep -v "^CONTAINER" | awk '{print $2}')
-					echo -n "$component: "
+					__echo -n "$component: "
 					if [[ "$container_image" != "" ]]; then
 						__echo "\${yellow}$container_image\${reset}"
 					else
@@ -4932,7 +6410,7 @@ _version(){
 	__debug --level 4 "_version($*)"
 	local result=0
 
-	if [[ $ARG_PUSHER -eq 1 ]]; then
+	if [[ "$VERSION_ACTION" != "list-avail" && $ARG_PUSHER -eq 1 ]]; then
 		if [[ -f $SSH_PATH/.ssh/config ]]; then
 			local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
 			local node
@@ -4955,9 +6433,9 @@ _version(){
 		list)
 			if [[ $ARG_PUSHER -eq 1 ]]; then
 				local remote_result
-				__echo "Pusher (\${yellow}pusher\${reset} / \${magenta}$(hostname) $(hostname -I)\${reset}"
+				__echo "Pusher (\${yellow}pusher\${reset}) / \${magenta}$(hostname) $(hostname -I)\${reset}"
 				_version_show
-				echo
+				__echo
 				for node in $nodes; do
 					nodeshortname=$(cat $SSH_PATH/.ssh/config|grep "^Host .*\b$node\b"|awk '{print $2}')
 					localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$node\b"|awk '/Hostname / {print $2}')
@@ -4994,11 +6472,11 @@ _version(){
 							__echo "Master node (\${yellow}ms\${reset}) / \${magenta}$node ($localhostname)\${reset}"
 							;;
 						1)
-							if [[ ! -n $ARG_NODE ]]; then echo; fi
+							if [[ ! -n $ARG_NODE ]]; then __echo; fi
 							__echo "Frontend node (\${yellow}ui\${reset}) / \${magenta}$node ($localhostname)\${reset}"
 							;;
 						*)
-							if [[ ! -n $ARG_NODE ]]; then echo; fi
+							if [[ ! -n $ARG_NODE ]]; then __echo; fi
 							__echo "Worker node $(expr $nodeid - 1) (\${yellow}wk$(expr $nodeid - 1)\${reset}) / \${cyan}$node ($localhostname)\${reset}"
 							;;
 					esac
@@ -5012,19 +6490,81 @@ _version(){
 			fi
 			;;
 		list-avail)
-			#local result=$(_get_git_tags --server https://github.com --owner madgik --repo exareme --releases --all --latest)
-			#local result=$(_get_git_commits --owner HBPMedical --repo mip-deployment --limit 10)
-			case $1 in
-				mip)
-					_get_git_tags --owner $DEFAULT_MIP_GITHUB_OWNER --repo $DEFAULT_MIP_GITHUB_PROJECT --releases
-					;;
-				exareme)
-					_get_git_tags --owner $EXAREME_GITHUB_OWNER --repo $EXAREME_GITHUB_PROJECT --releases
-					;;
-				*)
-					echo "Usage: $0 $ORIG_ARGS [mip|exareme]"
-					;;
-			esac
+			if [[ "$1" != "mip" && "$1" != "exareme" ]]; then
+				__red "Usage: $0 "$(echo ${ORIG_ARGS[*]} | rev | cut -d' ' -f2- | rev)" [mip|exareme]"
+				exit 1
+			fi
+
+			local result=""
+
+			local cmd="_list_avail_version"
+			if [[ "$1" != "" ]]; then
+				cmd+=" --part $1"
+			fi
+			if [[ $ARG_ALL -eq 1 || $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
+				cmd+=" --all"
+			fi
+			if [[ $ARG_LATEST -eq 1 ]]; then
+				cmd+=" --latest"
+			fi
+			if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
+				cmd+=" --force-unstable"
+			fi
+
+			local enhanced_display=0
+			local res_item
+			local res_component
+			local res_image
+			local res_owner
+			local res_version
+
+			$cmd --component "$ARG_COMPONENT" --limit "$ARG_LIMIT" --commit "$ARG_COMMIT" --tag "$ARG_VERSION" --branch "$ARG_BRANCH" --version-return-var "tmp_result"
+			while IFS=$'\n' read -r res_item; do
+				if [[ $enhanced_display -eq 0 && "$(echo "$res_item" | grep -E "[;:/]")" != "" ]]; then
+					enhanced_display=1
+				fi
+
+				if [[ $enhanced_display -eq 1 ]]; then
+					res_component=""
+					res_image=""
+					res_owner=""
+					res_version=""
+
+					res_component=$(echo $res_item | cut -d';' -f1)
+					res_image=$(echo $res_item | cut -d';' -f2)
+					if [[ "$(echo $res_image | grep -F '/')" != "" ]]; then
+						res_owner=$(echo $res_image | cut -d/ -f1)
+						res_image=$(echo $res_image | cut -d/ -f2)
+					fi
+					res_version=$(echo $res_image | cut -d: -f2)
+					res_image=$(echo $res_image | cut -d: -f1)
+
+
+					if [[ "$result" = "" ]]; then
+						result="\${magenta}COMPONENT\${reset}#\${cyan}OWNER\${reset}#\${yellow}IMAGE\${reset}#\${green}VERSION\${reset}@@"
+					else
+						result+="@@"
+					fi
+
+					result+="\${magenta}${res_component}\${reset}#\${cyan}${res_owner}\${reset}#\${yellow}${res_image}\${reset}#\${green}${res_version}\${reset}"
+				else
+					if [[ "$result" != "" ]]; then
+						result+="
+"
+					fi
+					result+="$res_item"
+				fi
+			done <<< "$(echo "$tmp_result")"
+
+			if [[ "$result" != "" ]]; then
+				if [[ $enhanced_display -eq 1 ]]; then
+					__echo $result | sed 's/@@/\n/g' | column -s '#' -t
+				else
+					__echo "$result"
+				fi
+			else
+				__echo
+			fi
 			;;
 		upgrade)
 			;;
@@ -5032,6 +6572,230 @@ _version(){
 			__red "Usage: $0 (--pusher --federation <FEDERATION>) version [list|list-avail|upgrade]"
 			exit 1
 	esac
+}
+
+_backup(){
+	local result=1
+
+	local filename="mip"
+	local fileext="tar.gz"
+
+	if [[ "$1" = "list" || "$1" = "show" ]]; then
+		case $1 in
+			list)
+				local backups=$(ls -l $BACKUP_PATH/$filename*.$fileext | sort -r | awk '{print $NF}')
+				echo "$backups"
+				;;
+			show)
+				if [[ "$2" != "" ]]; then
+					local filename=$2
+					if [[ -f $filename ]]; then
+						local versions_filepath=$(gzip -dc $filename | tar -tv -f - | grep .versions_env | awk '{print $NF}')
+						if [[ "$versions_filepath" != "" ]]; then
+							local versions=$(tar --to-stdout -xzf $filename $versions_filepath)
+							echo "$versions"
+						fi
+					fi
+				fi
+				;;
+		esac
+	else
+		local paths=""
+		local paths_list=()
+
+		if [[ $ARG_PUSHER -eq 1 ]]; then
+			filename+="_pusher"
+			paths="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/Federated-Deployment/Compose-Files $EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml $EXAREME_PATH/Federated-Deployment/Docker-Ansible/hosts.ini $EXAREME_PATH/Federated-Deployment/Docker-Ansible/vault.yaml"
+		elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+			filename+="_local"
+			paths="$MIP_PATH/.mipenv $MIP_PATH/.versions_env $MIP_PATH/config/pathologies.json $MIP_PATH/config/keycloak/keycloak.json $MIP_PATH/data $MIP_PATH/logs"
+		elif [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+			filename+="_ms"
+			paths="$DATA_PATH"
+		elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+			filename+="_ui"
+			paths="$MIP_PATH/.mipenv $MIP_PATH/.versions_env $MIP_PATH/config/pathologies.json $MIP_PATH/config/keycloak/keycloak.json $MIP_PATH/Federation/.stored_data $MIP_PATH/Federation/config $MIP_PATH/Federation/logs"
+		fi
+
+		if [[ "$paths" != "" ]]; then
+			local go_ahead=0
+			filename+="_-_$(hostname)_-_$(date +"%Y%m%d%H%M%S")"
+			for path in $(echo "$paths"); do
+				if [[ -f $path || -d $path ]]; then
+					go_ahead=1
+					paths_list+=("$path")
+				fi
+			done
+
+			if [[ $go_ahead -eq 1 ]]; then
+				set -- "${paths_list[@]}"
+				tar czfp $BACKUP_PATH/$filename.$fileext $@ >/dev/null 2>&1
+				result=$?
+			fi
+		fi
+	fi
+
+	return $result
+}
+
+_restore(){
+	local result=1
+
+	local filepath
+	local filename
+	local fileext
+	local node_type
+	local hostname
+	local datetime
+	local partial_restore_path
+	local noversion=0
+	local force=0
+
+	if [[ $ARG_FORCE -eq 1 ]]; then
+		force=1
+	fi
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--backup-file)
+				if [[ -f $2 ]]; then
+					filename=$2
+					filepath=$(dirname $filename)
+					filename=$(basename $filename)
+					fileext="${filename##*.}"
+					filename="${filename%.*}"
+
+					if [[ "$(echo $filename | grep "^mip_")" != "" ]]; then
+						node_type=$(echo $filename | awk -F '_-_' '{print $1}' | cut -d'_' -f2)
+						hostname=$(echo $filename | awk -F '_-_' '{print $2}')
+						datetime=$(echo $filename | awk -F '_-_' '{print $NF}')
+					else
+						filepath=""
+						filename=""
+						fileext=""
+					fi
+				fi
+				shift
+				shift
+				;;
+			--partial-restore-path)
+				partial_restore_path=$2
+				shift
+				shift
+				;;
+			--no-version)
+				noversion=1
+				shift
+				;;
+			--force)
+				force=1
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[$@]}"
+
+	local cmd="tar xzfp"
+	if [[ "$filepath" != "" && "$filename" != "" && "$fileext" != "tar.gz" && "$node_type" != "" && "$hostname" != "" ]]; then
+		if [[ $ARG_PUSHER -eq 1 ]]; then
+			if [[ "$node_type" = "pusher" ]]; then
+				if [[ "$partial_restore_path" = "" ]]; then
+					partial_restore_path="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/Federated-Deployment/Compose-Files $EXAREME_PATH/Federated-Deployment/Docker-Ansible/hosts.ini $EXAREME_PATH/Federated-Deployment/Docker-Ansible/vault.yaml"
+					if [[ $noversion -ne 1 ]]; then
+						partial_restore_path+=" $EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml"
+					fi
+				fi
+			else
+				__red "This backup was made from a pusher node, but this machine doesn't seem match it!"
+				cmd=""
+			fi
+		elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+			if [[ "$node_type" = "local" ]]; then
+				if [[ "$partial_restore_path" = "" ]]; then
+					partial_restore_path="$MIP_PATH/.mipenv $MIP_PATH/config/pathologies.json $MIP_PATH/config/keycloak/keycloak.json $MIP_PATH/data $MIP_PATH/logs"
+					if [[ $noversion -ne 1 ]]; then
+						partial_restore_path+=" $MIP_PATH/.versions_env"
+					fi
+				fi
+			else
+				__red "This backup was made from a local MIP, but this machine doesn't seem match it!"
+				cmd=""
+			fi
+		elif [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+			if [[ "$node_type" = "ms" ]]; then
+				if [[ "$partial_restore_path" = "" ]]; then
+					partial_restore_path="$DATA_PATH"
+				fi
+			else
+				__red "This backup was made from a master node, but this machine doesn't seem match it!"
+				cmd=""
+			fi
+		elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+			if [[ "$node_type" = "ui" ]]; then
+				if [[ "$partial_restore_path" = "" ]]; then
+					partial_restore_path="$MIP_PATH/.mipenv $MIP_PATH/config/pathologies.json $MIP_PATH/config/keycloak/keycloak.json $MIP_PATH/Federation/.stored_data $MIP_PATH/Federation/config $MIP_PATH/Federation/logs"
+					if [[ $noversion -ne 1 ]]; then
+						partial_restore_path+=" $MIP_PATH/.versions_env"
+					fi
+				fi
+			else
+				__red "This backup was made from a UI node, but this machine doesn't seem match it!"
+				cmd=""
+			fi
+		fi
+	fi
+
+	if [[ "$cmd" != "" ]]; then
+		if [[ "$partial_restore_path" != "" ]]; then
+			local final_paths=""
+			for partial_path in $(echo "$partial_restore_path"); do
+				partial_path=$(echo $partial_path | cut -c2-)
+				if [[ "$(gzip -dc $filepath/$filename.$fileext | tar -tv -f - | grep -E "$partial_path$")" != "" ]]; then
+					if [[ "$final_paths" != "" ]]; then
+						final_paths+=" "
+					fi
+					final_paths+="$partial_path"
+				fi
+			done
+
+			cmd+=" $filepath/$filename.$fileext -C /"
+			if [[ "$final_paths" != "" ]]; then
+				cmd+=" $final_paths"
+			fi
+
+			local go_ahead=0
+			if [[ $force -eq 1 || $ARG_QUIET -eq 1 ]]; then
+				go_ahead=1
+			else
+				msg="The following files/dirs will be restored"
+				if [[ $noversion -ne 1 ]]; then
+					msg+=" (run with --no-version if you don't want to import any version-related file)"
+				fi
+				msg+=":"
+				__echo $msg
+				for partial_path in $(echo "$final_paths"); do
+					__echo "	$partial_path"
+				done
+				__echo -n "Continue? [y/n] "
+				read answer
+				if [[ "$(echo $answer | awk '{print tolower($0)}')" = "y" ]]; then
+					go_ahead=1
+				fi
+			fi
+
+			if [[ $go_ahead -eq 1 ]]; then
+				$cmd >/dev/null 2>&1
+				result=$?
+			fi
+		fi
+	fi
+
+	return $result
 }
 
 _data(){
@@ -5079,7 +6843,7 @@ _data(){
 					__debug --level 5 "localhostname=<$localhostname>"
 					remotehostname=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "hostname" 2>/dev/null)
 					__debug --level 5 "remotehostname=<$remotehostname>"
-					if [[ "$host" != "ms" && "$host" != "ui" ]]; then echo; fi
+					if [[ "$host" != "ms" && "$host" != "ui" ]]; then __echo; fi
 					__debug --level 0 -n "Checking if remote <$host/$remotehostname> ($localhostname) hostname matches SSH config file's content..."
 					_contains "$host $customhostname" "$remotehostname"
 					local ret=$?
@@ -5116,7 +6880,7 @@ _data(){
 								if [[ ! -d /tmp/miptmpfeddata/$host ]]; then
 									mkdir -p /tmp/miptmpfeddata/$host
 								fi
-								__debug --level 0 --color "cyan" -e "Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)"
+								__debug --level 0 --color "cyan" -a "Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)"
 								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host:$datafile /tmp/miptmpfeddata/$host >/dev/null 2>&1
 								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "rm $datafile" 2>/dev/null
 								tar xzf /tmp/miptmpfeddata/$host/$remotehostname.tar.gz --directory /tmp/miptmpfeddata/$host
@@ -5265,6 +7029,587 @@ _data(){
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
 }
 
+_ssh(){
+	__debug --level 4 "_ssh($*)"
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		__red "This is a pusher specific command!"
+		exit 1
+	fi
+
+	if [[ "$ARG_NODE" != "" ]]; then
+		local altuser
+		if [[ "$(echo $ARG_NODE | grep -F '@')" != "" ]]; then
+			altuser=$(echo $ARG_NODE | cut -d'@' -f1)
+			ARG_NODE=$(echo $ARG_NODE | cut -d'@' -f2)
+		fi
+
+		local node
+		local nodehostname
+		local nodeip
+		local nodeuser
+		_get_node --node "$ARG_NODE" --node-return-var 'node' --node-localhostname-return-var 'nodehostname' --node-ip-return-var 'nodeip' --node-user-return-var 'nodeuser'
+		if [[ "$node" != "" || "$nodeip" != "" ]]; then
+			if [[ "$altuser" != "" && "$altuser" != "$nodeuser" ]]; then
+				ssh $SSH_OPTIONS $altuser@$nodeip 2>/dev/null
+			else
+				ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null
+			fi
+		else
+			__red "Can't find node <$ARG_NODE>!"
+			exit 1
+		fi
+	else
+		__red "Usage: $0 --pusher --federation <FEDERATION> --node <NODE|USER@NODE> ssh"
+		exit 1
+	fi
+}
+
+_ssh_mc(){
+	__debug --level 4 "_ssh($*)"
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		__red "This is a pusher specific command!"
+		exit 1
+	fi
+
+	if [[ "$ARG_NODE" != "" ]]; then
+		local altuser
+		if [[ "$(echo $ARG_NODE | grep -F '@')" != "" ]]; then
+			altuser=$(echo $ARG_NODE | cut -d'@' -f1)
+			ARG_NODE=$(echo $ARG_NODE | cut -d'@' -f2)
+		fi
+
+		local node
+		local nodehostname
+		local nodeip
+		local nodeuser
+		local nodeidentity
+		_get_node --node "$ARG_NODE" --node-return-var 'node' --node-localhostname-return-var 'nodehostname' --node-ip-return-var 'nodeip' --node-user-return-var 'nodeuser' --node-identity-return-var 'nodeidentity'
+		if [[ "$node" != "" || "$nodeip" != "" ]]; then
+			if [[ "$altuser" != "" && "$altuser" != "$nodeuser" ]]; then
+				nodeuser="$altuser"
+			else
+				altuser=""
+			fi
+		else
+			__red "Can't find node <$ARG_NODE>!"
+			exit 1
+		fi
+
+		if [[ "$altuser" = "" && "$nodeuser" != "" && "$nodeidentity" != "" ]]; then
+			eval $(ssh-agent) >/dev/null
+			ssh-add $nodeidentity >/dev/null 2>&1
+			mc sh://$nodeuser@$nodeip
+			ssh-agent -k >/dev/null
+		else
+			if [[ "$altuser" != "" ]]; then
+				mc sh://$altuser@$nodeip
+			else
+				mc sh://$nodeip
+			fi
+		fi
+	else
+		__red "Usage: $0 --pusher --federation <FEDERATION> --node <NODE|USER@NODE> ssh-mc"
+		exit 1
+	fi
+}
+
+_install_mip(){
+	__debug --level 4 "_install_mip($*)"
+	__yellow -n "Checking dependencies..."
+
+	_check_os
+	local ret=$?
+	if [[ $ret -ne 0 ]]; then
+		exit $ret
+	fi
+
+	uninstall_conflicting_packages
+	uninstall_conflicting_snap_packages
+
+	install_required_packages prerequired
+	prepare_docker_apt_sources
+	install_required_packages required
+	install_required_packages pip3
+
+	_check_docker $1
+	ret=$?
+	if [[ $ret -ne 0 ]]; then
+		install_required_packages required -f
+	fi
+
+	# We don't want to install i.e. unstable version of docker-compose if we meant to install an "unstable" version of a Docker container and nothing else...
+	if [[ "$ARG_COMPONENT" != "" || "$ARG_BRANCH" != "" || "$ARG_COMMIT" != "" || "$ARG_VERSION" != "" || "$ARG_COMPONENT_VERSION" != "" ]]; then
+		_check_required_custom_packages
+		ret=$?
+		if [[ $ret -ne 0 ]]; then
+			install_required_custom_packages
+		fi
+	else
+		install_required_custom_packages
+	fi
+	__green "done"
+
+	local install_ok=0
+	local install_type=""
+	local hazardous_downgrade=0
+	local install_mode=""
+	local ret_part_vars="git_owner git_repo tag branch commit"
+	local ret_component_vars="component_image_owner component_image component_version dockerhub_image component_list"
+	local ret_vars="part $ret_part_vars component $ret_component_vars"
+	for varname in $(echo "$ret_vars"); do
+		install_varname="install_$(echo $varname | sed 's/-/_/g')"
+		eval "$install_varname=''"
+	done
+	local ret_wanted_mip_version
+
+	local github_owner=""
+	local github_project=""
+	local cmd=""
+	local cmdargs=""
+
+	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+		local part=""
+		local release=1
+		if [[ $ARG_PUSHER -eq 1 ]]; then
+			part="exareme"
+			github_owner="$EXAREME_GITHUB_OWNER"
+			github_project="$EXAREME_GITHUB_PROJECT"
+		elif [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+			part="mip"
+			github_owner="$DEFAULT_MIP_GITHUB_OWNER"
+			github_project="$DEFAULT_MIP_GITHUB_PROJECT"
+		fi
+
+		for mode in $(echo "wanted installed"); do
+			case $mode in
+				wanted)
+					__magenta -n "Analysing installation candidate..."
+					;;
+				installed)
+					__cyan -n "Analysing current installation..."
+					;;
+			esac
+
+			for varname in $(echo "$ret_vars"); do
+				varname="${mode}_${varname}"
+				eval "local $varname"
+			done
+
+			if [[ "$part" != "" ]]; then
+				cmd="_get_mip --mode $mode"
+				cmdargs=" --part $part"
+
+				if [[ $release -eq 1 ]]; then
+					cmdargs+=" --release"
+				fi
+				if [[ "$ARG_COMPONENT" != "" ]]; then
+					cmdargs+=" --component $ARG_COMPONENT"
+				fi
+				if [[ "$ARG_VERSION" != "" ]]; then
+					cmdargs+=" --tag $ARG_VERSION"
+				fi
+				if [[ "$ARG_COMPONENT_VERSION" != "" ]]; then
+					cmdargs+=" --component-version $ARG_COMPONENT_VERSION"
+				fi
+				if [[ "$ARG_BRANCH" != "" ]]; then
+					cmdargs+=" --branch $ARG_BRANCH"
+				fi
+				if [[ "$ARG_COMMIT" != "" ]]; then
+					cmdargs+=" --commit $ARG_COMMIT"
+				fi
+
+				if [[ "$mode" = "wanted" && "$part" = "exareme" ]]; then
+					cmdargs+=" --mip-tag-return-var ret_wanted_mip_version"
+				fi
+
+				for varname in $(echo "$ret_vars"); do
+					varname=$(echo $varname | sed 's/_/-/g')
+					retvarname="${mode}_$(echo $varname | sed 's/-/_/g')"
+					cmdargs+=" --${varname}-return-var ${retvarname}"
+				done
+
+				${cmd}${cmdargs}
+			fi
+
+			__green "done"
+		done
+	fi
+
+	local analysis_resume_str=""
+	for mode in $(echo "wanted installed"); do
+		local color="magenta"
+		if [[ "$mode" = "installed" ]]; then
+			color="cyan"
+		fi
+		if [[ "$analysis_resume_str" != "" ]]; then
+			analysis_resume_str+="\n"
+		fi
+		analysis_resume_str+="\${$color}$mode\${reset}"
+
+		for varname in $(echo "$ret_vars"); do
+			retvarname="${mode}_$(echo $varname | sed 's/-/_/g')"
+			if [[ "${!retvarname}" != "" ]]; then
+				if [[ "$analysis_resume_str" != "" ]]; then
+					analysis_resume_str+="\n"
+				fi
+				analysis_resume_str+="\t$varname: \${yellow}${!retvarname}\${reset}"
+			fi
+		done
+		analysis_resume_str+="\n"
+	done
+
+	local install_resume_str=""
+	for varname in $(echo "$ret_vars"); do
+		wanted_varname="wanted_$(echo $varname | sed 's/-/_/g')"
+		installed_varname="installed_$(echo $varname | sed 's/-/_/g')"
+		install_varname="install_$(echo $varname | sed 's/-/_/g')"
+		if [[ "${!wanted_varname}" != "" && "${!wanted_varname}" != "${!installed_varname}" ]]; then
+			eval "$install_varname='${!wanted_varname}'"
+			if [[ "$install_resume_str" != "" ]]; then
+				install_resume_str+="\n"
+			fi
+			install_resume_str+="\t$varname: \${magenta}${!wanted_varname}\${reset}"
+		elif [[ "${!wanted_varname}" != "" ]]; then
+			if [[ "$varname" = "part" || "$varname" = "component" ]]; then
+				eval "$install_varname='${!wanted_varname}'"
+				install_mode="$varname"
+			fi
+		fi
+	done
+
+	if [[ "$install_mode" != "" ]]; then
+		if [[ "$install_mode" = "part" ]]; then
+			for varname in $(echo "$ret_part_vars"); do
+				wanted_varname="wanted_$(echo $varname | sed 's/-/_/g')"
+				install_varname="install_$(echo $varname | sed 's/-/_/g')"
+				if [[ "${!install_varname}" = "" && "{!$wanted_varname}" != "" ]]; then
+					if [[ "$varname" = "git_owner" || "$varname" = "git_repo" ]]; then
+						eval "$install_varname='${!wanted_varname}'"
+					fi
+				fi
+			done
+		fi
+
+		case $install_mode in
+			part)
+				if [[ "$install_part" != "" && "$install_git_owner" != "" && "$install_git_repo" != "" && (( "$install_tag" != "" || "$install_branch" != "" || "$install_commit" != "" )) ]]; then
+					install_ok=1
+					if [[ "$installed_part" = "" ]]; then
+						install_type="new"
+					else
+						if [[ "$installed_tag" != "" && "$wanted_tag" != "" ]]; then
+							_compare_versions "$installed_tag" "$wanted_tag"
+							ret=$?
+							if [[ $ret -eq 1 ]]; then	# installed > wanted => downgrade
+								install_type="downgrade"
+							elif [[ $ret -eq 2 ]]; then	# installed < wanted => upgrade
+								install_type="upgrade"
+							else
+								install_type="unknown"
+							fi
+						else
+							local component_list_compare=$(_compare_component_list "$installed_component_list" "$wanted_component_list")
+							if [[ "$component_list_compare" != "" ]]; then
+								for temp_check_component in $(echo -e "$component_list_compare" | tr ',' '\n'); do
+									temp_install_type=$(echo $temp_check_component | awk -F '::' '{print $1}')
+									temp_check_component=$(echo $temp_check_component | awk -F '::' '{print $2}')
+									# As the component list can have a mix of upgrades and downgrades, we consider the first one only
+									if [[ "$install_type" = "" && "$temp_install_type" != "" ]]; then
+										install_type=$temp_install_type
+									fi
+									# As the portalbackend is the most critical component (container volume contains database which shouldn't be downgraded, we consider this one, even if we already had an install_type)
+									if [[ "$temp_check_component" = "portalbackend" && "$temp_install_type" != "" ]]; then
+										install_type=$temp_install_type
+										if [[ "$install_type" = "downgrade" ]]; then
+											hazardous_downgrade=1
+										fi
+									fi
+								done
+							fi
+						fi
+					fi
+				fi
+				;;
+			component)
+				if [[ "$install_component" != "" && "$install_dockerhub_image" != "" ]]; then
+					install_ok=1
+					if [[ "$installed_component" = "" ]]; then
+						install_type="new"
+					else
+						_compare_versions "$installed_component_version" "$wanted_component_version"
+						ret=$?
+						if [[ $ret -eq 1 ]]; then	# installed > wanted => downgrade
+							install_type="downgrade"
+							if [[ "$wanted_component" = "portalbackend" ]]; then
+								hazardous_downgrade=1
+							fi
+						elif [[ $ret -eq 2 ]]; then	# installed < wanted => upgrade
+							install_type="upgrade"
+						else
+							install_type="unknown"
+						fi
+					fi
+				fi
+				;;
+		esac
+	fi
+
+	if [[ $install_ok -ne 1 ]]; then
+		install_mode=""
+		if [[ $ARG_FORCE_INSTALL_UNSTABLE -ne 1 && (( "$ARG_COMMIT" != "" || "$ARG_BRANCH" != "" || "$ARG_VERSION" != "" || "$ARG_COMPONENT" != "" )) ]]; then
+			__red "For any specific installation, consider using '--force-install-unstable'!"
+		else
+			__echo "Nothing needs to or can be done!"
+		fi
+	fi
+
+	#for varname in $(echo "$ret_vars"); do
+	#	install_varname="install_$(echo $varname | sed 's/-/_/g')"
+	#	if [[ "${!install_varname}" != "" ]]; then
+	#		__echo "$install_varname: \${magenta}${!install_varname}\${reset}"
+	#	fi
+	#done
+
+	local install_done=0
+	if [[ $install_ok -eq 1 ]]; then
+		if [[ "$install_part" != "" ]]; then
+			install_resume_str="\tpart: \${magenta}$install_part\${reset}\n$install_resume_str"
+		elif [[ "$install_component" != "" ]]; then
+			install_resume_str="\tcomponent: \${magenta}$install_component\${reset}\n$install_resume_str"
+		fi
+		local bak_path=$(pwd)
+
+		__echo -e $analysis_resume_str
+		local mode_msg=""
+		if [[ "$install_mode" = "part" ]]; then
+			mode_msg="$install_part"
+		else
+			mode_msg="$install_mode"
+		fi
+		__echo -e "\${green}To be installed: mode <$mode_msg $install_type>\${reset}"
+		__echo -e $install_resume_str
+
+		local answer
+		if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
+			answer="y"
+		else
+			__red -e -n "\n/!\\ This will affect the system! Continue? [y/n] "
+			read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+		fi
+
+		if [[ "$answer" != "y" ]]; then
+			exit 1
+		fi
+
+		if [[ $hazardous_downgrade -eq 1 ]]; then
+			answer=""
+			if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
+				answer="y"
+			else
+				__red -e -n "\n/!\\ WARNING!! This DOWNGRADE is considered as being HAZARDOUS! Continue?? [y/n] "
+				read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+			fi
+
+			if [[ "$answer" != "y" ]]; then
+				exit 1
+			fi
+		fi
+
+		case $install_mode in
+			part)
+				local backupfile=""
+				if [[ "$installed_part" = "$part" ]]; then
+					__echo -n "Creating backup of existing $part: "
+					__debug --level 5 "_backup"
+					_backup
+					backupfile=$(_backup list | head -1)
+					__echo -n "$backupfile..."
+					__green "done"
+				fi
+
+				__echo -n "Uninstalling existing $part..."
+				__debug --level 5 "delete_mip -y"
+				delete_mip -y
+				__green "done"
+
+				if [[ ! -d $INSTALL_PATH ]]; then
+					mkdir -p $INSTALL_PATH
+				fi
+
+				ret=1
+				case $part in
+					mip)
+						if [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+							if [[ ! -d $MIP_PATH ]]; then
+								__debug --level 5 "git clone https://github.com/$install_git_owner/$install_git_repo $MIP_PATH >/dev/null 2>&1"
+								git clone https://github.com/$install_git_owner/$install_git_repo $MIP_PATH >/dev/null 2>&1
+								ret=$?
+							fi
+
+							if [[ -d $MIP_PATH ]]; then
+								cd $MIP_PATH
+								if [[ "$install_commit" != "" ]]; then
+									__echo -n "Installing $part with commit $install_commit..."
+									__debug --level 5 "git checkout $install_commit >/dev/null 2>&1"
+									git checkout $install_commit >/dev/null 2>&1
+									ret=$?
+								elif [[ "$install_tag" != "" ]]; then
+									__echo -n "Installing $part with tag $install_tag..."
+									__debug --level 5 "git checkout tags/$install_tag >/dev/null 2>&1"
+									git checkout tags/$install_tag >/dev/null 2>&1
+									ret=$?
+								elif [[ "$install_branch" != "" ]]; then
+									__echo -n "Installing $part with branch $install_branch..."
+									__debug --level 5 "git checkout $install_branch >/dev/null 2>&1"
+									git checkout $install_branch >/dev/null 2>&1
+									ret=$?
+								fi
+							fi
+						fi
+
+						if [[ $ret -eq 0 ]]; then
+							install_done=1
+							__green "done"
+						else
+							__red "fail"
+						fi
+						;;
+					exareme)
+						if [[ $ARG_PUSHER -eq 1 ]]; then
+							if [[ ! -d $EXAREME_PATH ]]; then
+								__debug --level 5 "git clone https://github.com/$install_git_owner/$install_git_repo $EXAREME_PATH >/dev/null 2>&1"
+								git clone https://github.com/$install_git_owner/$install_git_repo $EXAREME_PATH >/dev/null 2>&1
+								ret=$?
+							fi
+
+							if [[ -d $EXAREME_PATH ]]; then
+								cd $EXAREME_PATH
+								if [[ "$install_commit" != "" ]]; then
+									__echo -n "Installing $part with commit $install_commit..."
+									__debug --level 5 "git checkout $install_commit >/dev/null 2>&1"
+									git checkout $install_commit >/dev/null 2>&1
+									ret=$?
+								elif [[ "$install_tag" != "" ]]; then
+									__echo -n "Installing $part with tag $install_tag..."
+									__debug --level 5 "git checkout tags/$install_tag >/dev/null 2>&1"
+									git checkout tags/$install_tag >/dev/null 2>&1
+									ret=$?
+								elif [[ "$install_branch" != "" ]]; then
+									__echo -n "Installing $part with branch $install_branch..."
+									__debug --level 5 "git checkout $install_branch >/dev/null 2>&1"
+									git checkout $install_branch >/dev/null 2>&1
+									ret=$?
+								fi
+
+								if [[ $ret -eq 0 ]]; then
+									__green "done"
+								else
+									__red "fail"
+								fi
+							else
+								ret=1
+							fi
+
+							if [[ $ret -eq 0 ]]; then
+								local path="config"
+								local filename="pathologies_generator.py"
+								local targetpath="/usr/local/bin/$filename"
+								local httpcode
+								__debug --level 5 _get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
+								_get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
+								ret=$?
+								if [[ $ret -eq 0 ]]; then
+									__debug --level 5 "chmod +x $targetpath"
+									chmod +x $targetpath
+								else
+									__red "Something went wrong during the attempt to download $filename (HTTP code <$httpcode>). Therefore, it can't be installed!"
+								fi
+							fi
+
+							if [[ $ret -eq 0 ]]; then
+								if [[ "$ARG_COMPONENT" = "" || "$ARG_COMPONENT" = "exareme-master" ]]; then
+									path="$EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars"
+									filename="exareme.yaml"
+									if [[ -d $path && "$install_component_image_owner" != "" && "$install_component_image" != "" && "$install_component_version" != "" ]]; then
+										cat << EOF > $path/$filename
+EXAREME_IMAGE: "$install_component_image_owner/$install_component_image"
+EXAREME_TAG: "$install_component_version"
+EOF
+										ret=$?
+									fi
+								fi
+							fi
+						fi
+
+						if [[ $ret -eq 0 ]]; then
+							install_done=1
+						fi
+						;;
+				esac
+
+				if [[ "$backupfile" != "" ]]; then
+					__echo -n "Importing previous install files from backup $backupfile..."
+					__debug --level 5 "_restore --backup-file "$backupfile" --no-version --force"
+					_restore --backup-file "$backupfile" --no-version --force
+					ret=$?
+					if [[ $ret -eq 0 ]]; then
+						__green "done"
+					else
+						__red "fail"
+					fi
+				fi
+				;;
+			component)
+				ret=1
+				if [[ $ARG_PUSHER -eq 1 ]]; then
+					:
+				elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+					:
+				elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+					:
+				fi
+				;;
+		esac
+
+		cd $bak_path
+	elif [[ "$install_mode" != "" ]]; then
+		__red "There was a problem with the installation..."
+	fi
+
+	if [[ $install_done -eq 1 ]]; then
+		_postinstall
+
+		if [[ $ARG_PUSHER -ne 1 ]]; then
+			_check_exareme_required_ports
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				exit $ret
+			fi
+		fi
+
+		if [[ $ARG_PUSHER -ne 1 && (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) ]]; then
+			if [[ $ARG_NORUN -eq 1 ]]; then
+				answer="n"
+			elif [[ $ARG_YES -eq 1 ]]; then
+				answer="y"
+			else
+				if [[ $ARG_QUIET -eq 1 ]]; then
+					return 1
+				fi
+				__echo -n "Run MIP [y/n]? "
+				read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+			fi
+			if [[ "$answer" = "y" && $ARG_NORUN -ne 1 ]]; then
+				run_mip
+			fi
+		fi
+	elif [[ "$install_mode" != "" ]]; then
+		if [[ $install_ok -eq 1 ]]; then
+			__red "No installation was done!"
+		fi
+	fi
+}
+
 _federation_task(){
 	__debug --level 4 "_federation_task($*)"
 	if [[ $ARG_PUSHER -eq 1 || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
@@ -5366,7 +7711,7 @@ _run_keycloak(){
 	_prepare_docker_compose
 
 	# Disabling the Keycloak SSL Certificate
-	echo -e "\nConfiguring Keycloak..."
+	__echo -e "\nConfiguring Keycloak..."
 	local docker_login_worked=1
 	local count=0
 	local waittime=20
@@ -5377,7 +7722,7 @@ _run_keycloak(){
 		if [[ $count -gt 0 && $tmpwaittime -gt 5 ]]; then
 			tmpwaittime=`expr $tmpwaittime / 2`
 		fi
-		echo -n "."
+		__echo -n "."
 		__debug --level 5 "Waiting for $tmpwaittime seconds..."
 		sleep $tmpwaittime
 
@@ -5392,7 +7737,7 @@ _run_keycloak(){
 		# Try 5 times and then throw error
 		count=`expr $count + 1`
 		if [[ $count -eq 8 ]]; then
-			echo
+			__echo
 			__red -n "MIP seems to be up and running on http://${PUBLIC_MIP_HOST} but could not be configured properly. \nAs a result you can't access the administration console. You can retry by launching $0 configure keycloak "
 			if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 			exit 1
@@ -5417,7 +7762,7 @@ _services_up(){
 	if [[ $ret -eq 0 ]]; then
 		if [[ $(command -v docker-compose) ]]; then
 			# Deploying MIP services
-			echo -e "\nDeploying Services..."
+			__echo -e "\nDeploying Services..."
 			local path=$(pwd)
 			cd $DOCKER_COMPOSE_PATH
 			__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME up -d"
@@ -5435,7 +7780,7 @@ _services_up(){
 			ret=1
 		fi
 		if [[ $ret -ne 0 ]]; then
-			echo
+			__echo
 			__red -n "An error has occurred while deploying services! "
 		fi
 	fi
@@ -5454,7 +7799,7 @@ _services_down(){
 	_check_installed_mip -q
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
-		echo -e "\nRemoving previous services..."
+		__echo -e "\nRemoving previous services..."
 		if [[ $(command -v docker-compose) ]]; then
 			local path=$(pwd)
 			cd $DOCKER_COMPOSE_PATH
@@ -5468,7 +7813,7 @@ _services_down(){
 			__red -n "docker-compose not found!"
 		fi
 		if [[ $ret -ne 0 ]]; then
-			echo
+			__echo
 			__red -n "An error has occurred while removing services and networks! "
 		fi
 	fi
@@ -5513,7 +7858,7 @@ run_mip(){
 		if [[ $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 ]]; then
 			_run_keycloak
 		fi
-		echo -e "\nMIP is up and running you can access it on: http://${MIP_ENV_PUBLIC_MIP_HOST} "
+		__echo -e "\nMIP is up and running you can access it on: http://${MIP_ENV_PUBLIC_MIP_HOST} "
 	fi
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
 }
@@ -5539,7 +7884,7 @@ logs(){
 		local image=""
 		local containers=$MIP_CONTAINERS
 		local logfile=""
-		local logpart=$LOGS_PART
+		local logpart=$ARG_COMPONENT
 		local running=""
 		local exited=""
 		if [[ (( "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_NODE_TYPE" = "wk" )) && ! -n $logpart ]]; then
@@ -5597,9 +7942,9 @@ logs(){
 		fi
 
 		local lines=$DEFAULT_LOG_LINES
-		if [[ -n $ARG_LINES ]]; then
-			__debug --level 5 "ARG_LINES=<$ARG_LINES>"
-			lines=$ARG_LINES
+		if [[ -n $ARG_LIMIT ]]; then
+			__debug --level 5 "ARG_LIMIT=<$ARG_LIMIT>"
+			lines=$ARG_LIMIT
 		fi
 		local follow=""
 		if [[ $ARG_FOLLOW -eq 1 ]]; then
@@ -5719,7 +8064,7 @@ stop_mip(){
 			if [[ $ARG_QUIET -eq 1 ]]; then
 				return 1
 			fi
-			echo -n "WARNING: This will kill any docker container, and finally kill any docker daemon running on this machine! Are you sure you want to continue? [y/n] "
+			__echo -n "WARNING: This will kill any docker container, and finally kill any docker daemon running on this machine! Are you sure you want to continue? [y/n] "
 			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 		fi
 
@@ -5749,33 +8094,44 @@ delete_mip(){
 	__debug --level 1 --levelcompare "eq" "Deleting MIP..."
 	__debug --level 4 "delete_mip($*)"
 	local answer=""
-	if [[ $ARG_YES -eq 1 ]]; then
+	local path=""
+	if [[ $ARG_YES -eq 1 || "$1" = "-y" ]]; then
 		answer="y"
 	else
 		if [[ $ARG_QUIET -eq 1 ]]; then
 			return 1
 		fi
-		if [[ "$MIP_ENV_MIP_TYPE" = "local" || $ARG_PUSHER -eq 1 ]]; then
+		if [[ $ARG_PUSHER -eq 1 ]]; then
+			if [[ -d $EXAREME_PATH ]]; then
+				path="$EXAREME_PATH"
+				__echo -n "Delete full EXAREME $EXAREME_PATH [y/n]? "
+				read answer
+			else
+				answer="y"
+			fi
+		elif [[ "$MIP_ENV_MIP_TYPE" = "local" || "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
 			if [[ -d $MIP_PATH ]]; then
-				echo -n "Delete full MIP $MIP_PATH [y/n]? "
+				path="$MIP_PATH"
+				__echo -n "Delete full MIP $MIP_PATH [y/n]? "
+				read answer
 			else
 				answer="y"
 			fi
 		elif [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
-			echo -n "Leave Docker Swarm [y/n]? "
+			__echo -n "Leave Docker Swarm [y/n]? "
+			read answer
 		fi
-		if [[ "$answer" = "" ]]; then
-			read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+
+		if [[ "$answer" != "" ]]; then
+			answer=$(echo $answer | awk '{print tolower($0)}')
 		fi
 	fi
 
 	if [[ "$answer" = "y" ]]; then
 		if [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
-			docker swarm leave --force
+			docker swarm leave --force >/dev/null 2>&1
 		fi
-		if [[ -e /usr/local/bin/mip ]]; then
-			rm /usr/local/bin/mip
-		fi
+
 		if [[ $ARG_PUSHER -eq 1 ]]; then
 			if [[ -e /usr/local/bin/pathologies_generator.py ]]; then
 				rm /usr/local/bin/pathologies_generator.py
@@ -5785,14 +8141,17 @@ delete_mip(){
 				su - $DOCKER_USER -c 'tmux kill-session -t $tmuxsession'
 			done
 		fi
-		if [[ -d $MIP_PATH ]]; then
-			rm -rf $MIP_PATH
+
+		if [[ -d $path ]]; then
+			rm -rf $path
 		fi
+
 		if [[ -f $MIPENVFILE ]]; then
 			rm $MIPENVFILE
 		fi
 	fi
-	if [[ ! -d $MIP_PATH && $ARG_PURGE -eq 1 ]]; then
+
+	if [[ (( "$path" = "" || ! -d $path )) && $ARG_PURGE -eq 1 ]]; then
 		_cleanup -f
 	fi
 }
@@ -5850,54 +8209,7 @@ main(){
 			;;
 		install)
 			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
-			_check_os
-			local ret=$?
-			if [[ $ret -ne 0 ]]; then
-				exit $ret
-			fi
-			uninstall_conflicting_packages
-			uninstall_conflicting_snap_packages
-			install_required_packages prerequired
-			prepare_docker_apt_sources
-			install_required_packages required
-			install_required_packages pip3
-			_check_docker $1
-			ret=$?
-			if [[ $ret -ne 0 ]]; then
-				install_required_packages required -f
-			fi
-			install_required_custom_packages
-			_check_exareme_required_ports
-			ret=$?
-			if [[ $ret -ne 0 ]]; then
-				exit $ret
-			fi
-
-			_check_installed_mip -q
-			ret=$?
-			if [[ $ret -eq 0 ]]; then
-				stop_mip -q
-				delete_mip
-			fi
-
-			download_mip
-			_postinstall
-			if [[ $ARG_PUSHER -ne 1 && (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) ]]; then
-				if [[ $ARG_NORUN -eq 1 ]]; then
-					answer="n"
-				elif [[ $ARG_YES -eq 1 ]]; then
-					answer="y"
-				else
-					if [[ $ARG_QUIET -eq 1 ]]; then
-						return 1
-					fi
-					echo -n "Run MIP [y/n]? "
-					read answer && answer=$(echo $answer|awk '{print tolower($0)}')
-				fi
-				if [[ "$answer" = "y" && $ARG_NORUN -ne 1 ]]; then
-					run_mip
-				fi
-			fi
+			_install_mip $@
 			;;
 		configure)
 			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
@@ -5929,6 +8241,20 @@ main(){
 			;;
 		version)
 			_version $@
+			;;
+		backup)
+			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
+			_backup $@
+			;;
+		restore)
+			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
+			_restore $@
+			;;
+		ssh)
+			_ssh $@
+			;;
+		ssh-mc)
+			_ssh_mc $@
 			;;
 		fedtask)
 			_federation_task $@
@@ -5966,6 +8292,10 @@ main(){
 	esac
 }
 
+__save_args $@
+set -- "${ORIG_ARGS[@]}"
+
 args_parser $@
 set -- "${POSITIONAL[@]}"
+
 main $@
