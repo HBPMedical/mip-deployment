@@ -161,6 +161,10 @@ args_parser(){
 				ARG_PUSHER=1
 				shift
 				;;
+			--keep-installer)
+				ARG_KEEP_INSTALLER=1
+				shift
+				;;
 			--no-run)
 				ARG_NORUN=1
 				shift
@@ -702,7 +706,7 @@ __debug(){
 		if [[ $crbegin -eq 1 ]]; then
 			__echo "" >/dev/stderr
 		fi
-		$cmd "$@" >/dev/stderr
+		$cmd $@ >/dev/stderr
 		if [[ $crend -eq 1 ]]; then
 			__echo "" >/dev/stderr
 		fi
@@ -841,6 +845,7 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 
 		OPTION
 		======
+		--keep-installer						Don't erase the installer after install.
 		--no-run							Don't automatically start the MIP after install.
 		--limit [NUM]							Output the last NUM lines
 	-f,	--follow							Used with logs, exactly the same way than in "tail".
@@ -1215,8 +1220,11 @@ load_mip_env(){
 		ANSIBLE_VAULT_FILE=$ANSIBLE_PATH/vault.yaml
 		__debug --level 6 "Setting global var: ANSIBLE_VAULT_PASS_FILE=<$ANSIBLE_PATH/.vault_pass>"
 		ANSIBLE_VAULT_PASS_FILE=$ANSIBLE_PATH/.vault_pass
-		__debug --level 6 "Setting global var: ANSIBLE_CMD=<ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE >"
-		ANSIBLE_CMD="ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE "
+		GLOBAL_ANSIBLE_VAULT_PASSWORD=""
+		__debug --level 6 "Setting global var: ANSIBLE_CMD=<ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
+		ANSIBLE_CMD="ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
+		__debug --level 6 "Setting global var: ANSIBLE_ADHOC_CMD=<ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
+		ANSIBLE_ADHOC_CMD="ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
 		__debug --level 6 "Setting global var: CONFLICTING_PACKAGES=<>"
 		CONFLICTING_PACKAGES=""
 		__debug --level 6 "Setting global var: CONFLICTING_SNAP_PACKAGES=<>"
@@ -1438,7 +1446,11 @@ _check_os(){
 	if [[ $ret -ne 0 || "$(lsb_release -si)" != "$REQUIRED_OS_DISTRIBUTOR_ID" ]]; then
 		__debug --level 5 "Required OS version not met: $REQUIRED_OS_DISTRIBUTOR_ID $REQUIRED_OS_RELEASE"
 		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
-			__red -n "Required OS version: $REQUIRED_OS_DISTRIBUTOR_ID $REQUIRED_OS_RELEASE! "
+			if [[ "$1" = "-v" ]]; then
+				__echo "${red}Required OS version: $REQUIRED_OS_DISTRIBUTOR_ID $REQUIRED_OS_RELEASE!${reset}"
+			else
+				__red -n "Required OS version: $REQUIRED_OS_DISTRIBUTOR_ID $REQUIRED_OS_RELEASE! "
+			fi
 		fi
 		result=$ret
 	else
@@ -1470,7 +1482,11 @@ _check_conflicting_packages(){
 	if [[ "$packages" != "" ]]; then
 		__debug --level 5 "packages=<$packages>"
 		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
-			__red "Conflicting packages detected			: $packages"
+			if [[ "$1" = "-v" ]]; then
+				__echo "${red}Conflicting packages detected			: $packages${reset}"
+			else
+				__red "Conflicting packages detected			: $packages"
+			fi
 		fi
 		result=1
 	fi
@@ -1495,13 +1511,176 @@ _check_conflicting_snap_packages(){
 	if [[ "$packages" != "" ]]; then
 		__debug --level 5 "packages=<$packages>"
 		if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
-			__red "Conflicting Snap packages detected		: $packages"
+			if [[ "$1" = "-v" ]]; then
+				__echo "${red}Conflicting Snap packages detected		: $packages${reset}"
+			else
+				__red "Conflicting Snap packages detected		: $packages"
+			fi
 		fi
 		result=1
 	fi
 
 	__debug --level 5 "result=<$result>"
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+	return $result
+}
+
+_to_unix(){
+	local result=1
+	filename="$1"
+
+	if [[ -f $filename && -s $filename ]]; then
+		local tmpfilename="/tmp/$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c32)"
+		grep -qI . $filename
+		result=$?
+		if [[ $result -eq 0 ]]; then		# Check if it's a non-binary file
+			if [[ "$(file $filename | grep "CRLF")" != "" ]]; then		# Windows End Of Line: \r\n (\015\012, \x0D\x0A, 013 010) => \n (\012, \x0A, 010)
+				__debug --level 6 "tr -d '\015' < $filename > $tmpfilename"
+				tr -d '\015' < $filename > $tmpfilename
+				result=$?
+			elif [[ "$(file $filename | grep "CR ")" != "" ]]; then		# Mac End Of Line: \r (\015, \x0D, 013) => \n (\012, \x0A, 010)
+				__debug --level 6 "tr '\015' '\012' < $filename > $tmpfilename"
+				tr '\015' '\012' < $filename > $tmpfilename
+				result=$?
+			else
+				cp $filename $tmpfilename
+				result=$?
+			fi
+
+			if [[ $result -ne 0 ]]; then
+				__red "Error while trying to convert End Of Line in file $filename!"
+			fi
+		else
+			__red "Can't tag the binary file $filename!"
+		fi
+
+		if [[ $result -eq 0 ]]; then
+			mv $tmpfilename $filename
+			result=$?
+			if [[ $result -ne 0 ]]; then
+				__red "Error while trying to move temporary file: $tmpfilename => $filename!"
+			fi
+		fi
+	fi
+
+	return $result
+}
+
+_file_tag(){
+	__debug --level 4 "_file_tag($*)"
+	local result=1
+
+	local filename
+	local provider="github"
+	local repo
+	local owner
+	local tag
+	local branch
+	local commit
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--filename)
+				filename="$2"
+				shift
+				shift
+				;;
+			--provider)
+				provider="$2"
+				shift
+				shift
+				;;
+			--repo)
+				repo="$2"
+				shift
+				shift
+				;;
+			--owner)
+				owner="$2"
+				shift
+				shift
+				;;
+			--tag)
+				tag="$2"
+				shift
+				shift
+				;;
+			--branch)
+				branch="$2"
+				shift
+				shift
+				;;
+			--commit)
+				commit="$2"
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
+	local tagging_msg=""
+	if [[ "$provider" != "" ]]; then
+		tagging_msg+="provider:$provider"
+	fi
+	if [[ "$tagging_msg" != "" ]]; then
+		tagging_msg+=";"
+	fi
+	tagging_msg+="date:$(date +'%Y%m%d%H%M%S')"
+
+	if [[ "$owner" != "" ]]; then
+		if [[ "$tagging_msg" != "" ]]; then
+			tagging_msg+=";"
+		fi
+		tagging_msg+="owner:$owner"
+	fi
+	if [[ "$repo" != "" ]]; then
+		if [[ "$tagging_msg" != "" ]]; then
+			tagging_msg+=";"
+		fi
+		tagging_msg+="repo:$repo"
+	fi
+	if [[ "$tag" != "" ]]; then
+		if [[ "$tagging_msg" != "" ]]; then
+			tagging_msg+=";"
+		fi
+		tagging_msg+="tag:$tag"
+	fi
+	if [[ "$branch" != "" ]]; then
+		if [[ "$tagging_msg" != "" ]]; then
+			tagging_msg+=";"
+		fi
+		tagging_msg+="branch:$branch"
+	fi
+	if [[ "$commit" != "" ]]; then
+		if [[ "$tagging_msg" != "" ]]; then
+			tagging_msg+=";"
+		fi
+		tagging_msg+="commit:$commit"
+	fi
+
+	_to_unix $filename
+	result=$?
+	if [[ $result -eq 0 ]]; then
+		if [[ "$tagging_msg" != "" ]]; then
+			if [[ "$(head -1 $filename | grep -E '^#\!')" != "" ]]; then		# Check if there's a shebang or if we can write at the first line
+				sed --in-place "2i#$tagging_msg" $filename
+			else
+				sed --in-place "1i#$tagging_msg" $filename
+			fi
+			result=$?
+		fi
+
+		if [[ $result -ne 0 ]]; then
+			__red "Can't tag filename $filename!"
+		fi
+	fi
+
 	return $result
 }
 
@@ -1891,41 +2070,6 @@ _get_github_file(){
 	local returncodes=""
 	local returncode=""
 
-	local tagging_msg=""
-	if [[ $onthefly_tagging -eq 1 ]]; then
-		if [[ "$owner" != "" ]]; then
-			tagging_msg+="owner:$owner"
-		fi
-		if [[ "$repo" != "" ]]; then
-			if [[ "$tagging_msg" != "" ]]; then
-				tagging_msg+=";"
-			fi
-			tagging_msg+="repo:$repo"
-		fi
-		if [[ "$tag" != "" ]]; then
-			if [[ "$tagging_msg" != "" ]]; then
-				tagging_msg+=";"
-			fi
-			tagging_msg+="tag:$tag"
-		fi
-		if [[ "$branch" != "" ]]; then
-			if [[ "$tagging_msg" != "" ]]; then
-				tagging_msg+=";"
-			fi
-			tagging_msg+="branch:$branch"
-		fi
-		if [[ "$commit" != "" ]]; then
-			if [[ "$tagging_msg" != "" ]]; then
-				tagging_msg+=";"
-			fi
-			tagging_msg+="commit:$commit"
-		fi
-
-		if [[ "$tagging_msg" != "" ]]; then
-			tagging_msg="provider:github;date:$(date +'%Y%m%d%H%M%S');$tagging_msg"
-		fi
-	fi
-
 	if [[ "$mode" != "readfile" ]]; then
 		local tmpfilename="/tmp/$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c32)"
 		__debug --level 6 "curl --silent -L $url -w \"%{http_code}\" -o $tmpfilename 2>/dev/null"
@@ -1933,41 +2077,27 @@ _get_github_file(){
 
 		if [[ -f $tmpfilename && -s $tmpfilename ]]; then
 			if [[ $returncode -eq 200 ]]; then
-				grep -qI . $tmpfilename
-				local ret=$?
-				if [[ $ret -eq 0 ]]; then		# Check if it's a non-binary file
-					__debug --level 6 "tr -d '\015' < $tmpfilename > $tmpfilename.tmp && mv $tmpfilename.tmp $tmpfilename"
-					tr -d '\015' < $tmpfilename > $tmpfilename.tmp && mv $tmpfilename.tmp $tmpfilename
-					ret=$?
-
-					if [[ $ret -eq 0 && $onthefly_tagging -eq 1 ]]; then
-						if [[ "$tagging_msg" != "" ]]; then
-							if [[ "$(head -1 $tmpfilename | grep -E '^#\!')" != "" ]]; then		# Check if there's a shebang or if we can write at the first line
-								sed --in-place "2i#$tagging_msg" $tmpfilename
-							else
-								sed --in-place "1i#$tagging_msg" $tmpfilename
-							fi
-						fi
+				result=0
+				if [[ $onthefly_tagging -eq 1 ]]; then
+					_file_tag --filename "$tmpfilename" --provider "github" --owner "$owner" --repo "$repo" --tag "$tag" --branch "$branch" --commit "$commit"
+					result=$?
+					if [[ $result -ne 0 ]]; then
+						__red "Something went wrong while trying to tag the downloaded file ($tmpfilename)!"
 					fi
-				else
-					ret=0
 				fi
 
-				if [[ $ret -eq 0 ]]; then
+				if [[ $result -eq 0 ]]; then
 					__debug --level 6 "mv $tmpfilename $targetpath >/dev/null 2>&1"
 					mv $tmpfilename $targetpath >/dev/null 2>&1
-					ret=$?
-				else
-					__red "Something went wrong while trying to clean the downloaded file ($tmpfilename)!"
+					result=$?
 				fi
 
-				if [[ $ret -eq 0 ]]; then
-					result=0
-				else
+				if [[ $result -ne 0 ]]; then
 					__red "Something went wrong while trying to move the downloaded file ($tmpfilename) to another location ($targetpath)!"
 					rm $tmpfilename >/dev/null 2>&1
 				fi
 			else
+				__red "Something went wrong while trying to downloaded $url to $tmpfilename!"
 				rm $tmpfilename >/dev/null 2>&1
 			fi
 		fi
@@ -2183,6 +2313,114 @@ _get_dockerhub_infos(){
 	echo "$result" | sort -rh
 }
 
+_get_git_info(){
+	local arg_git_directory
+
+	local git_remote_origin_var
+	local git_provider_var
+	local git_owner_var
+	local git_repo_var
+	local git_tag_var
+	local git_branch_var
+	local git_commit_var
+
+	local ret_git_remote_origin=""
+	local ret_git_provider=""
+	local ret_git_owner=""
+	local ret_git_repo=""
+	local ret_git_tag=""
+	local ret_git_branch=""
+	local ret_git_commit=""
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--git-directory)
+				arg_git_directory=$2
+				shift
+				shift
+				;;
+			--git-remote-origin-return-var)
+				git_remote_origin_var=$2
+				shift
+				shift
+				;;
+			--git-provider-return-var)
+				git_provider_var=$2
+				shift
+				shift
+				;;
+			--git-owner-return-var)
+				git_owner_var=$2
+				shift
+				shift
+				;;
+			--git-repo-return-var)
+				git_repo_var=$2
+				shift
+				shift
+				;;
+			--git-tag-return-var)
+				git_tag_var=$2
+				shift
+				shift
+				;;
+			--git-branch-return-var)
+				git_branch_var=$2
+				shift
+				shift
+				;;
+			--git-commit-return-var)
+				git_commit_var=$2
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
+	if [[ -d $arg_git_directory ]]; then
+		local orig_path=$(pwd)
+		cd $arg_git_directory
+		local git_path=$(git rev-parse --show-toplevel 2>/dev/null)
+		if [[ "$git_path" != "" ]]; then
+			cd $git_path
+			ret_git_remote_origin=$(git config remote.origin.url | sed 's/\.git$//')
+			ret_git_provider=$(echo $ret_git_remote_origin | awk -F '://' '{print $2}' | awk -F '/' '{print $1}')
+			if [[ "$(echo $ret_git_provider | grep github.com)" != "" ]]; then
+				ret_git_provider="github"
+			elif [[ "$(echo $ret_git_provider | grep gitlab.com)" != "" ]]; then
+				ret_git_provider="gitlab"
+			else
+				ret_git_provider="unknown"
+			fi
+			ret_git_branch=$(git branch --show current)
+			ret_git_owner=$(basename $(dirname $ret_git_remote_origin))
+			ret_git_repo=$(basename $ret_git_remote_origin)
+			ret_git_commit=$(git rev-parse HEAD)
+			ret_git_tag=$(git name-rev --tags --name-only $ret_git_commit)
+			if [[ "$ret_git_tag" = "undefined" ]]; then
+				ret_git_tag=""
+			fi
+		fi
+		cd $orig_path
+	fi
+
+	for varname in $(echo "git_remote_origin git_provider git_owner git_repo git_tag git_branch git_commit"); do
+		retvarname="ret_${varname}"
+		varname="${varname}_var"
+		varname=${!varname}
+		if [[ "$varname" != "" ]]; then
+			retcontent=${!retvarname}
+			eval "$varname='$retcontent'"
+		fi
+	done
+}
+
 uninstall_conflicting_snap_packages(){
 	__debug --level 1 --levelcompare "eq" -n "Uninstalling conflicting Snap packages..."
 	__debug --level 4 "uninstall_conflicting_snap_packages($*)"
@@ -2287,6 +2525,71 @@ install_required_packages(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
+_check_required_packages(){
+	__debug --level 1 --levelcompare "eq" -n "Checking required packages..."
+	__debug --level 4 "_check_required_packages($*)"
+	local result=0
+
+	local required_packages=""
+	case $1 in
+		prerequired)
+			required_packages=$PREREQUIRED_PACKAGES
+			;;
+		required)
+			required_packages=$REQUIRED_PACKAGES
+			;;
+		pip3)
+			required_packages=$REQUIRED_PIP3_PACKAGES
+			;;
+		*)
+			if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
+			return 1
+			;;
+	esac
+
+	local next=0
+	while [[ $next -eq 0 ]]; do
+		local packages=""
+		next=1
+		for package in $required_packages; do
+			local match=""
+			if [[ "$1" = "pip3" ]]; then
+				match=$(pip3 list --format=columns|grep "^$package "|awk '{print $1}')
+			else
+				match=$(dpkg --list|grep "^ii\s*$package ")
+			fi
+			if [[ "$match" = "" ]]; then
+				if [[ $forcedpasscount -eq 0 ]]; then
+					packages="$packages $package"
+					result=1
+					next=0
+				fi
+			fi
+		done
+		if [[ $next -eq 0 ]]; then
+			if [[ "$1" = "pip3" ]]; then
+				if [[ "$2" = "-v" ]]; then
+					__echo "${red}Required pip3 packages:			$packages${reset}"
+				fi
+			else
+				if [[ "$2" = "-v" ]]; then
+					case $1 in
+						prerequired)
+							__echo "${red}Pre-required packages:			$packages${reset}"
+							;;
+						required)
+							__echo "${red}Required packages:			$packages${reset}"
+							;;
+					esac
+				fi
+			fi
+			next=1
+		fi
+	done
+	__debug --level 1 --levelcompare "eq" --color "green" "done"
+	return $result
+}
+
 _check_required_custom_packages(){
 	__debug --level 1 --levelcompare "eq" -n "Checking required custom packages..."
 	__debug --level 4 "_check_required_custom_packages($*)"
@@ -2304,7 +2607,11 @@ _check_required_custom_packages(){
 
 		if [[ ! $(command -v $package) ]]; then
 			if [[ "$1" != "-q" ]]; then
-				__red -n "$package is missing! "
+				if [[ "$1" = "-v" ]]; then
+					__echo "${red}$package is missing!${reset}"
+				else
+					__red -n "$package is missing! "
+				fi
 			fi
 			packages="$packages $package"
 			result=1
@@ -2408,7 +2715,8 @@ install_custom_package_python2(){
 	local ret=$?
 	if [[ $ret -ne 0 ]]; then
 		install_pyenv
-		if [[ "$(pyenv versions|grep 2.7.)" = "" ]]; then
+		export PYENV_ROOT="/usr/src/pyenv"
+		if [[ "$(pyenv versions|grep 2.7.)" = "" || "$(ls -l /usr/src/pyenv/versions 2>/dev/null | grep 2.7.)" = "" ]]; then
 			local aptoption=""
 			if [[ $ARG_YES -eq 1 ]]; then
 				aptoption="-y"
@@ -2418,29 +2726,44 @@ install_custom_package_python2(){
 			__echo "Installing Python 2.7. This may take a while..."
 			__debug --level 6 "pyenv install 2.7.17"
 			pyenv install 2.7.17
+			ret=$?
 		fi
-		__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/pip2.7 /usr/bin/"
-		__debug --level 6 "ln -s pip2.7 /usr/bin/pip2"
-		__debug --level 6 "ln -s pip2 /usr/bin/pip"
-		ln -s $PYENV_ROOT/versions/2.7.17/bin/pip2.7 /usr/bin/
-		ln -s pip2.7 /usr/bin/pip2
-		ln -s pip2 /usr/bin/pip
 
-		__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7 /usr/bin/"
-		__debug --level 6 "ln -s python2.7 /usr/bin/python2"
-		__debug --level 6 "ln -s python2 /usr/bin/python"
-		ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7 /usr/bin/
-		ln -s python2.7 /usr/bin/python2
-		ln -s python2 /usr/bin/python
+		if [[ $ret -eq 0 && -d $PYENV_ROOT/versions/2.7.17 ]]; then
+			ret=1
 
-		__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7-config /usr/bin/"
-		__debug --level 6 "ln -s python2.7-config /usr/bin/python2-config"
-		__debug --level 6 "ln -s python2-config /usr/bin/python-config"
-		ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7-config /usr/bin/
-		ln -s python2.7-config /usr/bin/python2-config
-		ln -s python2-config /usr/bin/python-config
+			__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/pip2.7 /usr/bin/"
+			__debug --level 6 "ln -s pip2.7 /usr/bin/pip2"
+			__debug --level 6 "ln -s pip2 /usr/bin/pip"
+			ln -s $PYENV_ROOT/versions/2.7.17/bin/pip2.7 /usr/bin/
+			ln -s pip2.7 /usr/bin/pip2
+			ln -s pip2 /usr/bin/pip
+
+			__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7 /usr/bin/"
+			__debug --level 6 "ln -s python2.7 /usr/bin/python2"
+			__debug --level 6 "ln -s python2 /usr/bin/python"
+			ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7 /usr/bin/
+			ln -s python2.7 /usr/bin/python2
+			ln -s python2 /usr/bin/python
+
+			__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7-config /usr/bin/"
+			__debug --level 6 "ln -s python2.7-config /usr/bin/python2-config"
+			__debug --level 6 "ln -s python2-config /usr/bin/python-config"
+			ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7-config /usr/bin/
+			ln -s python2.7-config /usr/bin/python2-config
+			ln -s python2-config /usr/bin/python-config
+
+			ret=0
+		fi
 	fi
-	__debug --level 1 --levelcompare "eq" --color "green" "done"
+
+	if [[ $ret -eq 0 ]]; then
+		__debug --level 1 --levelcompare "eq" --color "green" "done"
+	else
+		__red "Failed to install Python 2.7!"
+	fi
+
+	return $ret
 }
 
 install_custom_package_convert-csv-dataset-to-db.py(){
@@ -2793,7 +3116,11 @@ _check_docker(){
 	if [[ "$(command -v docker)" = "" ]]; then
 		__debug --level 5 "Docker not installed"
 		if [[ "$1" != "-q" ]]; then
-			__red -n "Docker not installed! "
+			if [[ "$1" = "-v" ]]; then
+				__echo "${red}Docker not installed!${reset}"
+			else
+				__red -n "Docker not installed! "
+			fi
 		fi
 		result=1
 	fi
@@ -2805,7 +3132,11 @@ _check_docker(){
 		if [[ $ret -ne 0 ]]; then
 			__debug --level 5 "Docker version $REQUIRED_DOCKER_VERSION not installed"
 			if [[ "$1" != "-q" ]]; then
-				__red -n "Docker version $REQUIRED_DOCKER_VERSION is required! "
+				if [[ "$1" = "-v" ]]; then
+					echo "${red}Docker version $REQUIRED_DOCKER_VERSION is required!${reset}"
+				else
+					__red -n "Docker version $REQUIRED_DOCKER_VERSION is required! "
+				fi
 			fi
 			result=1
 		fi
@@ -2865,7 +3196,11 @@ _check_exareme_required_ports(){
 			__debug --level 5 "Ports are in use"
 			__debug --level 6 "$check"
 			if [[ $ARG_QUIET -ne 1 && "$1" != "-q" ]]; then
-				__red -n "Exareme: required ports currently in use"
+				if [[ "$1" = "-v" ]]; then
+					__echo "${red}Exareme: required ports currently in use${reset}"
+				else
+					__red -n "Exareme: required ports currently in use"
+				fi
 				__echo "$check"
 			fi
 			result=1
@@ -2885,9 +3220,17 @@ _check_installed_mip(){
 		__debug --level 5 "MIP folder $MIP_PATH does not exist"
 		if [[ "$1" != "-q" ]]; then
 			if [[ $ARG_PUSHER -eq 1 ]]; then
-				__red -n "Federation $ARG_FEDERATION exareme not found! "
+				if [[ "$1" = "-v" ]]; then
+					__echo "${red}Federation $ARG_FEDERATION exareme not found!${reset}"
+				else
+					__red -n "Federation $ARG_FEDERATION exareme not found! "
+				fi
 			else
-				__red -n "MIP not found! "
+				if [[ "$1" = "-v" ]]; then
+					__echo "${red}MIP not found!${reset}"
+				else
+					__red -n "MIP not found! "
+				fi
 			fi
 		fi
 		result=1
@@ -2956,37 +3299,54 @@ check_required(){
 	__debug --level 4 "check_required($*)"
 	local result=0
 
-	_check_os $1
+	_check_os $@
 	local ret=$?
 	if [[ $ret -ne 0 ]]; then
 		result=$ret
 	fi
-	_check_conflicting_packages $1
+	_check_conflicting_packages $@
 	ret=$?
 	if [[ $ret -ne 0 ]]; then
 		result=$ret
 	fi
-	_check_conflicting_snap_packages $1
+	_check_conflicting_snap_packages $@
 	ret=$?
 	if [[ $ret -ne 0 ]]; then
 		result=$ret
 	fi
-	_check_docker $1
+	_check_required_packages prerequired $@
 	ret=$?
 	if [[ $ret -ne 0 ]]; then
 		result=$ret
 	fi
-	_check_required_custom_packages $1
+	_check_required_packages required $@
 	ret=$?
 	if [[ $ret -ne 0 ]]; then
 		result=$ret
 	fi
-	_check_exareme_required_ports $1
+	if [[ "$(command -v pip3)" != "" ]]; then
+		_check_required_packages pip3 $@
+		ret=$?
+		if [[ $ret -ne 0 ]]; then
+			result=$ret
+		fi
+	fi
+	_check_docker $@
 	ret=$?
 	if [[ $ret -ne 0 ]]; then
 		result=$ret
 	fi
-	_check_installed_mip $1
+	_check_required_custom_packages $@
+	ret=$?
+	if [[ $ret -ne 0 ]]; then
+		result=$ret
+	fi
+	_check_exareme_required_ports $@
+	ret=$?
+	if [[ $ret -ne 0 ]]; then
+		result=$ret
+	fi
+	_check_installed_mip $@
 	ret=$?
 	if [[ $ret -ne 0 ]]; then
 		result=$ret
@@ -3615,6 +3975,10 @@ _configure_pusher(){
 				if [[ -f $ANSIBLE_VAULT_PASS_FILE ]]; then
 					rm $ANSIBLE_VAULT_PASS_FILE
 				fi
+				if [[ "$(env | grep '^ANSIBLE_VAULT_PASSWORD=')" != "" ]]; then
+					unset ANSIBLE_VAULT_PASSWORD
+				fi
+				GLOBAL_ANSIBLE_VAULT_PASSWORD=""
 			else
 				nodecount=$(cat $SSH_PATH/.ssh/config|grep '^Host'|wc -l)
 				nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
@@ -3625,7 +3989,6 @@ _configure_pusher(){
 		local localhostname=$(hostname)
 		local goahead=1
 		local nodeid=1
-		local ansiblevaultpassword=""
 		local doconfig=0
 		local linenb=0
 		local host=""
@@ -3656,24 +4019,19 @@ _configure_pusher(){
 
 		local vaultok=0
 		while [[ $vaultok -ne 1 ]]; do
-			if [[ -f $ANSIBLE_VAULT_PASS_FILE ]]; then
-				ansiblevaultpassword=$(cat $ANSIBLE_VAULT_PASS_FILE)
-			else
-				read -p "Ansible Vault password: " -s ansiblevaultpassword
-				echo "${ansiblevaultpassword}" > $ANSIBLE_VAULT_PASS_FILE
-			fi
-			if [[ -f $ANSIBLE_VAULT_FILE ]]; then
+			_ansible_vault_auth
+			ret=$?
+			if [[ $ret -eq 0 && -f $ANSIBLE_VAULT_FILE ]]; then
 				if [[ "$(head -1 $ANSIBLE_VAULT_FILE|grep "^\$ANSIBLE_VAULT;")" != "" ]]; then
 					ansible-vault decrypt $ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >/dev/null 2>&1
 					if [[ $? -eq 0 ]]; then
 						vaultok=1
-					else
-						rm $ANSIBLE_VAULT_PASS_FILE
-						__red "Wrong Ansible Vault password!"
 					fi
 				else
 					vaultok=1
 				fi
+			else
+				__red "Can't get Ansible Vault Authentication!"
 			fi
 
 			if [[ ! -s $ANSIBLE_HOSTS_FILE || ! -s $ANSIBLE_VAULT_FILE ]]; then
@@ -4350,6 +4708,9 @@ check_configure(){
 	_configure_exareme_ip
 	_prepare_logs
 	_prepare_data
+	if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+		_data compile
+	fi
 	_prepare_keycloak
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
@@ -4380,6 +4741,9 @@ do_configure(){
 			;;
 		data)
 			_prepare_data
+			if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+				_data compile
+			fi
 			;;
 		dataset-compilation)
 			case $1 in
@@ -4400,6 +4764,9 @@ do_configure(){
 			_configure_exareme_ip
 			_prepare_logs
 			_prepare_data
+			if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+				_data compile
+			fi
 			_prepare_keycloak
 			;;
 	esac
@@ -4483,37 +4850,7 @@ _prepare_data(){
 		fi
 	fi
 
-	if [[ "$MIP_ENV_MIP_TYPE" != "local" ]]; then
-		return 0
-	fi
-
-	local dbok=1
-	for pathology in $(ls -l $DATA_PATH|awk '/^d/ {print $NF}'); do
-		if [[ "$(ls $DATA_PATH/$pathology/*.db 2>/dev/null)" = "" ]]; then
-			__debug --level 5 "At least $DATA_PATH/$pathology as no db set. DB creation required..."
-			dbok=0
-			break
-		fi
-	done
-	if [[ $dbok -eq 1 && $ARG_FORCE -ne 1 && "$1" != "-f" ]]; then
-		__debug --level 5 "All pathologies have db. Nothing to do."
-		if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
-		return 0
-	fi
-
-	local datapath=$MIP_PATH/data
-	# CSVs and metadata validation
-	__echo -e "\nValidating if the CSVs match with the metadata..."
-	find $datapath -name '*.db' -delete # Removing previous .db files
-	$MIP_PATH/config/convert-csv-dataset-to-db.py -f $datapath # Running the database creation script
-	local ret=$?
-	if [[ $ret -ne 0 ]]; then
-		__red -n "The CSVs could not be parsed using the metadata. Exiting... "
-	fi
-	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
-	if [[ $ret -ne 0 ]]; then
-		exit $ret
-	fi
+	return 0
 }
 
 _prepare_keycloak(){
@@ -4646,19 +4983,8 @@ _postinstall(){
 
 	_write_mip_env
 
-	if [[ ! -e /usr/local/bin/mip ]]; then
-		__debug --level 5 "Copying self to /usr/local/bin/"
-		__debug --level 6 "cp $0 /usr/local/bin/"
-		cp $0 /usr/local/bin/
-	else
-		__red "/usr/local/bin/mip already exists!"
-		result=1
-	fi
-
-	if [[ $result -eq 0 ]]; then
-		_remove_installer
-		_prepare_systemd
-	fi
+	_remove_installer
+	_prepare_systemd
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
 	return $result
 }
@@ -4667,10 +4993,10 @@ _remove_installer(){
 	__debug --level 4 "_remove_installer($*)"
 	__debug --level 1 --levelcompare "eq" "Removing installer..."
 	local result=0
-	local parentdir=$(dirname $0)
+	local parentdir=$(realpath $(dirname $0))
 	local answer=""
 
-	if [[ -d $parentdir && "$parentdir" = "$DEFAULT_MIP_GITHUB_PROJECT" && "$(dirname $parentdir)" != "$INSTALL_PATH" ]]; then
+	if [[ $ARG_KEEP_INSTALLER -ne 1 && -d $parentdir && "$(basename $parentdir)" = "$DEFAULT_MIP_GITHUB_PROJECT" && "$(dirname $parentdir)" != "$INSTALL_PATH" ]]; then
 		if [[ $ARG_YES -eq 1 ]]; then
 			answer="y"
 		else
@@ -4963,11 +5289,12 @@ _ansible_services(){
 	fi
 
 	local ansible_playbook=$ANSIBLE_CMD
-	if [[ -f $ANSIBLE_VAULT_PASS_FILE ]]; then
-		ansible_playbook+="--vault-password-file $ANSIBLE_VAULT_PASS_FILE "
+	_ansible_vault_auth
+	local ret=$?
+	if [[ $ret -ne 0 ]]; then
+		__red "Can't get Ansible Vault Authentication!"
+		return $ret
 	fi
-
-	local ret
 	local ssl_ok=0
 
 	if [[ $ARG_WITH_SECURE_PORTAINER -eq 1 ]]; then
@@ -5107,8 +5434,6 @@ _node(){
 		exit 1
 	fi
 
-	local ansible_playbook="ansible-playbook --vault-password-file $HOME/.vault_pass.sh -i $ANSIBLE_PATH/hosts.ini -c paramiko -e@$ANSIBLE_PATH/vault.yaml "
-
 	case $NODE_ACTION in
 		list|status)
 			for node in $nodes; do
@@ -5223,8 +5548,11 @@ _services(){
 	done
 
 	local ansible_playbook=$ANSIBLE_CMD
-	if [[ -f $ANSIBLE_VAULT_PASS_FILE ]]; then
-		ansible_playbook+="--vault-password-file $ANSIBLE_VAULT_PASS_FILE "
+	_ansible_vault_auth
+	ret=$?
+	if [[ $ret -ne 0 ]]; then
+		__red "Can't get Ansible Vault Authentication!"
+		return $ret
 	fi
 
 	local workers=0
@@ -6798,15 +7126,105 @@ _restore(){
 	return $result
 }
 
+_ansible_vault_auth(){
+	local result=1
+
+	local clear=0
+	local ansiblevaultpassword
+	local pass_ok
+	local vault_file_check
+	local ret
+	local retries=2
+	local retrycount=0
+
+	if [[ ! -f $ANSIBLE_VAULT_PASS_FILE ]]; then
+		cat << EOF > $ANSIBLE_VAULT_PASS_FILE
+#!/bin/bash
+
+echo "\${ANSIBLE_VAULT_PASSWORD}"
+EOF
+		ret=$?
+		if [[ $ret -eq 0 ]]; then
+			chmod +x $ANSIBLE_VAULT_PASS_FILE
+			ret=$?
+		fi
+
+		if [[ $ret -ne 0 ]]; then
+			__red "Error while trying to create $ANSIBLE_VAULT_PASS_FILE!"
+			if [[ "$(env | grep '^ANSIBLE_VAULT_PASSWORD=')" != "" ]]; then
+				unset ANSIBLE_VAULT_PASSWORD
+			fi
+			GLOBAL_ANSIBLE_VAULT_PASSWORD=""
+		fi
+	fi
+
+	pass_ok=0
+	while [[ $pass_ok -ne 1 && $retrycount -le $retries ]]; do
+		clear=0
+		if [[ "$ansiblevaultpassword" = "" ]]; then
+			if [[ "$ANSIBLE_VAULT_PASSWORD" != "" ]]; then
+				ansiblevaultpassword="$ANSIBLE_VAULT_PASSWORD"
+			elif [[ "$GLOBAL_ANSIBLE_VAULT_PASSWORD" != "" ]]; then
+				ansiblevaultpassword="$GLOBAL_ANSIBLE_VAULT_PASSWORD"
+			fi
+
+			if [[ "$ansiblevaultpassword" = "" ]]; then
+				read -p "Ansible Vault password: " -s ansiblevaultpassword
+				__echo
+			fi
+
+			if [[ "$ansiblevaultpassword" = "" ]]; then
+				retrycount=$((retrycount + 1))
+				__red "Wrong Ansible Vault password!"
+				clear=1
+			fi
+		else
+			GLOBAL_ANSIBLE_VAULT_PASSWORD="$ansiblevaultpassword"
+			export ANSIBLE_VAULT_PASSWORD="$ansiblevaultpassword"
+
+			if [[ -f $ANSIBLE_VAULT_FILE ]]; then
+				vault_file_check=$(ansible-vault view --vault-password-file $ANSIBLE_VAULT_PASS_FILE $ANSIBLE_VAULT_FILE >/dev/null 2>&1)
+				ret=$?
+				if [[ $ret -eq 0 ]]; then
+					pass_ok=1
+					result=0
+				else
+					retrycount=$((retrycount + 1))
+					__red "Wrong Ansible Vault password!"
+					clear=1
+				fi
+			else
+				pass_ok=1
+				result=0
+			fi
+		fi
+
+		if [[ $clear -eq 1 ]]; then
+			if [[ "$(env | grep '^ANSIBLE_VAULT_PASSWORD=')" != "" ]]; then
+				unset ANSIBLE_VAULT_PASSWORD
+			fi
+			GLOBAL_ANSIBLE_VAULT_PASSWORD=""
+			ansiblevaultpassword=""
+		fi
+	done
+
+	return $result
+}
+
 _data(){
 	__debug --level 4 "_data($*)"
-	if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
-		return 0
-	fi
 	local result=0
 
-	case $DATA_ACTION in
+	local action=$DATA_ACTION
+	if [[ "$1" = "consolidate" || "$1" = "compile" ]]; then
+		action=$1
+	fi
+
+	case $action in
 		consolidate)
+			if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+				return 0
+			fi
 			__debug --level 1 --levelcompare "eq" -n "Consolidating data... "
 
 			if [[ $ARG_PUSHER -eq 1 ]]; then
@@ -6844,7 +7262,7 @@ _data(){
 					remotehostname=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "hostname" 2>/dev/null)
 					__debug --level 5 "remotehostname=<$remotehostname>"
 					if [[ "$host" != "ms" && "$host" != "ui" ]]; then __echo; fi
-					__debug --level 0 -n "Checking if remote <$host/$remotehostname> ($localhostname) hostname matches SSH config file's content..."
+					__echo -n "Checking if remote <$host/$remotehostname> ($localhostname) hostname matches SSH config file's content..."
 					_contains "$host $customhostname" "$remotehostname"
 					local ret=$?
 					if [[ $ret -ne 0 ]]; then
@@ -6868,7 +7286,7 @@ _data(){
 					fi
 
 					if [[ "$nodetype" = "wk" ]]; then
-						__debug --level 0 --color "cyan" "Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list"
+						__cyan "Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list"
 						datafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "$MIP_COMMAND --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null" 2>/dev/null)
 						if [[ "$datafile" != "" ]]; then
 							hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
@@ -6880,7 +7298,7 @@ _data(){
 								if [[ ! -d /tmp/miptmpfeddata/$host ]]; then
 									mkdir -p /tmp/miptmpfeddata/$host
 								fi
-								__debug --level 0 --color "cyan" -a "Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)"
+								__cyan -a "Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)"
 								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host:$datafile /tmp/miptmpfeddata/$host >/dev/null 2>&1
 								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "rm $datafile" 2>/dev/null
 								tar xzf /tmp/miptmpfeddata/$host/$remotehostname.tar.gz --directory /tmp/miptmpfeddata/$host
@@ -6891,7 +7309,7 @@ _data(){
 										masterdatapath=$(_get_remote_var ms DATA_PATH)
 										metadatafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ -f /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME ]]; then echo /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME; else echo ""; fi" 2>/dev/null)
 										if [[ "$metadatafile" != "" ]]; then
-											__debug --level 0 --color "magenta" "Downloading CDE for pathology <$pathology> from Master <ms/$remotemshostname> node ($localmshostname)"
+											__magenta "Downloading CDE for pathology <$pathology> from Master <ms/$remotemshostname> node ($localmshostname)"
 											__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1"
 											scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1
 										else
@@ -6944,10 +7362,10 @@ _data(){
 				__debug --level 2 "Aligning CDEs and generating pathologies.json"
 				local pathologies_generator_args="--data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --pathologies-preserve-dataset-var"
 				if [[ $ARG_ONLINE_CDES -eq 1 ]]; then
-					__debug --level 0 --color "yellow" -b "Have been asked to download CDEs from datacatalogue. I'll try to take latest versions there and overwrite local CDEs"
+					__yellow -b "Have been asked to download CDEs from datacatalogue. I'll try to take latest versions there and overwrite local CDEs"
 					pathologies_generator_args="$pathologies_generator_args --metadata-online-sync"
 					local datacatalogue_host=$(echo $MIP_ENV_DATACATALOGUE_HOST|awk -F ':' '{print $1}')
-					__debug --level 0 --color "yellow" "Setting datacatalogue API URL: <$DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT>"
+					__yellow "Setting datacatalogue API URL: <$DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT>"
 					pathologies_generator_args="$pathologies_generator_args --metadata-datacatalogue-api-url $DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT"
 				fi
 
@@ -6955,10 +7373,10 @@ _data(){
 					pathologies_generator_args="$pathologies_generator_args --force-relabel"
 				fi
 
-				__debug --level 0 --color "yellow" -b -n "Gathering datasets list, aligning CDEs enumerations and preparing generation of pathologies file... "
+				__yellow -b -n "Gathering datasets list, aligning CDEs enumerations and preparing generation of pathologies file... "
 				__debug --level 6 "pathologies_generator.py $pathologies_generator_args"
 				pathologies_generator.py $pathologies_generator_args
-				__debug --level 0 --color "green" "done"
+				__green "done"
 				__debug --level 5 "Parsing pathologies..."
 				for pathology in $pathologies; do
 					__debug --level 5 "pathology=<$pathology>"
@@ -6970,7 +7388,7 @@ _data(){
 							if [[ "${!pathologyvar}" != "" ]]; then
 								customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bms\b"|awk '{print $NF}')
 								masterdatapath=$(_get_remote_var ms DATA_PATH)
-								__debug --level 0 --color "magenta" -b "Deploying aligned CDE in Master <ms/$customhostname> node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/"
+								__magenta -b "Deploying aligned CDE in Master <ms/$customhostname> node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/"
 								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms 'if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi' 2>/dev/null"
 								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi" 2>/dev/null
 								__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1"
@@ -6982,7 +7400,7 @@ _data(){
 									hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
 									__debug --level 5 "hostdatapath=<${!hostdatapath}>"
 									localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host \b$host\b"|awk '/Hostname / {print $2}')
-									__debug --level 0 --color "cyan" "Deploying aligned CDE in worker node <$host/$customhostname> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/"
+									__cyan "Deploying aligned CDE in worker node <$host/$customhostname> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/"
 									__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1"
 									scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1
 								done
@@ -7000,7 +7418,7 @@ _data(){
 				local remoteuidir=$uimippath/Federation
 				if [[ -f /tmp/miptmpfeddata/config/pathologies.json ]]; then
 					customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bui\b"|awk '{print $NF}')
-					__debug --level 0 --color "magenta" -b "Deploying pathologies file in Frontend <ui/$customhostname> node ($localuihostname), in $remoteuidir/config/"
+					__magenta -b "Deploying pathologies file in Frontend <ui/$customhostname> node ($localuihostname), in $remoteuidir/config/"
 					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi' 2>/dev/null"
 					ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi" 2>/dev/null
 					__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json ui:$remoteuidir/config/ >/dev/null 2>&1"
@@ -7012,18 +7430,232 @@ _data(){
 				if [[ -d /tmp/miptmpfeddata ]]; then
 					rm -rf /tmp/miptmpfeddata
 				fi
-				__debug --level 0 --color "green" "done"
+				__green "done"
 			else
 				_configure_pathologies -f
 				_prepare_data -f
 			fi
 			;;
+		compile)
+			__debug --level 1 --levelcompare "eq" -n "Compiling data... "
+
+			if [[ $ARG_PUSHER -eq 1 ]]; then
+				if [[ -f $SSH_PATH/.ssh/config ]]; then
+					local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+					local node
+					local nodecount=$(cat $SSH_PATH/.ssh/config|wc -l)
+					local nodeid=0
+					local nodeshortname
+					local nodetype
+					local localhostname
+					local remotehostname
+					local nodeip
+					local ansiblenodename
+
+					local ret
+					local result=""
+				else
+					__red "SSH federation configuration file not found!"
+					exit 1
+				fi
+
+				for node in $nodes; do
+					nodeshortname=$(cat $SSH_PATH/.ssh/config|grep "^Host .*\b$node\b"|awk '{print $2}')
+					localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$node\b"|awk '/Hostname / {print $2}')
+					_valid_IPv4 $localhostname
+					ret=$?
+					if [[ $ret -ne 0 ]]; then
+						nodeip=$(host $localhostname|awk '/has address/ {print $NF}')
+					else
+						nodeip=$localhostname
+					fi
+					remotehostname=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node "hostname" 2>/dev/null)
+
+					if [[ "$nodeshortname" = "ui" ]]; then
+						nodeid=$(expr $nodeid + 1)
+						continue
+					elif [[ "$nodeshortname" = "ms" ]]; then
+						nodetype="$nodeshortname"
+					else
+						nodetype="wk"
+					fi
+
+					_contains "$nodeid $nodeshortname $node $localhostname $nodeip" "$ARG_NODE"
+					ret=$?
+					if [[ -n $ARG_NODE && $ret -ne 0 ]]; then
+						nodeid=$(expr $nodeid + 1)
+						continue
+					fi
+
+					ansiblenodename=""
+					if [[ $nodeid -eq 0 ]]; then
+						ansiblenodename="master"
+					elif [[ $nodeid -gt 1 ]]; then
+						ansiblenodename="worker"$(echo $nodeip|sed 's/\./_/g')
+					fi
+
+					script_src_dir="$EXAREME_PATH/Exareme-Docker/files/root/exareme"
+					script_dest_dir="/usr/local/bin"
+					script_filename="convert-csv-dataset-to-db.py"
+
+					ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $nodeshortname "[[ -f $script_dest_dir/$script_filename ]]" >/dev/null 2>&1
+					ret=$?
+					if [[ $ret -ne 0 ]]; then
+						if [[ -f $script_src_dir/$script_filename ]]; then
+							cp $script_src_dir/$script_filename /tmp/$script_filename
+							ret=$?
+							if [[ $ret -eq 0 ]]; then
+								local git_provider
+								local git_owner
+								local git_repo
+								local git_tag
+								local git_branch
+								local git_commit
+
+								_get_git_info --git-directory "$EXAREME_PATH" --git-provider-return-var "git_provider" \
+									--git-owner-return-var "git_owner" --git-repo-return-var "git_repo" --git-tag-return-var "git_tag" \
+									--git-branch-return-var "git_branch" --git-commit-return-var "git_commit"
+
+								if [[ "$git_owner" != "" && "$git_repo" != "" ]]; then
+									__debug --level 6 _file_tag --filename "/tmp/$script_filename" --provider "$git_provider" --owner "$git_owner" --repo "$git_repo" --tag "$git_tag" --branch "$git_branch" --commit "$git_commit"
+									_file_tag --filename "/tmp/$script_filename" --provider "$git_provider" --owner "$git_owner" --repo "$git_repo" --tag "$git_tag" --branch "$git_branch" --commit "$git_commit"
+									ret=$?
+									if [[ $ret -eq 0 ]]; then
+										__debug --level 6 sed --in-place 's/^#\!\/usr\/bin\/python$/#\!\/usr\/bin\/python3/' /tmp/$script_filename
+										sed --in-place 's/^#\!\/usr\/bin\/python$/#\!\/usr\/bin\/python3/' /tmp/$script_filename
+									else
+										__red "Can't tag file /tmp/$script_filename!"
+									fi
+								fi
+							else
+								__red "Can't copy $script_src_dir/$script_filename to /tmp/!"
+							fi
+
+							if [[ $ret -eq 0 ]]; then
+								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/$script_filename $nodeshortname:/tmp/ >/dev/null 2>&1
+								ret=$?
+								if [[ $ret -eq 0 ]]; then
+									ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $nodeshortname "chmod +x /tmp/$script_filename"
+									ret=$?
+									if [[ $ret -ne 0 ]]; then
+										__red "Can't remotely chmod $nodeshortname:/tmp/$script_filename!"
+									fi
+								else
+									__red "Can't scp /tmp/$script_filename to $nodeshortname:/tmp/!"
+								fi
+							fi
+
+							if [[ -f /tmp/$script_filename ]]; then
+								rm /tmp/$script_filename
+							fi
+
+							if [[ $ret -eq 0 ]]; then
+								_ansible_vault_auth
+								ret=$?
+								if [[ $ret -eq 0 ]]; then
+									export ANSIBLE_HOST_KEY_CHECKING=False
+									__debug --level 6 $ANSIBLE_ADHOC_CMD --ssh-common-args="$SSH_OPTIONS" --become $ansiblenodename --args "mv /tmp/$script_filename $script_dest_dir/"
+									$ANSIBLE_ADHOC_CMD --ssh-common-args="$SSH_OPTIONS" --become $ansiblenodename --args "mv /tmp/$script_filename $script_dest_dir/" >/dev/null 2>&1
+									ret=$?
+									if [[ $ret -ne 0 ]]; then
+										__red "Can't remotely move /tmp/$script_filename to /usr/local/bin/!"
+									fi
+								else
+									__red "Can't get Ansible Vault Authentication!"
+								fi
+							fi
+						else
+							__red "Can't find $script_src_dir/$script_filename!"
+							ret=1
+						fi
+					fi
+
+					if [[ $ret -eq 0 ]]; then
+						local arg_force=""
+						if [[ $ARG_FORCE -eq 1 || "$2" = "-f" ]]; then
+							arg_force=" --force"
+						fi
+						if [[ "$nodetype" = "ms" ]]; then
+							__magenta "Asking master <$node/$remotehostname> node ($localhostname) to compile CDEs"
+						else
+							__cyan "Asking worker <$node/$remotehostname> node ($localhostname) to compile datasets"
+						fi
+						__debug --level 6 _remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force} 2>/dev/null
+						_remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force} 2>/dev/null
+					fi
+
+					if [[ "$ARG_NODE" != "" ]]; then
+						break
+					fi
+					nodeid=$(expr $nodeid + 1)
+				done
+			elif [[ "$MIP_ENV_NODE_TYPE" = "wk" || "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+				if [[ "$MIP_ENV_MIP_TYPE" != "local" && "$ARG_FEDERATION" = "" ]]; then
+					__red "Missing federation!"
+					return 1
+				fi
+
+				local data_path=$DATA_PATH
+				if [[ "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+					data_path+="/$ARG_FEDERATION"
+				fi
+
+				if [[ ! -d $data_path ]]; then
+					__red "Data directory not found!"
+					return 1
+				fi
+
+				local dbok=1
+				for pathology in $(ls -l $data_path|awk '/^d/ {print $NF}'); do
+					if [[ "$(ls $data_path/$pathology/*.db 2>/dev/null)" = "" ]]; then
+						__debug --level 5 "At least $data_path/$pathology as no db set. DB creation required..."
+						dbok=0
+						break
+					fi
+				done
+				if [[ $dbok -eq 1 && $ARG_FORCE -ne 1 && "$1" != "-f" && "$2" != "-f" ]]; then
+					__yellow "All pathologies have db. Nothing to do."
+					if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
+					return 0
+				fi
+
+				local convert_script=$(which convert-csv-dataset-to-db.py)
+				if [[ "$convert_script" = "" ]]; then
+					if [[ "$MIP_ENV_MIP_TYPE" = "local" && -f $MIP_PATH/config/convert-csv-dataset-to-db.py ]]; then
+						convert_script="$MIP_PATH/config/convert-csv-dataset-to-db.py"
+					else
+						__red "Can't find convert-csv-dataset-to-db.py!"
+						return 1
+					fi
+				fi
+
+				# CSVs and metadata validation
+				__echo -e "\nValidating if the CSVs match with the metadata..."
+				find $data_path -name '*.db' -delete # Removing previous .db files
+
+				__debug --level 6 $convert_script -f $data_path
+				$convert_script -f $data_path # Running the database creation script
+				local ret=$?
+				if [[ $ret -ne 0 ]]; then
+					__red "The CSVs could not be parsed using the metadata. Exiting... "
+				fi
+
+				if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+
+				if [[ $ret -ne 0 ]]; then
+					exit $ret
+				fi
+			else
+				return 0
+			fi
+			;;
 		*)
 			if [[ $ARG_PUSHER -eq 1 ]]; then
-				__red "Usage: $0 --pusher --federation <FEDERATION> data [consolidate]"
+				__red "Usage: $0 --pusher --federation <FEDERATION> (--node <NODE_SHORT_NAME/NODE_NAME/NODE_ID/NODE_IP>) data [consolidate|compile]"
 			else
-				__red "Usage: $0 data [consolidate]"
+				__red "Usage: $0 data [consolidate|compile]"
 			fi
+			;;
 	esac
 
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
@@ -7117,35 +7749,176 @@ _install_mip(){
 	__debug --level 4 "_install_mip($*)"
 	__yellow -n "Checking dependencies..."
 
-	_check_os
+	_check_os -v
 	local ret=$?
 	if [[ $ret -ne 0 ]]; then
 		exit $ret
 	fi
 
-	uninstall_conflicting_packages
-	uninstall_conflicting_snap_packages
-
-	install_required_packages prerequired
-	prepare_docker_apt_sources
-	install_required_packages required
-	install_required_packages pip3
-
-	_check_docker $1
+	local preliminary_job=1
+	local answer
+	_check_conflicting_packages -v
 	ret=$?
 	if [[ $ret -ne 0 ]]; then
-		install_required_packages required -f
+		answer=""
+		if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
+			answer="y"
+		else
+			__echo -n "Proceed with the uninstallation of conflicting packages? [y/n] "
+			read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+		fi
+		if [[ "$answer" = "y" ]]; then
+			preliminary_job=1
+			uninstall_conflicting_packages
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Something went wrong while trying to uninstall conflicting packages!"
+				exit $ret
+			fi
+		else
+			exit 1
+		fi
 	fi
 
-	# We don't want to install i.e. unstable version of docker-compose if we meant to install an "unstable" version of a Docker container and nothing else...
-	if [[ "$ARG_COMPONENT" != "" || "$ARG_BRANCH" != "" || "$ARG_COMMIT" != "" || "$ARG_VERSION" != "" || "$ARG_COMPONENT_VERSION" != "" ]]; then
-		_check_required_custom_packages
+	_check_conflicting_snap_packages -v
+	ret=$?
+	if [[ $ret -ne 0 ]]; then
+		answer=""
+		if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
+			answer="y"
+		else
+			__echo -n "Proceed with the uninstallation of conflicting SNAP packages? [y/n] "
+			read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+		fi
+		if [[ "$answer" = "y" ]]; then
+			preliminary_job=1
+			uninstall_conflicting_snap_packages
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Something went wrong while trying to uninstall conflicting SNAP packages!"
+				exit $ret
+			fi
+		else
+			exit 1
+		fi
+	fi
+
+	_check_required_packages prerequired -v
+	ret=$?
+	if [[ $ret -ne 0 ]]; then
+		answer=""
+		if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
+			answer="y"
+		else
+			__echo -n "Proceed with the installation of pre-required packages? [y/n] "
+			read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+		fi
+		if [[ "$answer" = "y" ]]; then
+			preliminary_job=1
+			install_required_packages prerequired
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Something went wrong while trying to install pre-required packages!"
+				exit $ret
+			fi
+		else
+			exit 1
+		fi
+	fi
+
+	_check_docker -v
+	ret=$?
+	if [[ $ret -ne 0 ]]; then
+		answer=""
+		if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
+			answer="y"
+		else
+			__echo -n "Proceed with the installation/upgrade of Docker? [y/n] "
+			read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+		fi
+		if [[ "$answer" = "y" ]]; then
+			preliminary_job=1
+			prepare_docker_apt_sources
+			install_required_packages required -f
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Something went wrong while trying to install/upgrade Docker!"
+				exit $ret
+			fi
+		else
+			exit 1
+		fi
+	fi
+
+	_check_required_packages required -v
+	ret=$?
+	if [[ $ret -ne 0 ]]; then
+		answer=""
+		if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
+			answer="y"
+		else
+			__echo -n "Proceed with the installation of required packages? [y/n] "
+			read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+		fi
+		if [[ "$answer" = "y" ]]; then
+			preliminary_job=1
+			install_required_packages required
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Something went wrong while trying to install required packages!"
+				exit $ret
+			fi
+		else
+			exit 1
+		fi
+	fi
+
+	if [[ "$(command -v pip3)" != "" ]]; then
+		_check_required_packages pip3 -v
 		ret=$?
 		if [[ $ret -ne 0 ]]; then
-			install_required_custom_packages
+			answer=""
+			if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
+				answer="y"
+			else
+				__echo -n "Proceed with the installation of required pip3 packages? [y/n] "
+				read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+			fi
+			if [[ "$answer" = "y" ]]; then
+				preliminary_job=1
+				install_required_packages pip3
+				ret=$?
+				if [[ $ret -ne 0 ]]; then
+					__red "Something went wrong while trying to install required pip3 packages!"
+					exit $ret
+				fi
+			else
+				exit 1
+			fi
 		fi
-	else
-		install_required_custom_packages
+	fi
+
+	_check_required_custom_packages -v
+	ret=$?
+	if [[ $ret -ne 0 ]]; then
+		answer=""
+		if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
+			answer="y"
+		else
+			__echo -n "Proceed with the installation of additional 3rd-party required softwares? [y/n] "
+			read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+		fi
+		if [[ "$answer" = "y" ]]; then
+			preliminary_job=1
+			install_required_custom_packages
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Something went wrong while trying to install additional 3rd-party required softwares!"
+				exit $ret
+			fi
+		else
+			exit 1
+		fi
 	fi
 	__green "done"
 
@@ -7228,6 +8001,7 @@ _install_mip(){
 					cmdargs+=" --${varname}-return-var ${retvarname}"
 				done
 
+				__debug --level 6 ${cmd}${cmdargs}
 				${cmd}${cmdargs}
 			fi
 
@@ -7265,6 +8039,9 @@ _install_mip(){
 		install_varname="install_$(echo $varname | sed 's/-/_/g')"
 		if [[ "${!wanted_varname}" != "" && "${!wanted_varname}" != "${!installed_varname}" ]]; then
 			eval "$install_varname='${!wanted_varname}'"
+			if [[ "$varname" = "part" || "$varname" = "component" ]]; then
+				install_mode="$varname"
+			fi
 			if [[ "$install_resume_str" != "" ]]; then
 				install_resume_str+="\n"
 			fi
@@ -7359,7 +8136,9 @@ _install_mip(){
 		if [[ $ARG_FORCE_INSTALL_UNSTABLE -ne 1 && (( "$ARG_COMMIT" != "" || "$ARG_BRANCH" != "" || "$ARG_VERSION" != "" || "$ARG_COMPONENT" != "" )) ]]; then
 			__red "For any specific installation, consider using '--force-install-unstable'!"
 		else
-			__echo "Nothing needs to or can be done!"
+			if [[ $preliminary_job -eq 0 ]]; then
+				__echo "Nothing needs to or can be done!"
+			fi
 		fi
 	fi
 
@@ -7389,7 +8168,6 @@ _install_mip(){
 		__echo -e "\${green}To be installed: mode <$mode_msg $install_type>\${reset}"
 		__echo -e $install_resume_str
 
-		local answer
 		if [[ $ARG_YES -eq 1 || $ARG_FORCE -eq 1 ]]; then
 			answer="y"
 		else
@@ -7515,7 +8293,7 @@ _install_mip(){
 								local filename="pathologies_generator.py"
 								local targetpath="/usr/local/bin/$filename"
 								local httpcode
-								__debug --level 5 _get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
+								__debug --level 6 _get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
 								_get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
 								ret=$?
 								if [[ $ret -eq 0 ]]; then
@@ -7576,7 +8354,52 @@ EOF
 		__red "There was a problem with the installation..."
 	fi
 
+	if [[ $preliminary_job -eq 1 ]]; then
+		if [[ $ret -eq 0 ]]; then
+			if [[ $install_done -ne 1 ]]; then
+				if [[ "$MIP_ENV_NODE_TYPE" = "wk" || "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+					install_done=1
+				fi
+			fi
+		else
+			__red "Something went wrong during one of the previous steps!"
+			exit $ret
+		fi
+	fi
+
 	if [[ $install_done -eq 1 ]]; then
+		local install_target_dirname="/usr/local/bin"
+		local install_filename="$(basename $0)"
+		local install_source_dirname=$(realpath $(dirname $0))
+		if [[ ! -f $install_target_dirname/$install_filename ]]; then
+			local install_git_remote_origin
+			local install_git_provider
+			local install_git_owner
+			local install_git_repo
+			local install_git_tag
+			local install_git_branch
+			local install_git_commit
+
+			if [[ -d $install_source_dirname/.git ]]; then
+				_get_git_info --git-directory "$install_source_dirname" --git-remote-origin-return-var "install_git_remote_origin" \
+					--git-provider-return-var "install_git_provider" --git-owner-return-var "install_git_owner" \
+					--git-repo-return-var "install_git_repo" --git-tag-return-var "install_git_tag" \
+					--git-branch-return-var "install_git_branch" --git-commit-return-var "install_git_commit"
+			fi
+			__debug --level 5 "Installing self to $install_target_dirname"
+			__debug --level 6 "install $install_source_dirname/$install_filename -o root -g root -m 755 $install_target_dirname/$install_filename"
+			install $install_source_dirname/$install_filename -o root -g root -m 755 $install_target_dirname/$install_filename
+			ret=$?
+			if [[ $ret -eq 0 ]]; then
+				__debug --level 6 _file_tag --filename "$install_target_dirname/$install_filename" --provider "$install_git_provider" --owner "$install_git_owner" --repo "$install_git_repo" --tag "$install_git_tag" --branch "$install_git_branch" --commit "$install_git_commit"
+				_file_tag --filename "$install_target_dirname/$install_filename" --provider "$install_git_provider" --owner "$install_git_owner" --repo "$install_git_repo" --tag "$install_git_tag" --branch "$install_git_branch" --commit "$install_git_commit"
+				ret=$?
+			fi
+		else
+			__yellow "$install_target_dirname/$install_filename already exists!"
+			ret=0
+		fi
+
 		_postinstall
 
 		if [[ $ARG_PUSHER -ne 1 ]]; then
@@ -8142,6 +8965,10 @@ delete_mip(){
 			done
 		fi
 
+		if [[ -f /usr/local/bin/convert-csv-dataset-to-db.py ]]; then
+			rm /usr/local/bin/convert-csv-dataset-to-db.py
+		fi
+
 		if [[ -d $path ]]; then
 			rm -rf $path
 		fi
@@ -8153,6 +8980,9 @@ delete_mip(){
 
 	if [[ (( "$path" = "" || ! -d $path )) && $ARG_PURGE -eq 1 ]]; then
 		_cleanup -f
+		if [[ -f /usr/local/bin/mip ]]; then
+			rm /usr/local/bin/mip
+		fi
 	fi
 }
 
@@ -8176,7 +9006,11 @@ main(){
 			;;
 		check-required)
 			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
-			check_required
+			if [[ $ARG_VERBOSE -eq 1 ]]; then
+				check_required -v
+			else
+				check_required
+			fi
 			local ret=$?
 			if [[ $ret -eq 0 ]]; then
 				__green "ok"
