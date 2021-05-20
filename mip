@@ -206,6 +206,11 @@ args_parser(){
 				shift
 				shift
 				;;
+			--pathology)
+				ARG_PATHOLOGY=$2
+				shift
+				shift
+				;;
 			--exareme-ip)
 				ARG_EXAREME_IP=$2
 				shift
@@ -868,6 +873,7 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 				[frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
 			Typical MIP_COMPONENT for "ui" federation node:
 				[frontend|portalbackend|portalbackend_db|galaxy|create_dbs]
+		--pathology [DATASET_PATHOLOGY(IES)]				In case of data compile, specify the pathology or pathologies (comma-separated) to compile.
 
 		--with-keycloak-authentication					Use Keycloak authentication. Complementary keycloak parameters may be set, or they may be asked at
 											configuration step.
@@ -2737,7 +2743,17 @@ install_custom_package_python2(){
 			__debug --level 6 "ln -s pip2 /usr/bin/pip"
 			ln -s $PYENV_ROOT/versions/2.7.17/bin/pip2.7 /usr/bin/
 			ln -s pip2.7 /usr/bin/pip2
-			ln -s pip2 /usr/bin/pip
+			if [[ -f /usr/bin/pip ]]; then
+				local installed_pip_version=$(/usr/bin/pip --version 2>/dev/null | awk '{print $NF}' | rev | cut -c2- | rev)
+				if [[ "$(echo $installed_pip_version | cut -d. -f1)" = "3" ]]; then
+					__yellow -e "It appears that /usr/bin/pip already exists and is currently a PIP3 (Python $installed_pip_version)!\nThen, calling pip will run Python 3 and not Python 2. It's not a problem as long as you know it!"
+				else
+					mv /usr/bin/pip /usr/bin/pip.bak
+					ln -s pip2 /usr/bin/pip
+				fi
+			else
+				ln -s pip2 /usr/bin/pip
+			fi
 
 			__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7 /usr/bin/"
 			__debug --level 6 "ln -s python2.7 /usr/bin/python2"
@@ -4031,7 +4047,9 @@ _configure_pusher(){
 					vaultok=1
 				fi
 			else
-				__red "Can't get Ansible Vault Authentication!"
+				if [[ -f $ANSIBLE_VAULT_FILE ]]; then
+					__red "Can't get Ansible Vault Authentication!"
+				fi
 			fi
 
 			if [[ ! -s $ANSIBLE_HOSTS_FILE || ! -s $ANSIBLE_VAULT_FILE ]]; then
@@ -6078,6 +6096,7 @@ _get_mip(){
 					cmdargs+=" --force-unstable"
 				fi
 
+				__debug --level 6 ${cmd}${cmdargs}${cmdargs_component} --version-return-var "target_version" --part-version-return-var "target_mip_version"
 				${cmd}${cmdargs}${cmdargs_component} --version-return-var "target_version" --part-version-return-var "target_mip_version"
 				ret_mip_tag="$target_mip_version"
 
@@ -6095,7 +6114,7 @@ _get_mip(){
 					fi
 				fi
 
-				if [[ "$arg_component" != "" || "$arg_commit" != "" || "$branch" != "" ]]; then
+				if [[ "$arg_part" != "exareme" && (( "$arg_component" != "" || "$arg_commit" != "" || "$branch" != "" )) ]]; then
 					arg_release=0
 					if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
 						local owner=""
@@ -6415,10 +6434,12 @@ _get_mip_component_version(){
 		if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
 			path="Federation"
 		fi
+		__debug --level 6 _get_github_file --owner "$owner" --repo "$repo" --mode "readfile" --branch "$branch" --tag "$tag" --commit "$commit" --path "$path" --filename "$filename"
 		docker_compose_content=$(_get_github_file --owner "$owner" --repo "$repo" --mode "readfile" --branch "$branch" --tag "$tag" --commit "$commit" --path "$path" --filename "$filename")
 
 		path=""
 		filename=".versions_env"
+		__debug --level 6 _get_github_file --owner "$owner" --repo "$repo" --mode "readfile" --branch "$branch" --tag "$tag" --commit "$commit" --path "$path" --filename "$filename"
 		versions_env_content=$(_get_github_file --owner "$owner" --repo "$repo" --mode "readfile" --branch "$branch" --tag "$tag" --commit "$commit" --path "$path" --filename "$filename")
 	fi
 
@@ -6437,8 +6458,8 @@ _get_mip_component_version(){
 	while IFS=$'\n' read -r item; do
 		image=""
 		version=""
-		image=$(echo "$docker_compose_content" | grep -A10 -F "$item:" | grep -F 'image: ' | head -1 | awk -F 'image: ' '{print $2}')
-		if [[ "$image" = '${EXAREME_IMAGE}' ]]; then
+		image=$(echo "$docker_compose_content" | grep -A10 -F "$item:" | grep -E '[ \t]+image: ' | head -1 | awk -F 'image: ' '{print $2}')
+		if [[ "$image" = '${EXAREME_IMAGE}' || "$(echo "$image" | grep ':${EXAREME}')" != "" ]]; then
 			if [[ $installed -eq 1 ]]; then
 				if [[ "$versions_env_content" != "" ]]; then
 					local tmp_exareme_image=$(echo "$versions_env_content" | grep -E '^EXAREME_IMAGE:' | awk -F ':' '{print $2}' | cut -d'"' -f2- | rev | cut -d'"' -f2- | rev)
@@ -6448,7 +6469,15 @@ _get_mip_component_version(){
 					fi
 				fi
 			else
-				image="hbpmip/exareme:$tag"
+				if [[ "$versions_env_content" != "" && "$(echo "$image" | grep ':${EXAREME}')" != "" ]]; then
+					local tmp_exareme_image=$(echo "$image" | cut -d':' -f1)
+					local tmp_exareme_tag=$(echo "$versions_env_content" | grep -E '^EXAREME=' | awk -F '=' '{print $2}')
+					if [[ "$tmp_exareme_image" != "" && "$tmp_exareme_tag" != "" ]]; then
+						image="${tmp_exareme_image}:${tmp_exareme_tag}"
+					fi
+				else
+					image="hbpmip/exareme:$tag"
+				fi
 			fi
 		fi
 		if [[ "$image" != "" && "$(echo $image | grep ':')" != "" ]]; then
@@ -6657,6 +6686,8 @@ _list_avail_version(){
 }
 
 _version_show(){
+	__debug --level 4 "_version_show($*)"
+
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		local exareme_version=$(cat $MIP_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml 2>/dev/null)
 		if [[ "$exareme_version" != "" ]]; then
@@ -6897,7 +6928,7 @@ _version(){
 		upgrade)
 			;;
 		*)
-			__red "Usage: $0 (--pusher --federation <FEDERATION>) version [list|list-avail|upgrade]"
+			__red "Usage: $0 (--pusher --federation <FEDERATION>) version [list|list-avail]"
 			exit 1
 	esac
 }
@@ -7216,6 +7247,33 @@ _data(){
 	local result=0
 
 	local action=$DATA_ACTION
+	local force=$ARG_FORCE
+	local pathologies=$ARG_PATHOLOGY
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			consolidate|compile)
+				action="$1"
+				shift
+				;;
+			-f)
+				force=1
+				shift
+				;;
+			-p)
+				pathologies="$2"
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
 	if [[ "$1" = "consolidate" || "$1" = "compile" ]]; then
 		action=$1
 	fi
@@ -7572,16 +7630,20 @@ _data(){
 
 					if [[ $ret -eq 0 ]]; then
 						local arg_force=""
-						if [[ $ARG_FORCE -eq 1 || "$2" = "-f" ]]; then
+						local arg_pathologies=""
+						if [[ $force -eq 1 ]]; then
 							arg_force=" --force"
+						fi
+						if [[ "$pathologies" != "" ]]; then
+							arg_pathologies=" -p $pathologies"
 						fi
 						if [[ "$nodetype" = "ms" ]]; then
 							__magenta "Asking master <$node/$remotehostname> node ($localhostname) to compile CDEs"
 						else
 							__cyan "Asking worker <$node/$remotehostname> node ($localhostname) to compile datasets"
 						fi
-						__debug --level 6 _remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force} 2>/dev/null
-						_remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force} 2>/dev/null
+						__debug --level 6 _remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force}${arg_pathologies} 2>/dev/null
+						_remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force}${arg_pathologies} 2>/dev/null
 					fi
 
 					if [[ "$ARG_NODE" != "" ]]; then
@@ -7605,15 +7667,33 @@ _data(){
 					return 1
 				fi
 
+				if [[ "$pathologies" != "" ]]; then
+					local check_pathologies=()
+					local tmp_pathology=""
+					while IFS=',' read -r tmp_pathology; do
+						tmp_pathology=$(echo $tmp_pathology | awk '{print $1}')
+						check_pathologies+=("$tmp_pathology")
+					done <<< "$(echo "$pathologies")"
+				fi
+
 				local dbok=1
-				for pathology in $(ls -l $data_path|awk '/^d/ {print $NF}'); do
-					if [[ "$(ls $data_path/$pathology/*.db 2>/dev/null)" = "" ]]; then
+				local skip_pathology=0
+				for pathology in $(ls -l $data_path/|awk '/^d/ {print $NF}'); do
+					if [[ ${#check_pathologies[@]} -gt 0 ]]; then
+						skip_pathology=1
+						for tmp_pathology in ${check_pathologies[@]}; do
+							if [[ "$pathology" = "$tmp_pathology" ]]; then
+								skip_pathology=0
+							fi
+						done
+					fi
+					if [[ $skip_pathology -ne 1 && "$(ls $data_path/$pathology/*.db 2>/dev/null)" = "" ]]; then
 						__debug --level 5 "At least $data_path/$pathology as no db set. DB creation required..."
 						dbok=0
 						break
 					fi
 				done
-				if [[ $dbok -eq 1 && $ARG_FORCE -ne 1 && "$1" != "-f" && "$2" != "-f" ]]; then
+				if [[ $dbok -eq 1 && $force -ne 1 ]]; then
 					__yellow "All pathologies have db. Nothing to do."
 					if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
 					return 0
@@ -7631,10 +7711,22 @@ _data(){
 
 				# CSVs and metadata validation
 				__echo -e "\nValidating if the CSVs match with the metadata..."
-				find $data_path -name '*.db' -delete # Removing previous .db files
+				if [[ "$pathologies" != "" && ${#check_pathologies[@]} -gt 0 ]]; then
+					for tmp_pathology in ${check_pathologies[@]}; do
+						__debug --level 6 find $data_path/$tmp_pathology -name '*.db' -delete 2>/dev/null
+						find $data_path/$tmp_pathology -name '*.db' -delete 2>/dev/null # Removing previous .db file in selected pathology
+					done
+				else
+					__debug --level 6 find $data_path -name '*.db' -delete 2>/dev/null
+					find $data_path -name '*.db' -delete 2>/dev/null # Removing previous .db files
+				fi
 
-				__debug --level 6 $convert_script -f $data_path
-				$convert_script -f $data_path # Running the database creation script
+				local arg_pathologies=""
+				if [[ "$pathologies" != "" ]]; then
+					arg_pathologies=" -p $pathologies"
+				fi
+				__debug --level 6 $convert_script -f $data_path${arg_pathologies}
+				$convert_script -f $data_path${arg_pathologies} # Running the database creation script
 				local ret=$?
 				if [[ $ret -ne 0 ]]; then
 					__red "The CSVs could not be parsed using the metadata. Exiting... "
@@ -7755,7 +7847,7 @@ _install_mip(){
 		exit $ret
 	fi
 
-	local preliminary_job=1
+	local preliminary_job=0
 	local answer
 	_check_conflicting_packages -v
 	ret=$?
@@ -8260,7 +8352,7 @@ _install_mip(){
 								ret=$?
 							fi
 
-							if [[ -d $EXAREME_PATH ]]; then
+							if [[ $ret -eq 0 && -d $EXAREME_PATH ]]; then
 								cd $EXAREME_PATH
 								if [[ "$install_commit" != "" ]]; then
 									__echo -n "Installing $part with commit $install_commit..."
@@ -8732,11 +8824,13 @@ logs(){
 		elif [[ -n $logpart ]]; then
 			__debug --level 5 "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"
 			__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
-			image=$DOCKER_PROJECT_NAME"_"$logpart"_1"
+			image=$HOSTNAME"_"$logpart".1"
 			case $MIP_ENV_NODE_TYPE in
 				ms)
-					image=$HOSTNAME"_"$logpart
-					containers="exareme-master exareme-keystore"
+					if [[ "$logpart" = "portainer" ]]; then
+						image=$DOCKER_PROJECT_NAME"-"$logpart".1"
+					fi
+					containers="exareme-master exareme-keystore portainer"
 					;;
 				wk)
 					image=$HOSTNAME"_"$logpart
@@ -8752,15 +8846,15 @@ logs(){
 			fi
 			__debug --level 5 "image=<$image>"
 			__debug --level 5 "containers=<$containers>"
-			_contains "$containers" $image
+			_contains "$containers" $logpart
 			local ret=$?
 			if [[ $ret -ne 0 ]]; then
-				__red "Usage: $0 logs [$MIP_COMPONENTS_LIST]"
+				__red "Usage: $0 --component [$containers] logs"
 				if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 				exit 1
 			fi
 		else
-			__red "Usage: $0 logs [$MIP_COMPONENTS_LIST]"
+			__red "Usage: $0 --component [$MIP_COMPONENTS_LIST] logs"
 			exit 1
 		fi
 
@@ -8784,7 +8878,7 @@ logs(){
 		fi
 
 		local status=""
-		__debug --level 6 "docker ps -a --filter name=$image|grep $image|awk '{print $1}'"
+		__debug --level 6 docker ps -a --filter name=$image"|"grep $image"|"awk '{print \$1}'
 		local process_ids=$(docker ps -a --filter name=$image|grep $image|awk '{print $1}')
 		__debug --level 5 "docker process_ids=<$process_ids>"
 		for id in $process_ids; do
@@ -8918,6 +9012,16 @@ delete_mip(){
 	__debug --level 4 "delete_mip($*)"
 	local answer=""
 	local path=""
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		if [[ -d $EXAREME_PATH ]]; then
+			path="$EXAREME_PATH"
+		fi
+	elif [[ "$MIP_ENV_MIP_TYPE" = "local" || "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
+		if [[ -d $MIP_PATH ]]; then
+			path="$MIP_PATH"
+		fi
+	fi
+
 	if [[ $ARG_YES -eq 1 || "$1" = "-y" ]]; then
 		answer="y"
 	else
@@ -8925,17 +9029,15 @@ delete_mip(){
 			return 1
 		fi
 		if [[ $ARG_PUSHER -eq 1 ]]; then
-			if [[ -d $EXAREME_PATH ]]; then
-				path="$EXAREME_PATH"
-				__echo -n "Delete full EXAREME $EXAREME_PATH [y/n]? "
+			if [[ "$path" != "" ]]; then
+				__echo -n "Delete full EXAREME $path [y/n]? "
 				read answer
 			else
 				answer="y"
 			fi
 		elif [[ "$MIP_ENV_MIP_TYPE" = "local" || "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
-			if [[ -d $MIP_PATH ]]; then
-				path="$MIP_PATH"
-				__echo -n "Delete full MIP $MIP_PATH [y/n]? "
+			if [[ "$path" != "" ]]; then
+				__echo -n "Delete full MIP $path [y/n]? "
 				read answer
 			else
 				answer="y"
@@ -8951,29 +9053,37 @@ delete_mip(){
 	fi
 
 	if [[ "$answer" = "y" ]]; then
+		cd
 		if [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+			__debug --level 6 "docker swarm leave --force >/dev/null 2>&1"
 			docker swarm leave --force >/dev/null 2>&1
 		fi
 
 		if [[ $ARG_PUSHER -eq 1 ]]; then
 			if [[ -e /usr/local/bin/pathologies_generator.py ]]; then
+				__debug --level 6 "rm /usr/local/bin/pathologies_generator.py"
 				rm /usr/local/bin/pathologies_generator.py
 			fi
-			local tmuxsessions=$(su - $DOCKER_USER -c 'tmux ls'|awk '{print $1}'|rev|cut -c 2-|rev)
+			local tmuxsessions=$(su - $DOCKER_USER -c 'tmux ls 2>/dev/null'|awk '{print $1}'|rev|cut -c2-|rev)
 			for tmuxsession in $tmuxsessions; do
-				su - $DOCKER_USER -c 'tmux kill-session -t $tmuxsession'
+				if [[ "$tmuxsession" = "$ARG_FEDERATION" ]]; then
+					su - $DOCKER_USER -c "tmux kill-session -t $tmuxsession"
+				fi
 			done
 		fi
 
 		if [[ -f /usr/local/bin/convert-csv-dataset-to-db.py ]]; then
+			__debug --level 6 "rm /usr/local/bin/convert-csv-dataset-to-db.py"
 			rm /usr/local/bin/convert-csv-dataset-to-db.py
 		fi
 
 		if [[ -d $path ]]; then
+			__debug --level 6 "rm -rf $path"
 			rm -rf $path
 		fi
 
 		if [[ -f $MIPENVFILE ]]; then
+			__debug --level 6 "rm $MIPENVFILE"
 			rm $MIPENVFILE
 		fi
 	fi
@@ -8981,6 +9091,7 @@ delete_mip(){
 	if [[ (( "$path" = "" || ! -d $path )) && $ARG_PURGE -eq 1 ]]; then
 		_cleanup -f
 		if [[ -f /usr/local/bin/mip ]]; then
+			__debug --level 6 "rm /usr/local/bin/mip"
 			rm /usr/local/bin/mip
 		fi
 	fi
