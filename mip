@@ -35,6 +35,7 @@ DOCKER_PROJECT_NAME="mip"
 DOCKER_FEDERATION_PROJECT_NAME="mipfederation"
 MIP_COMPONENTS="frontend portalbackend portalbackend_db galaxy keycloak keycloak_db create_dbs exareme_master exareme_keystore"
 MIP_COMPONENT_LABELS="Portal Frontend,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,KeyCloak,KeyCloak DB,Create DBs,Exareme Master,Exareme Keystore"
+MIP_COMPONENT_IMAGES=("portainer/portainer" "bitnami/consul" "hbpmip/exareme" "hbpmip/galaxy" "postgres" "hbpmip/create-databases" "hbpmip/portal-backend" "hbpmip/portal-frontend" "jboss/keycloak")
 MIP_FEDERATION_MS_COMPONENTS="exareme-master exareme-keystore"
 MIP_FEDERATION_MS_COMPONENT_LABELS="Exareme Master,Exareme Keystore"
 MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy create_dbs"
@@ -82,7 +83,7 @@ args_parser(){
 		key="$1"
 
 		case $key in
-			check-required|install|uninstall|start|stop|restart|status|status-details|cleanup|tmux|test)
+			check-required|install|uninstall|start|stop|restart|status|status-details|clean|tmux|test)
 				ACTION=$1
 				shift
 				;;
@@ -801,7 +802,7 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 											"local" MIP, but for a federation node, not giving any MIP_COMPONENT will output the logs for
 											the main component related to the node type.
 											Can be used with "-f|--follow" flag, the "tail" way. It can also be used with --lines.
-		cleanup								Clean the unused/old MIP Docker images.
+		clean								Clean the unused/old MIP Docker images.
 		version [VERSION_ACTION]
 			list							List the components versions on the node. In a federation, it can be used from the pusher to
 											list every component in the whole federation.
@@ -1215,6 +1216,7 @@ load_mip_env(){
 		MIP_BRANCH=$EXAREME_BRANCH
 		__debug --level 6 "Setting global var: MIP_PATH=<$INSTALL_PATH/$ARG_FEDERATION/exareme>"
 		MIP_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
+		__debug --level 6 "Setting global var: EXAREME_PATH=<$INSTALL_PATH/$ARG_FEDERATION/exareme>"
 		EXAREME_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
 		__debug --level 6 "Setting global var: MIPENVFILE=<$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME>"
 		MIPENVFILE=$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME
@@ -2227,17 +2229,23 @@ _get_git_commits(){
 }
 
 _get_dockerhub_infos(){
+	__debug --level 4 "_get_dockerhub_infos($*)"
+
 	local result=""
 	local tmpresult=""
+	local checktmpresult=""
 	local owner
-	local tag
-	local tmp_tag
 	local mode
 	local image
+	local tag
+	local tmp_tag
+	local digest
+	local tmp_digest
 	local url
 	local token
-	local repositories
+	local repositories=""
 	local img
+	local item
 
 	local positional=()
 	while [[ $# -gt 0 ]]; do
@@ -2248,7 +2256,9 @@ _get_dockerhub_infos(){
 				shift
 				;;
 			--mode)	# image|tag
-				mode=$2
+				if [[ "$2" = "tag" || "$2" = "image" || "$2" = "digest" ]]; then
+					mode=$2
+				fi
 				shift
 				shift
 				;;
@@ -2262,6 +2272,11 @@ _get_dockerhub_infos(){
 				shift
 				shift
 				;;
+			--digest)
+				digest=$2
+				shift
+				shift
+				;;
 			*)
 				positional+=("$1")
 				shift
@@ -2272,37 +2287,72 @@ _get_dockerhub_infos(){
 
 	url="https://hub.docker.com/v2"
 
-	if [[ "$mode" = "image" || "$mode" = "tag" ]]; then
-		__debug --level 6 "curl --silent -H \"Content-Type: application/json\" -X POST --data '{\"username\": \"'$DOCKERHUB_USER'\", \"password\": \"<APP_TOKEN>\"}' $url/users/login/ | jq -r .token 2>/dev/null"
-		token=$(curl --silent -H "Content-Type: application/json" -X POST --data '{"username": "'$DOCKERHUB_USER'", "password": "'$(echo $DOCKERHUB_APP_TOKEN|tr q-zQ-Za-pA-P a-zA-Z|base32 -d|base64 -d)'"}' $url/users/login/ | jq -r .token 2>/dev/null)
+	if [[ "$owner" != "" && "$mode" != "" ]]; then
+		__debug --level 6 "curl --silent -H \"Content-Type: application/json\" -X POST --data '{\"username\": \"'$DOCKERHUB_USER'\", \"password\": \"APP_TOKEN\"}' $url/users/login/ 2>/dev/null | jq -r .token 2>/dev/null"
+		token=$(curl --silent -H "Content-Type: application/json" -X POST --data '{"username": "'$DOCKERHUB_USER'", "password": "'$(echo $DOCKERHUB_APP_TOKEN|tr q-zQ-Za-pA-P a-zA-Z|base32 -d|base64 -d)'"}' $url/users/login/ 2>/dev/null | jq -r .token 2>/dev/null)
 
-		if [[ "$mode" = "tag" && "$tag" != "" ]]; then
-			__debug --level 6 "curl --silent -H \"Authorization: JWT <TOKEN>\" $url/repositories/$owner/$image/tags/$tag | jq -r '.name' 2>/dev/null"
-			tmp_tag=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/$image/tags/$tag | jq -r '.name' 2>/dev/null)
-			if [[ "$tmp_tag" = "$tag" ]]; then
-				tmpresult="$tmp_tag"
-			fi
-		else
-			__debug --level 6 "curl --silent -H \"Authorization: JWT <TOKEN>\" $url/repositories/$owner/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null"
-			repositories=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null)
-			if [[ "$mode" = "tag" && "$image" != "" ]]; then
-				for img in $repositories; do
-					if [[ "$img" != "$image" ]]; then
-						continue
-					else
-						__debug --level 6 "curl --silent -H \"Authorization: JWT <TOKEN>\" $url/repositories/$owner/$image/tags/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null"
-						tmp_tag=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/$image/tags/?page_size=10000 | jq -r '.results|.[]|.name' 2>/dev/null)
-						tmpresult="$tmpresult $tmp_tag"
-					fi
-				done
-			else
-				tmpresult=$repositories
-			fi
+		if [[ "$tag" = "" ]]; then
+			__debug --level 6 "curl --silent -H \"Authorization: JWT TOKEN\" $url/repositories/$owner/?page_size=10000 2>/dev/null | jq -r '.results|.[]|.name' 2>/dev/null"
+			repositories=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/?page_size=10000 2>/dev/null | jq -r '.results|.[]|.name' 2>/dev/null)
 		fi
+
+		case $mode in
+			tag|digest)
+				if [[ "$image" != "" ]]; then
+					if [[ "$tag" != "" && "$mode" != "digest" ]]; then
+						__debug --level 6 "curl --silent -H \"Authorization: JWT TOKEN\" $url/repositories/$owner/$image/tags/$tag 2>/dev/null | jq -r '.name' 2>/dev/null"
+						tmp_tag=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/$image/tags/$tag 2>/dev/null | jq -r '.name' 2>/dev/null)
+						if [[ "$tmp_tag" = "$tag" ]]; then
+							tmpresult="$tmp_tag"
+						fi
+					else
+						for img in $repositories; do
+							if [[ "$img" != "$image" ]]; then
+								continue
+							else
+								__debug --level 6 "curl --silent -H \"Authorization: JWT TOKEN\" $url/repositories/$owner/$image/tags/?page_size=10000 2>/dev/null | jq -r '.results|.[]|.name' 2>/dev/null"
+								tmp_tag=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/$image/tags/?page_size=10000 2>/dev/null | jq -r '.results|.[]|.name' 2>/dev/null)
+								if [[ "$tmpresult" != "" ]]; then
+									tmpresult+=" "
+								fi
+								tmpresult+="$tmp_tag"
+							fi
+						done
+
+						if [[ "$mode" = "digest" && "$digest" != "" ]]; then
+							local checktmpresult=$tmpresult
+							tmpresult=""
+							local found=0
+							for tmp_tag in $checktmpresult; do
+								if [[ $found -eq 1 ]]; then
+									break
+								fi
+
+								__debug --level 6 "curl --silent -H \"Authorization: JWT TOKEN\" $url/repositories/$owner/$image/tags/$tmp_tag 2>/dev/null | jq -r '.images|.[]|.digest' 2>/dev/null | cut -d':' -f2 2>/dev/null"
+								tmp_digest=$(curl --silent -H "Authorization: JWT $token" $url/repositories/$owner/$image/tags/$tmp_tag 2>/dev/null | jq -r '.images|.[]|.digest' 2>/dev/null | cut -d':' -f2 2>/dev/null)
+								for tmp_check_digest in $tmp_digest; do
+									if [[ $found -eq 1 ]]; then
+										break
+									fi
+
+									__debug --level 8 "Comparing digest <$tmp_check_digest> with <$digest>"
+									if [[ "$tmp_check_digest" = "$digest" ]]; then
+										tmpresult="$tmp_tag"
+										found=1
+									fi
+								done
+							done
+						fi
+					fi
+				fi
+				;;
+			image)
+				tmpresult=$repositories
+				;;
+		esac
 	fi
 
 	if [[ "$tmpresult" != "" ]]; then
-		local item
 		for item in $tmpresult; do
 			if [[ "$(echo $item | grep -E 'latest$')" != "" ]]; then
 				continue
@@ -2979,6 +3029,52 @@ _manage_docker_user(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
+_list_to_array(){
+	result=1
+
+	local list
+	local separator
+
+	local return_var
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--list)
+				list=$2
+				shift
+				shift
+				;;
+			--separator)
+				separator=$2
+				shift
+				shift
+				;;
+			--return-var)
+				return_var=$2
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
+	if [[ "$list" != "" && "$separator" != "" && "$return_var" != "" ]]; then
+		eval "$return_var=()"
+
+		while IFS=$${separator} read -r item; do
+			eval "$return_var+=(\"$item\")"
+			result=0
+		done <<< "$(echo "$list")"
+	fi
+
+	return $result
+}
+
 _contains(){
 	__debug --level 4 "_contains($*)"
 	local result=1
@@ -3381,10 +3477,21 @@ _prerunning_backend_guard(){
 	fi
 }
 
-_cleanup(){
+_clean(){
 	__debug --level 1 --levelcompare "eq" -n "Cleaning Docker containers..."
-	__debug --level 4 "_cleanup($*)"
+	__debug --level 4 "_clean($*)"
 	local result=0
+
+	local components_list
+	local components
+	local component
+	local image_id
+	local image_name
+	local image_tag
+	local backup
+	local images
+	local image
+
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		return $result
 	fi
@@ -3394,11 +3501,60 @@ _cleanup(){
 		result=1
 	fi
 	if [[ $result -eq 0 ]]; then
-		docker rmi $(docker images -f "dangling=true" -q) >/dev/null 2>&1
-		if [[ $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
-			local images=$(docker images --filter=reference='hbpmip/*' -q)
-			if [[ -n $images ]]; then
-				docker image rm -f $images
+		if [[ "$(docker image ls 2>/dev/null | grep -v '^REPOSITORY')" != "" ]]; then
+			__debug --level 6 "docker image prune --force >/dev/null 2>&1"
+			__echo "\${yellow}Removing dangling Docker images...\${reset}"
+			docker image prune --force >/dev/null 2>&1
+
+			if [[ $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
+				__echo "\${red}Removing all unused Docker images!\${reset}"
+				__debug --level 6 "docker image prune --all --force >/dev/null 2>&1"
+				docker image prune --all --force >/dev/null 2>&1
+			fi
+		fi
+
+		if [[ "$(docker image ls 2>/dev/null | grep -v '^REPOSITORY')" != "" ]]; then
+			if [[ $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
+				for component in "${MIP_COMPONENT_IMAGES[@]}"; do
+					images=()
+					image=""
+					image_id=""
+					image_name=""
+					image_tag=""
+
+					__debug --level 6 "docker image ls --filter=reference=$component"
+					components_list=$(docker image ls --filter=reference=$component | grep -v '^REPOSITORY')
+					_list_to_array --list "$components_list" --separator '\n' --return-var 'images'
+					for image in "${images[@]}"; do
+						image_id=$(echo "$image" | awk '{print $3}')
+						image_name=$(echo "$image" | awk '{print $1}')
+						image_tag=$(echo "$image" | awk '{print $2}')
+						__echo "\${red}Force removing Docker image \${magenta}$image_name $image_tag\${red} (ID \${cyan}$image_id\${red})!\${reset}"
+						__debug --level 6 "docker image rm --force $images >/dev/null 2>&1"
+						docker image rm --force $images >/dev/null 2>&1
+					done
+				done
+			else
+				for backup in $(_backup list); do
+					__debug --level 5 "Exploring backup $backup"
+					__debug --level 6 "_backup showfile $backup .mipcomponents"
+					components_list=$(_backup showfile "$backup" ".mipcomponents")
+					_list_to_array --list "$components_list" --separator '\n' --return-var 'components'
+					for component in "${components[@]}"; do
+						image_id=$(echo "$component" | cut -d':' -f1)
+						image_name=$(echo "$component" | cut -d':' -f2)
+						image_tag=$(echo "$component" | cut -d':' -f3)
+						__debug --level 5 "image_id=<$image_id>"
+						__debug --level 5 "image_name=<$image_name>"
+						__debug --level 5 "image_tag=<$image_tag>"
+
+						if [[ "$image_id" != "" && "$(docker image ls 2>/dev/null | grep $image_id)" != "" && "$(docker ps --quiet --filter=id=$image_id 2>/dev/null)" = "" ]]; then
+							__echo "\${yellow}Removing Docker image (currently not in use) \${magenta}$image_name $image_tag\${yellow} (ID \${cyan}$image_id\${yellow})!\${reset}"
+							__debug --level 6 "docker image rm --force $image_id >/dev/null 2>&1"
+							docker image rm --force $image_id >/dev/null 2>&1
+						fi
+					done
+				done
 			fi
 		fi
 	fi
@@ -3456,6 +3612,11 @@ _get_container_info_item(){
 	if [[ "$format" != "" ]]; then
 		if [[ "$3" = "range" ]]; then
 			format="range $format"
+		elif [[ "$3" = "index" ]]; then
+			format="index $format"
+			if [[ "$4" != "" ]]; then
+				format+=" $4"
+			fi
 		fi
 
 		format="{{$format"
@@ -6519,6 +6680,8 @@ _get_mip_component_version(){
 }
 
 _list_avail_version(){
+	__debug --level 4 "_list_avail_version($*)"
+
 	local part
 	local all=0
 	local latest=0
@@ -6933,63 +7096,347 @@ _version(){
 	esac
 }
 
+_get_installed_mip_components(){
+	__debug --level 4 "_get_installed_mip_components($*)"
+
+	local result=1
+
+	local force=0
+	local skip_tag_validation=0
+
+	local components_var
+
+	local ret_components
+
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--force)
+				force=1
+				shift
+				;;
+			--skip-tag-validation)
+				skip_tag_validation=1
+				shift
+				;;
+			--components-return-var)
+				components_var="$2"
+				shift
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
+	local images
+	local image
+	local image_repo
+	local image_name
+	local image_tag
+	local tmp_image_tag
+	local skip_image=1
+	local image_id
+	local image_repo_digest
+	local answer
+	local go_ahead=0
+
+	if [[ "$1" = "-f" ]]; then
+		force=1
+	fi
+
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		local first_msg=1
+		tmp_images=$(docker image ls -a 2>/dev/null | grep -v '^REPOSITORY')
+		images=()
+		_list_to_array --list "$tmp_images" --separator '\n' --return-var 'images'
+		for image in "${images[@]}"; do
+			skip_image=1
+
+			image_repo=""
+			image_name=""
+			image_check=""
+			image_tag=""
+			image_id=""
+			image_repo_digest=""
+
+			image_repo=$(echo "$image" | awk '{print $1}')
+			if [[ "$image_repo" = "<none>" ]]; then
+				image_repo=""
+			fi
+			if [[ "$image_repo" != "" ]]; then
+				if [[ "$(echo $image_repo | grep '/')" != "" ]]; then
+					image_name=$(echo "$image_repo" | cut -d/ -f2)
+					image_repo=$(echo "$image_repo" | cut -d/ -f1)
+				fi
+			fi
+			image_tag=$(echo "$image" | awk '{print $2}')
+			if [[ "$image_tag" = "<none>" ]]; then
+				image_tag=""
+			fi
+			image_id=$(echo "$image" | awk '{print $3}')
+			if [[ "$image_id" = "<none>" ]]; then
+				image_id=""
+			fi
+			__debug --level 5 "image_repo=<$image_repo>"
+			__debug --level 5 "image_name=<$image_name>"
+			__debug --level 5 "image_tag=<$image_tag>"
+			__debug --level 5 "image_id=<$image_id>"
+			if [[ "$image_name" != "" && "$image_id" != "" ]]; then
+				go_ahead=0
+
+				image_check="$image_repo/$image_name"
+				if [[ "$image_repo" = "" ]]; then
+					image_check="$image_name"
+				fi
+
+				if [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+					for component in ${MIP_COMPONENT_IMAGES[@]}; do
+						__debug --level 6 "Comparing <$component> with <$image_check>"
+						if [[ "$component" = "$image_check" ]]; then
+							go_ahead=1
+							break
+						fi
+					done
+				fi
+
+				if [[ $go_ahead -ne 1 ]]; then
+					continue
+				fi
+
+				if [[ "$image_tag" = "" ]]; then
+					if [[ $skip_tag_validation -ne 1 ]]; then
+						tmp_image_tag=""
+
+						answer=""
+						if [[ $force -eq 1 ]]; then
+							answer="y"
+						elif [[ $ARG_QUIET -ne 1 ]]; then
+							if [[ $first_msg -eq 1 ]]; then
+								first_msg=0
+							else
+								__echo
+							fi
+							__echo -en "\${yellow}Listing installed components: Image version for \${magenta}$image_check\${yellow} is null! Try to determine it (This may take a while...)? [y/n]\${reset} "
+							read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+						fi
+
+						if [[ "$answer" = "y" ]]; then
+							__debug --level 5 "image_tag is null! Trying to find one..."
+							image_repo_digest=$(_get_container_info_item $image_id "/RepoDigests" "index" 0 | head -1 | cut -d':' -f2)
+							__debug --level 5 "image_repo_digest=<$image_repo_digest>"
+							tmp_image_tag=$(_get_dockerhub_infos --owner "$image_repo" --mode digest --image "$image_name" --digest "$image_repo_digest")
+							if [[ "$tmp_image_tag" != "" ]]; then
+								image_tag=$tmp_image_tag
+								__debug --level 5 "image_tag=<$image_tag>"
+								skip_image=0
+							else
+								answer=""
+								if [[ $force -eq 1 ]]; then
+									answer="y"
+								elif [[ $ARG_QUIET -ne 1 ]]; then
+									__echo -en "\${red}Unable to determine the image version for \${magenta}$image_check\${red} (ID <\${cyan}$image_id\${red}>)! Is it part of the current installation? [y/n]\${reset} "
+									read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+
+									if [[ "$answer" = "y" ]]; then
+										skip_image=0
+									fi
+								fi
+							fi
+						elif [[ $ARG_QUIET -ne 1 ]]; then
+							__echo -en "\${yellow}Anyway, do you want to force this image \${magenta}$image_check\${yellow} (ID <\${cyan}$image_id\${yellow}>) as being part of the current installation? [y/n]\${reset} "
+							read answer && answer=$(echo $answer | awk '{print tolower($0)}')
+
+							if [[ "$answer" = "y" ]]; then
+								skip_image=0
+							fi
+						fi
+					else
+						skip_image=0
+					fi
+				fi
+			fi
+
+			if [[ $skip_image -ne 1 ]]; then
+				if [[ "$ret_components" != "" ]]; then
+					ret_components+="
+"
+				fi
+				ret_components+="$image_id:$image_check:$image_tag"
+				result=0
+			fi
+		done
+	fi
+
+	if [[ "$components_var" != "" && $result -eq 0 ]]; then
+		eval "$components_var=\"$ret_components\""
+	fi
+
+	return $result
+}
+
 _backup(){
 	local result=1
 
-	local filename="mip"
-	local fileext="tar.gz"
+	local backups=""
+	local backupfilename="mip"
+	local filenames=()
+	local filename=""
+	local filepath=""
+	local content=""
+	local part="mip"
+	local ret=1
 
-	if [[ "$1" = "list" || "$1" = "show" ]]; then
+	if [[ "$1" = "list" || "$1" = "show" || "$1" = "showfile" ]]; then
 		case $1 in
 			list)
-				local backups=$(ls -l $BACKUP_PATH/$filename*.$fileext | sort -r | awk '{print $NF}')
-				echo "$backups"
+				backups=$(ls -l $BACKUP_PATH/$backupfilename*.tar.gz 2>/dev/null | sort -r | awk '{print $NF}')
+				if [[ "$backups" != "" ]]; then
+					__echo "$backups"
+				fi
 				;;
 			show)
 				if [[ "$2" != "" ]]; then
-					local filename=$2
-					if [[ -f $filename ]]; then
-						local versions_filepath=$(gzip -dc $filename | tar -tv -f - | grep .versions_env | awk '{print $NF}')
-						if [[ "$versions_filepath" != "" ]]; then
-							local versions=$(tar --to-stdout -xzf $filename $versions_filepath)
-							echo "$versions"
-						fi
+					backupfilename=$2
+					filenames=(".versions_env" ".mipcomponents")
+					if [[ $ARG_PUSHER -eq 1 ]]; then
+						filenames=(".mipenv" "exareme.yaml" "hosts.ini")
 					fi
 				fi
 				;;
+			showfile)
+				if [[ "$2" != "" && "$3" != "" ]]; then
+					backupfilename="$2"
+					shift
+					shift
+					while [[ $# -gt 0 ]]; do
+						filenames+=("$1")
+						shift
+					done
+				fi
+				;;
 		esac
+
+		if [[ "$backupfilename" != "" && ${#filenames} -gt 0 ]]; then
+			if [[ -f $backupfilename ]]; then
+				for filename in "${filenames[@]}"; do
+					__debug --level 6 "gzip -dc $backupfilename" "| tar -tv -f - |" grep $filename "|" awk "'{"print '\$NF'"}'"
+					filepath=$(gzip -dc $backupfilename | tar -tv -f - | grep $filename | awk '{print $NF}')
+					if [[ "$filepath" != "" ]]; then
+						if [[ "$content" != "" ]]; then
+							content+="
+"
+						fi
+						content+=$(tar --to-stdout -xzf $backupfilename $filepath)
+					fi
+				done
+
+				if [[ "$content" != "" ]]; then
+					__echo "$content"
+				fi
+			fi
+		fi
 	else
 		local paths=""
+		local path=""
 		local paths_list=()
 
 		if [[ $ARG_PUSHER -eq 1 ]]; then
-			filename+="_pusher"
+			part="exareme"
+			backupfilename+="_pusher"
 			paths="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/Federated-Deployment/Compose-Files $EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml $EXAREME_PATH/Federated-Deployment/Docker-Ansible/hosts.ini $EXAREME_PATH/Federated-Deployment/Docker-Ansible/vault.yaml"
 		elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-			filename+="_local"
+			backupfilename+="_local"
 			paths="$MIP_PATH/.mipenv $MIP_PATH/.versions_env $MIP_PATH/config/pathologies.json $MIP_PATH/config/keycloak/keycloak.json $MIP_PATH/data $MIP_PATH/logs"
 		elif [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
-			filename+="_ms"
+			backupfilename+="_ms"
 			paths="$DATA_PATH"
+		elif [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+			backupfilename+="_$(hostname)"
 		elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
-			filename+="_ui"
+			backupfilename+="_ui"
 			paths="$MIP_PATH/.mipenv $MIP_PATH/.versions_env $MIP_PATH/config/pathologies.json $MIP_PATH/config/keycloak/keycloak.json $MIP_PATH/Federation/.stored_data $MIP_PATH/Federation/config $MIP_PATH/Federation/logs"
 		fi
 
-		if [[ "$paths" != "" ]]; then
-			local go_ahead=0
-			filename+="_-_$(hostname)_-_$(date +"%Y%m%d%H%M%S")"
-			for path in $(echo "$paths"); do
-				if [[ -f $path || -d $path ]]; then
-					go_ahead=1
-					paths_list+=("$path")
-				fi
-			done
+		local go_ahead=0
+		backupfilename+="_-_$(hostname)_-_$(date +"%Y%m%d%H%M%S")"
 
-			if [[ $go_ahead -eq 1 ]]; then
-				set -- "${paths_list[@]}"
-				tar czfp $BACKUP_PATH/$filename.$fileext $@ >/dev/null 2>&1
-				result=$?
+		local components_list=""
+		_get_installed_mip_components --skip-tag-validation --components-return-var 'components_list'
+
+		for path in $(echo "$paths"); do
+			if [[ -f $path || (( -d $path && "$(ls -la $path 2>/dev/null | grep -v '^total' | grep -v '\.$' | grep -v '\.\.$')" != "" )) ]]; then
+				go_ahead=1
+				paths_list+=("$path")
+			fi
+		done
+
+		if [[ "$components_list" != "" ]]; then
+			go_ahead=1
+		fi
+
+		if [[ $go_ahead -eq 1 ]]; then
+			set -- "${paths_list[@]}"
+
+			if [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+				ret=0
+			else
+				__debug --level 6 "tar czfp $BACKUP_PATH/$backupfilename.tar.gz $@ >/dev/null 2>&1"
+				tar czfp $BACKUP_PATH/$backupfilename.tar.gz $@ >/dev/null 2>&1
+				ret=$?
+			fi
+
+			if [[ $ret -eq 0 ]]; then
+				if [[ "$components_list" != "" ]]; then
+					local bakpath=$(pwd)
+					__debug --level 6 "cd /tmp"
+					cd /tmp
+					__debug --level 6 "echo "$components_list" >.mipcomponents >/dev/null 2>&1"
+					echo "$components_list" >.mipcomponents
+					ret=$?
+					if [[ $ret -eq 0 ]]; then
+						if [[ "$MIP_ENV_NODE_TYPE" != "wk" ]]; then
+							__debug --level 6 "gunzip $BACKUP_PATH/$backupfilename.tar.gz >/dev/null 2>&1"
+							gunzip $BACKUP_PATH/$backupfilename.tar.gz >/dev/null 2>&1
+							ret=$?
+						fi
+					else
+						result=$ret
+					fi
+
+					if [[ $ret -eq 0 ]]; then
+						if [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+							__debug --level 6 "tar czfp $BACKUP_PATH/$backupfilename.tar.gz .mipcomponents >/dev/null 2>&1"
+							tar czfp $BACKUP_PATH/$backupfilename.tar.gz .mipcomponents >/dev/null 2>&1
+							ret=$?
+						else
+							__debug --level 6 "tar rf $BACKUP_PATH/$backupfilename.tar .mipcomponents >/dev/null 2>&1"
+							tar rf $BACKUP_PATH/$backupfilename.tar .mipcomponents >/dev/null 2>&1
+							ret=$?
+						fi
+					else
+						result=$ret
+					fi
+
+					if [[ $ret -eq 0 ]]; then
+						rm .mipcomponents >/dev/null 2>&1
+						if [[ "$MIP_ENV_NODE_TYPE" != "wk" ]]; then
+							__debug --level 6 "gzip $BACKUP_PATH/$backupfilename.tar >/dev/null 2>&1"
+							gzip $BACKUP_PATH/$backupfilename.tar >/dev/null 2>&1
+							result=$ret
+						fi
+					else
+						result=$ret
+					fi
+					cd $bakpath
+				else
+					result=$ret
+				fi
+			else
+				result=$ret
 			fi
 		fi
 	fi
@@ -9013,8 +9460,8 @@ delete_mip(){
 	local answer=""
 	local path=""
 	if [[ $ARG_PUSHER -eq 1 ]]; then
-		if [[ -d $EXAREME_PATH ]]; then
-			path="$EXAREME_PATH"
+		if [[ -d $INSTALL_PATH/$ARG_FEDERATION ]]; then
+			path="$INSTALL_PATH/$ARG_FEDERATION"
 		fi
 	elif [[ "$MIP_ENV_MIP_TYPE" = "local" || "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
 		if [[ -d $MIP_PATH ]]; then
@@ -9030,7 +9477,7 @@ delete_mip(){
 		fi
 		if [[ $ARG_PUSHER -eq 1 ]]; then
 			if [[ "$path" != "" ]]; then
-				__echo -n "Delete full EXAREME $path [y/n]? "
+				__echo -n "Delete full EXAREME federation $path [y/n]? "
 				read answer
 			else
 				answer="y"
@@ -9053,7 +9500,9 @@ delete_mip(){
 	fi
 
 	if [[ "$answer" = "y" ]]; then
+		_backup
 		cd
+
 		if [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 			__debug --level 6 "docker swarm leave --force >/dev/null 2>&1"
 			docker swarm leave --force >/dev/null 2>&1
@@ -9089,11 +9538,13 @@ delete_mip(){
 	fi
 
 	if [[ (( "$path" = "" || ! -d $path )) && $ARG_PURGE -eq 1 ]]; then
-		_cleanup -f
+		_clean -f
 		if [[ -f /usr/local/bin/mip ]]; then
 			__debug --level 6 "rm /usr/local/bin/mip"
 			rm /usr/local/bin/mip
 		fi
+	else
+		_clean
 	fi
 }
 
@@ -9142,9 +9593,9 @@ main(){
 			_check_docker
 			logs
 			;;
-		cleanup)
+		clean)
 			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
-			_cleanup
+			_clean
 			;;
 		uninstall)
 			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
@@ -9226,13 +9677,13 @@ main(){
 			if [[ $ARG_PUSHER -eq 1 ]]; then
 				__red "Usage: $0 --pusher --federation <FEDERATION> [check-required|install|configure|uninstall|data|node|service]"
 			elif [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
-				__red "Usage: $0 --node-type ms [check-required|install|configure|uninstall|status|status-details|logs|cleanup]"
+				__red "Usage: $0 --node-type ms [check-required|install|configure|uninstall|status|status-details|logs|clean]"
 			elif [[ "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
-				__red "Usage: $0 --node-type wk [check-required|install|configure|uninstall|status|status-details|logs|cleanup|fedtask]"
+				__red "Usage: $0 --node-type wk [check-required|install|configure|uninstall|status|status-details|logs|clean|fedtask]"
 			elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
-				__red "Usage: $0 --node-type ui [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
+				__red "Usage: $0 --node-type ui [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|clean]"
 			else
-				__red "Usage: $0 [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|cleanup]"
+				__red "Usage: $0 [check-required|install|configure|uninstall|start|stop|restart|status|status-details|logs|clean]"
 			fi
 	esac
 }
