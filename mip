@@ -3977,67 +3977,6 @@ check_running_details(){
 	return 0
 }
 
-download_mip(){
-	__debug --level 4 "download_mip($*)"
-	if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
-		return 0
-	fi
-	__debug --level 1 --levelcompare "eq" -n "Downloading MIP..."
-
-	local path=$(pwd)
-	local answer=""
-	local next=0
-	while [[ $next -eq 0 ]]; do
-		answer=""
-		if [[ ! -d $INSTALL_PATH ]]; then
-			mkdir -p $INSTALL_PATH
-		fi
-
-		if [[ -d $MIP_PATH ]]; then
-			next=1
-		else
-			if [[ $ARG_YES -eq 1 ]]; then
-				answer="y"
-			else
-				if [[ $ARG_QUIET -eq 1 ]]; then
-					return 1
-				fi
-
-				if [[ $ARG_PUSHER -eq 1 ]]; then
-					__echo -n "EXAREME not found. Download it [y/n]? "
-				elif [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-					__echo -n "MIP not found. Download it [y/n]? "
-				fi
-				read answer && answer=$(echo $answer|awk '{print tolower($0)}')
-			fi
-			if [[ "$answer" = "y" ]]; then
-				git clone https://github.com/$MIP_GITHUB_OWNER/$MIP_GITHUB_PROJECT $MIP_PATH
-				cd $MIP_PATH
-				if [[ "$MIP_BRANCH" != "" ]]; then
-					git checkout $MIP_BRANCH
-					load_mip_env
-				fi
-				if [[ $ARG_PUSHER -eq 1 ]]; then
-					local branch="master"
-					if [[ "$DEFAULT_MIP_BRANCH" != "" ]]; then
-						branch=$DEFAULT_MIP_BRANCH
-					fi
-					__debug --level 5 "Downloading pathologies_generator..."
-					__debug --level 6 "curl --silent https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py"
-					curl --silent https://raw.githubusercontent.com/$DEFAULT_MIP_GITHUB_OWNER/$DEFAULT_MIP_GITHUB_PROJECT/$branch/config/pathologies_generator.py --output /usr/local/bin/pathologies_generator.py
-					if [[ -f /usr/local/bin/pathologies_generator.py ]]; then
-						chmod +x /usr/local/bin/pathologies_generator.py
-					fi
-				fi
-			else
-				break
-			fi
-		fi
-	done
-	cd $path
-	__debug --level 1 --levelcompare "eq" --color "green" "done"
-}
-
 _configure_user(){
 	__debug --level 1 --levelcompare "eq" -n "Configuring user..."
 	__debug --level 4 "_configure_user($*)"
@@ -6025,6 +5964,7 @@ _extract_advanced_component_version(){
 }
 
 _get_mip(){
+	__debug --level 4 "_get_mip($*)"
 	local arg_mode
 	local arg_part
 	local arg_release=0
@@ -6177,7 +6117,7 @@ _get_mip(){
 	done
 	set -- "${positional[@]}"
 
-	case $mode in
+	case $arg_mode in
 		wanted)
 			local target_version=""
 			local target_mip_version=""
@@ -6874,35 +6814,38 @@ _version_show(){
 		local component
 		local container_image
 
-		if [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-			if [[ -f $DOCKER_COMPOSE_PATH/docker-compose.yml ]]; then
-				tmp_services=$(docker-compose -f $DOCKER_COMPOSE_PATH/docker-compose.yml config --service 2>/dev/null)
-				tmp_services=$(echo $tmp_services)
-				for service in $tmp_services; do
-					container_image=$(cat $DOCKER_COMPOSE_PATH/docker-compose.yml | grep -PA5 "^[ \t]+$service:" | awk '/^[ \t]+image:/ {print $2}')
-					version=$(echo $container_image | cut -d: -f2)
-					container_image=$(echo $container_image | cut -d: -f1)
+		#if [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+		#	if [[ -f $DOCKER_COMPOSE_PATH/docker-compose.yml ]]; then
+		#		tmp_services=$(docker-compose -f $DOCKER_COMPOSE_PATH/docker-compose.yml config --service 2>/dev/null)
+		#		tmp_services=$(echo $tmp_services)
+		#		for service in $tmp_services; do
+		#			container_image=$(cat $DOCKER_COMPOSE_PATH/docker-compose.yml | grep -PA5 "^[ \t]+$service:" | awk '/^[ \t]+image:/ {print $2}')
+		#			version=$(echo $container_image | cut -d: -f2)
+		#			container_image=$(echo $container_image | cut -d: -f1)
+		#			__debug --level 5 "container_image=<$container_image>"
 
-					if [[ "$(echo $version | grep "^\${.*}$")" != "" ]]; then
-						tmp_version=$(echo $version | cut -c3- | rev | cut -c2- | rev)
-						if [[ -f $MIP_PATH/.versions_env ]]; then
-							tmp_version=$(cat $MIP_PATH/.versions_env | grep "^$tmp_version=" | awk -F '=' '{print $2}')
-							if [[ "$tmp_version" != "" ]]; then
-								version=$tmp_version
-							fi
-						fi
-					fi
+		#			if [[ "$(echo $version | grep "^\${.*}$")" != "" ]]; then
+		#				tmp_version=$(echo $version | cut -c3- | rev | cut -c2- | rev)
+		#				if [[ -f $MIP_PATH/.versions_env ]]; then
+		#					tmp_version=$(cat $MIP_PATH/.versions_env | grep "^$tmp_version=" | awk -F '=' '{print $2}')
+		#					if [[ "$tmp_version" != "" ]]; then
+		#						version=$tmp_version
+		#					fi
+		#				fi
+		#			fi
+		#			__debug --level 5 "version=<$version>"
 
-					service="$service,$container_image,$version"
-					if [[ "$service" != ",," ]]; then
-						if [[ "$services" != "" ]]; then
-							services+=" "
-						fi
-						services+="$service"
-					fi
-				done
-			fi
-		fi
+		#			service="$service,$container_image,$version"
+		#			__debug --level 5 "service=<$service>"
+		#			if [[ "$service" != ",," ]]; then
+		#				if [[ "$services" != "" ]]; then
+		#					services+=" "
+		#				fi
+		#				services+="$service"
+		#			fi
+		#		done
+		#	fi
+		#fi
 
 		case $MIP_ENV_NODE_TYPE in
 			ms|wk)
@@ -6918,12 +6861,51 @@ _version_show(){
 				;;
 		esac
 		if [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-			for service in $services; do
-				container_image=$(echo $service | awk -F ',' '{print $2}')
-				version=$(echo $service | awk -F ',' '{print $3}')
-				component=$(echo $service | awk -F ',' '{print $1}')
-				__echo "$component: \${yellow}$container_image:$version\${reset}"
+			local part="mip"
+			local github_owner="$DEFAULT_MIP_GITHUB_OWNER"
+			local github_project="$DEFAULT_MIP_GITHUB_PROJECT"
+
+			local ret_part_vars="git_owner git_repo tag branch commit"
+			local ret_component_vars="component_image_owner component_image component_version dockerhub_image component_list"
+			local ret_vars="part $ret_part_vars component $ret_component_vars"
+			for varname in $(echo "$ret_vars"); do
+				varname="${mode}_${varname}"
+				eval "local $varname"
 			done
+
+			local cmd="_get_mip"
+			local cmdargs=" --mode installed --part mip --release"
+
+			for varname in $(echo "$ret_vars"); do
+				varname=$(echo $varname | sed 's/_/-/g')
+				retvarname="installed_$(echo $varname | sed 's/-/_/g')"
+				cmdargs+=" --${varname}-return-var ${retvarname}"
+			done
+			$cmd $cmdargs
+
+			for varname in $(echo "$ret_vars"); do
+				installed_varname="installed_$(echo $varname | sed 's/-/_/g')"
+				if [[ "${!installed_varname}" != "" && "$installed_varname" != "installed_component_list" ]]; then
+					__echo "$installed_varname: \${magenta}${!installed_varname}\${reset}"
+				fi
+			done
+
+			if [[ "$installed_component_list" != "" ]]; then
+				while IFS='\n' read -r service; do
+					component=$(echo $service | cut -d';' -f1)
+					container_image=$(echo $service | cut -d';' -f2)
+					version=$(echo $container_image | cut -d':' -f2)
+					container_image=$(echo $container_image | cut -d':' -f1)
+					__echo "$component: \${yellow}$container_image:$version\${reset}"
+				done <<< "$(echo "$installed_component_list" | tr ',' '\n')"
+			fi
+
+			#for service in $services; do
+			#	container_image=$(echo $service | awk -F ',' '{print $2}')
+			#	version=$(echo $service | awk -F ',' '{print $3}')
+			#	component=$(echo $service | awk -F ',' '{print $1}')
+			#	__echo "$component: \${yellow}$container_image:$version\${reset}"
+			#done
 		fi
 	fi
 }
@@ -8747,6 +8729,7 @@ _install_mip(){
 				__echo -n "Uninstalling existing $part..."
 				__debug --level 5 "delete_mip -y"
 				delete_mip -y
+				_clean -f
 				__green "done"
 
 				if [[ ! -d $INSTALL_PATH ]]; then
@@ -9284,19 +9267,19 @@ logs(){
 					containers="exareme"
 					;;
 			esac
-			if [[ "$MIP_ENV_MIP_TYPE" = "local" && "$logpart" = "portalbackend" ]]; then
-				if [[ -f $LOGS_PATH/portal-backend.txt ]]; then
+			if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+				image=${DOCKER_PROJECT_NAME}_${logpart}_1
+
+				if [[ "$logpart" = "portalbackend" && -f $LOGS_PATH/portal-backend.txt ]]; then
 					logfile=$LOGS_PATH/portal-backend.txt
-				else
-					image=${DOCKER_PROJECT_NAME}_${logpart}
 				fi
 			fi
 			__debug --level 5 "image=<$image>"
 			__debug --level 5 "containers=<$containers>"
-			_contains "$containers" $logpart
+			_contains "$containers" $image
 			local ret=$?
 			if [[ $ret -ne 0 ]]; then
-				__red "Usage: $0 --component [$containers] logs"
+				__red "Usage: $0 --component [$MIP_COMPONENTS_LIST] logs"
 				if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 				exit 1
 			fi
