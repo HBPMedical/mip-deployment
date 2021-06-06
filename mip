@@ -5102,7 +5102,7 @@ _prepare_keycloak(){
 	fi
 
 	local envvar_changes=0
-	if [[ $ARG_QUIET -eq 1 ]]; then
+	if [[ $ARG_QUIET -eq 1 || $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 ]]; then
 		if [[ $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 ]]; then
 			if [[ ! -n $MIP_ENV_KEYCLOAK_PROTOCOL ]]; then
 				__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_PROTOCOL=<$DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL>"
@@ -7626,8 +7626,8 @@ _restore(){
 		elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 			if [[ "$node_type" = "local" ]]; then
 				if [[ "$partial_restore_path" = "" ]]; then
-					exclude_path="$MIP_PATH/.stored_data/keycloak"
-					partial_restore_path="$MIP_PATH/.mipenv $MIP_PATH/config/pathologies.json $MIP_PATH/.stored_data $MIP_PATH/data $MIP_PATH/logs"
+					exclude_path="$MIP_PATH/.stored_data/keycloak CDEsMetadata.json datasets.db"
+					partial_restore_path="$MIP_PATH/.mipenv $MIP_PATH/.stored_data $MIP_PATH/data $MIP_PATH/logs"
 					if [[ $noversion -ne 1 ]]; then
 						partial_restore_path+=" $MIP_PATH/.versions_env"
 					fi
@@ -7649,7 +7649,7 @@ _restore(){
 			if [[ "$node_type" = "ui" ]]; then
 				if [[ "$partial_restore_path" = "" ]]; then
 					exclude_path="$MIP_PATH/Federation/.stored_data/keycloak"
-					partial_restore_path="$MIP_PATH/.mipenv $MIP_PATH/config/pathologies.json $MIP_PATH/Federation/.stored_data $MIP_PATH/Federation/config $MIP_PATH/Federation/logs"
+					partial_restore_path="$MIP_PATH/.mipenv $MIP_PATH/Federation/.stored_data $MIP_PATH/Federation/config $MIP_PATH/Federation/logs"
 					if [[ $noversion -ne 1 ]]; then
 						partial_restore_path+=" $MIP_PATH/.versions_env"
 					fi
@@ -7668,7 +7668,9 @@ _restore(){
 			local partial_path=""
 			local full_content=$(gzip -dc $filepath/$filename.$fileext | tar -tv -f -)
 			for partial_path in $(echo "$partial_restore_path"); do
-				partial_path=$(echo $partial_path | cut -c2-)
+				if [[ "$(echo $partial_path | grep '^/')" != "" ]]; then
+					partial_path=$(echo $partial_path | cut -c2-)
+				fi
 				if [[ "$(echo "$full_content" | grep -E "$partial_path$")" != "" || "$(echo "$full_content" | grep -E "$partial_path/$")" != "" || "$(echo "$full_content" | grep -E " $partial_path -> .*$")" != "" ]]; then
 					if [[ "$final_paths" != "" ]]; then
 						final_paths+=" "
@@ -7680,7 +7682,9 @@ _restore(){
 			local final_exclude_path=""
 			if [[ "$exclude_path" != "" ]]; then
 				for final_exclude_path in $(echo "$exclude_path"); do
-					final_exclude_path=$(echo $final_exclude_path | cut -c2-)
+					if [[ "$(echo $final_exclude_path | grep '^/')" != "" ]]; then
+						final_exclude_path=$(echo $final_exclude_path | cut -c2-)
+					fi
 					if [[ "$(echo "$full_content" | grep -E "$final_exclude_path$")" != "" || "$(echo "$full_content" | grep -E "$final_exclude_path/$")" != "" || "$(echo "$full_content" | grep -E " $final_exclude_path -> .*$")" != "" ]]; then
 						if [[ "$final_exclude_paths" != "" ]]; then
 							final_exclude_paths+=" "
@@ -7704,15 +7708,22 @@ _restore(){
 			if [[ $force -eq 1 || $ARG_QUIET -eq 1 ]]; then
 				go_ahead=1
 			else
-				msg="\${yellow}The following files/dirs will be restored"
+				msg="\${yellow}The following files/dirs/patterns will be restored"
 				if [[ $noversion -ne 1 ]]; then
 					msg+=" (run with \${red}--no-version\${yellow} if you don't want to import any version-related file)"
 				fi
 				msg+=":\${reset}"
-				__echo $msg
 				for partial_path in $(echo "$final_paths"); do
-					__echo "	\${magenta}/$partial_path\${reset}"
+					msg+="\n	\${magenta}(/)$partial_path\${reset}"
 				done
+				msg+="\n\${yellow}The following files/dirs/patterns will be excluded!\${reset}"
+				for final_exclude_path in $(echo "$final_exclude_paths"); do
+					if [[ "$(echo "$final_exclude_path" | grep -E '\-\-exclude')" = "" ]]; then
+						msg+="\n	\${red}(/)$final_exclude_path\${reset}"
+					fi
+				done
+				__echo -e "$msg"
+
 				__echo -n "Continue? [y/n] "
 				read answer
 				if [[ "$(echo $answer | awk '{print tolower($0)}')" = "y" ]]; then
@@ -7721,13 +7732,46 @@ _restore(){
 			fi
 
 			if [[ $go_ahead -eq 1 ]]; then
+				local symlink
+				local symlink_path
 				local symlink_target
-				for symlink_target in "$(tar tvzf $filepath/$filename.$fileext | grep '^l' | awk '{print $(NF-2)}')"; do
-					_contains "$final_paths" "$symlink_target"
+				local pathology_dir
+				local pathology_name
+				local cde_file_path
+				local db_file_path
+				for symlink in "$(tar tvzf $filepath/$filename.$fileext | grep '^l')"; do
+					symlink_target=$(echo $symlink | awk '{print $NF}')
+					__debug --level 7 "symlink_target=<$symlink_target>"
+					symlink_path=$(echo $symlink | awk '{print $(NF-2)}')
+					_contains "$final_paths" "$symlink_path"
 					local ret=$?
-					if [[ $ret -eq 0 && (( -f /$symlink_target || -d /$symlink_target )) ]]; then
-						__debug --level 6 "rm -rf /$symlink_target 2>/dev/null"
-						rm -rf /$symlink_target 2>/dev/null
+					symlink_path="/$symlink_path"
+					__debug --level 7 "symlink_path=<$symlink_path>"
+					if [[ $ret -eq 0 && (( -f $symlink_path || -d $symlink_path )) && (( -f $symlink_target || -d $symlink_target )) ]]; then
+						__debug --level 7 "symlink_path and symlink_target exist, and is planned to be restored"
+						if [[ -d $symlink_target && "$(basename $symlink_target)" = "data" ]]; then
+							__debug --level 7 "symlink_target is a data directory"
+							for cde_file_path in $(find $symlink_target -name CDEsMetadata.json); do
+								cde_file_path=$(realpath $cde_file_path)
+								__debug --level 7 "cde_file_path=<$cde_file_path>"
+								pathology_dir=$(dirname $cde_file_path)
+								__debug --level 7 "pathology_dir=<$pathology_dir>"
+								pathology_name=$(basename $pathology_dir)
+								__debug --level 7 "pathology_name=<$pathology_name>"
+								if [[ -f $symlink_path/$pathology_name/CDEsMetadata.json ]]; then
+									__debug --level 6 "mv $pathology_dir/CDEsMetadata.json $pathology_dir/CDEsMetadata.json.bak$(date +'%Y%m%d%H%M%S')"
+									mv $pathology_dir/CDEsMetadata.json $pathology_dir/CDEsMetadata.json.bak$(date +'%Y%m%d%H%M%S')
+									__debug --level 6 "cp $symlink_path/$pathology_name/CDEsMetadata.json $pathology_dir/"
+									cp $symlink_path/$pathology_name/CDEsMetadata.json $pathology_dir/
+									if [[ -f $pathology_dir/datasets.db ]]; then
+										__debug --level 6 "rm $pathology_dir/datasets.db"
+										rm $pathology_dir/datasets.db
+									fi
+								fi
+							done
+						fi
+						__debug --level 6 "rm -rf $symlink_path 2>/dev/null"
+						rm -rf $symlink_path 2>/dev/null
 					fi
 				done
 			fi
@@ -7870,7 +7914,7 @@ _data(){
 			if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
 				return 0
 			fi
-			__debug --level 1 --levelcompare "eq" -n "Consolidating data... "
+			__echo "Consolidating data..."
 
 			if [[ $ARG_PUSHER -eq 1 ]]; then
 				if [[ ! -f $SSH_PATH/.ssh/config ]]; then
@@ -8082,7 +8126,7 @@ _data(){
 			fi
 			;;
 		compile)
-			__debug --level 1 --levelcompare "eq" -n "Compiling data... "
+			__echo "Compiling data..."
 
 			if [[ $ARG_PUSHER -eq 1 ]]; then
 				if [[ -f $SSH_PATH/.ssh/config ]]; then
@@ -8337,7 +8381,7 @@ _data(){
 			;;
 	esac
 
-	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+	__check_return $result
 }
 
 _ssh(){
@@ -8884,7 +8928,6 @@ _install_mip(){
 				local backupfile=""
 				if [[ "$installed_part" = "$part" ]]; then
 					__echo -n "Creating backup of existing $part: "
-					__debug --level 5 "_backup"
 					_backup
 					backupfile=$(_backup list | head -1)
 					__echo -n "$backupfile..."
@@ -9105,7 +9148,12 @@ EOF
 		fi
 
 		if [[ $ARG_PUSHER -ne 1 && (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) ]]; then
-			_pull 2>/dev/null
+			if [[ "$install_type" = "upgrade" || "$install_type" = "downgrade" ]]; then
+				_prepare_logs
+				_data -f consolidate
+				_data -f compile
+			fi
+			_pull
 
 			if [[ $ARG_NORUN -eq 1 ]]; then
 				answer="n"
