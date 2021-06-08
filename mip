@@ -3615,6 +3615,27 @@ _clean(){
 				done
 			fi
 		fi
+
+		if [[ $ARG_FORCE -eq 1 && $ARG_PURGE -eq 1 ]]; then
+			__red -n "Removing all stopped Docker containers, unused Docker networks, unused Docker images and unused Docker volumes... "
+			local ret
+			local cmd="docker system prune -a --volumes"
+			if [[ $ARG_QUIET -eq 1 ]]; then
+				__debug --level 6 "$cmd >/dev/null 2>&1"
+				$cmd >/dev/null 2>&1
+				ret=$?
+			else
+				__debug --level 6 "$cmd"
+				$cmd
+				ret=$?
+			fi
+
+			if [[ $ret -eq 0 ]]; then
+				__green "done"
+			else
+				__red "fail!"
+			fi
+		fi
 	fi
 
 	__debug --level 5 "result=<$result>"
@@ -4052,6 +4073,10 @@ _configure_user(){
 
 _configure_docker_mtu(){
 	__debug --level 4 "_configure_docker($*)"
+
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return 0
+	fi
 
 	local result=1
 
@@ -4954,9 +4979,6 @@ do_configure(){
 			;;
 		data)
 			_prepare_data
-			if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-				_data compile
-			fi
 			;;
 		dataset-compilation)
 			case $1 in
@@ -4978,9 +5000,6 @@ do_configure(){
 			_configure_exareme_ip
 			_prepare_logs
 			_prepare_data
-			if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-				_data compile
-			fi
 			_prepare_keycloak
 			;;
 	esac
@@ -5062,6 +5081,10 @@ _prepare_data(){
 			__debug --level 6 "chown $DOCKER_USER.$DOCKER_USER $MIP_PATH"
 			chown $DOCKER_USER.$DOCKER_USER $MIP_PATH
 		fi
+	fi
+
+	if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+		_data compile
 	fi
 
 	return 0
@@ -7975,7 +7998,7 @@ _data(){
 					fi
 
 					if [[ "$nodetype" = "wk" ]]; then
-						__cyan "Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list"
+						__echo "\${cyan}Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list\${reset}"
 						datafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "$MIP_COMMAND --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null" 2>/dev/null)
 						if [[ "$datafile" != "" ]]; then
 							hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
@@ -7987,7 +8010,7 @@ _data(){
 								if [[ ! -d /tmp/miptmpfeddata/$host ]]; then
 									mkdir -p /tmp/miptmpfeddata/$host
 								fi
-								__cyan -a "Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)"
+								__echo -e "\${cyan}Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)\${reset}\n"
 								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host:$datafile /tmp/miptmpfeddata/$host >/dev/null 2>&1
 								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "rm $datafile" 2>/dev/null
 								tar xzf /tmp/miptmpfeddata/$host/$remotehostname.tar.gz --directory /tmp/miptmpfeddata/$host
@@ -7998,7 +8021,7 @@ _data(){
 										masterdatapath=$(_get_remote_var ms DATA_PATH)
 										metadatafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ -f /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME ]]; then echo /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME; else echo ""; fi" 2>/dev/null)
 										if [[ "$metadatafile" != "" ]]; then
-											__magenta "Downloading CDE for pathology <$pathology> from Master <ms/$remotemshostname> node ($localmshostname)"
+											__echo "\${magenta}Downloading CDE for pathology <$pathology> from Master <ms/$remotemshostname> node ($localmshostname)\${reset}"
 											__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1"
 											scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1
 										else
@@ -8051,10 +8074,10 @@ _data(){
 				__debug --level 2 "Aligning CDEs and generating pathologies.json"
 				local pathologies_generator_args="--data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --pathologies-preserve-dataset-var"
 				if [[ $ARG_ONLINE_CDES -eq 1 ]]; then
-					__yellow -b "Have been asked to download CDEs from datacatalogue. I'll try to take latest versions there and overwrite local CDEs"
+					__echo -e "\n\${yellow}Have been asked to download CDEs from datacatalogue. I'll try to take latest versions there and overwrite local CDEs\${reset}"
 					pathologies_generator_args="$pathologies_generator_args --metadata-online-sync"
 					local datacatalogue_host=$(echo $MIP_ENV_DATACATALOGUE_HOST|awk -F ':' '{print $1}')
-					__yellow "Setting datacatalogue API URL: <$DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT>"
+					__echo "\${yellow}Setting datacatalogue API URL: <$DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT>\${reset}"
 					pathologies_generator_args="$pathologies_generator_args --metadata-datacatalogue-api-url $DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT"
 				fi
 
@@ -8062,7 +8085,7 @@ _data(){
 					pathologies_generator_args="$pathologies_generator_args --force-relabel"
 				fi
 
-				__yellow -b -n "Gathering datasets list, aligning CDEs enumerations and preparing generation of pathologies file... "
+				__echo -en "\n\${yellow}Gathering datasets list, aligning CDEs enumerations and preparing generation of pathologies file...\${reset} "
 				__debug --level 6 "pathologies_generator.py $pathologies_generator_args"
 				pathologies_generator.py $pathologies_generator_args
 				__green "done"
@@ -8077,7 +8100,7 @@ _data(){
 							if [[ "${!pathologyvar}" != "" ]]; then
 								customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bms\b"|awk '{print $NF}')
 								masterdatapath=$(_get_remote_var ms DATA_PATH)
-								__magenta -b "Deploying aligned CDE in Master <ms/$customhostname> node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/"
+								__echo -e "\n\${magenta}Deploying aligned CDE in Master <ms/$customhostname> node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/\${reset}"
 								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms 'if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi' 2>/dev/null"
 								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi" 2>/dev/null
 								__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1"
@@ -8089,7 +8112,7 @@ _data(){
 									hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
 									__debug --level 5 "hostdatapath=<${!hostdatapath}>"
 									localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host \b$host\b"|awk '/Hostname / {print $2}')
-									__cyan "Deploying aligned CDE in worker node <$host/$customhostname> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/"
+									__echo "\${cyan}Deploying aligned CDE in worker node <$host/$customhostname> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/\${reset}"
 									__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1"
 									scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1
 								done
@@ -8107,7 +8130,7 @@ _data(){
 				local remoteuidir=$uimippath/Federation
 				if [[ -f /tmp/miptmpfeddata/config/pathologies.json ]]; then
 					customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bui\b"|awk '{print $NF}')
-					__magenta -b "Deploying pathologies file in Frontend <ui/$customhostname> node ($localuihostname), in $remoteuidir/config/"
+					__echo -e "\n\${magenta}Deploying pathologies file in Frontend <ui/$customhostname> node ($localuihostname), in $remoteuidir/config/\${reset}"
 					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi' 2>/dev/null"
 					ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi" 2>/dev/null
 					__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json ui:$remoteuidir/config/ >/dev/null 2>&1"
