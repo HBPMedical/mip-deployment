@@ -367,6 +367,8 @@ __save_args(){
 		ORIG_ARGS+=("$1")
 		shift
 	done
+
+	ORIG_SCRIPT=$(realpath $0)
 }
 
 __config_colors(){
@@ -3618,10 +3620,14 @@ _clean(){
 
 		if [[ $ARG_FORCE -eq 1 && $ARG_PURGE -eq 1 ]]; then
 			local cmd="docker system prune -a --volumes"
+			if [[ $ARG_YES -eq 1 || $ARG_QUIET -eq 1 ]]; then
+				cmd+=" --force"
+			fi
+
 			local ret
 			if [[ $ARG_QUIET -eq 1 ]]; then
-				__debug --level 6 "$cmd --force >/dev/null 2>&1"
-				$cmd --force >/dev/null 2>&1
+				__debug --level 6 "$cmd >/dev/null 2>&1"
+				$cmd >/dev/null 2>&1
 				ret=$?
 			else
 				__red "Removing all stopped Docker containers, unused Docker networks, unused Docker images and unused Docker volumes..."
@@ -5241,7 +5247,7 @@ _remove_installer(){
 	__debug --level 4 "_remove_installer($*)"
 	__debug --level 1 --levelcompare "eq" "Removing installer..."
 	local result=0
-	local parentdir=$(realpath $(dirname $0))
+	local parentdir=$(realpath $(dirname $ORIG_SCRIPT))
 	local answer=""
 
 	if [[ $ARG_KEEP_INSTALLER -ne 1 && -d $parentdir && "$(basename $parentdir)" = "$DEFAULT_MIP_GITHUB_PROJECT" && "$(dirname $parentdir)" != "$INSTALL_PATH" ]]; then
@@ -9124,8 +9130,8 @@ EOF
 
 	if [[ $install_done -eq 1 ]]; then
 		local install_target_dirname="/usr/local/bin"
-		local install_filename="$(basename $0)"
-		local install_source_dirname=$(realpath $(dirname $0))
+		local install_filename="$(basename $ORIG_SCRIPT)"
+		local install_source_dirname=$(realpath $(dirname $ORIG_SCRIPT))
 		if [[ ! -f $install_target_dirname/$install_filename ]]; then
 			local install_git_remote_origin
 			local install_git_provider
