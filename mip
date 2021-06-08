@@ -3617,14 +3617,14 @@ _clean(){
 		fi
 
 		if [[ $ARG_FORCE -eq 1 && $ARG_PURGE -eq 1 ]]; then
-			__red -n "Removing all stopped Docker containers, unused Docker networks, unused Docker images and unused Docker volumes... "
-			local ret
 			local cmd="docker system prune -a --volumes"
+			local ret
 			if [[ $ARG_QUIET -eq 1 ]]; then
-				__debug --level 6 "$cmd >/dev/null 2>&1"
-				$cmd >/dev/null 2>&1
+				__debug --level 6 "$cmd --force >/dev/null 2>&1"
+				$cmd --force >/dev/null 2>&1
 				ret=$?
 			else
+				__red "Removing all stopped Docker containers, unused Docker networks, unused Docker images and unused Docker volumes..."
 				__debug --level 6 "$cmd"
 				$cmd
 				ret=$?
