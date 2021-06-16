@@ -5,7 +5,7 @@ set -o errtrace # trace ERR through 'time command' and other functions
 shopt -s extglob
 
 REQUIRED_OS_DISTRIBUTOR_ID="Ubuntu"
-REQUIRED_OS_RELEASE="18.04"
+REQUIRED_OS_RELEASE="20.04"
 REQUIRED_DOCKER_VERSION="20.10.0"
 MAX_ALLOWED_DOCKER_VERSION=""
 ###########################################################################################
@@ -43,9 +43,11 @@ MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy cre
 MIP_FEDERATION_UI_COMPONENT_LABELS="Portal Frontend,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,Create DBs"
 MIP_FEDERATION_WK_COMPONENTS="exareme"
 MIP_FEDERATION_WK_COMPONENT_LABELS="Exareme"
-CONFIGURE_PARTS="docker-mtu user ssh pusher pathologies host exareme-ip logs data keycloak dataset-compilation all"
+CONFIGURE_PARTS="docker-mtu user ssh pusher pathologies protocol host exareme-ip logs data keycloak dataset-compilation all"
 
 DEFAULT_METADATA_FILENAME="CDEsMetadata.json"
+
+DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL="http"
 
 DEFAULT_MIP_ENV_MIP_TYPE="local"
 DEFAULT_MIP_ENV_KEYCLOAK_AUTHENTICATION=0
@@ -198,6 +200,11 @@ args_parser(){
 				shift
 				shift
 				;;
+			--protocol)
+				ARG_PROTOCOL=$2
+				shift
+				shift
+				;;
 			--host)
 				ARG_HOST=$2
 				shift
@@ -253,11 +260,6 @@ args_parser(){
 				;;
 			--node)
 				ARG_NODE=$2
-				shift
-				shift
-				;;
-			--container)
-				ARG_CONTAINER=$2
 				shift
 				shift
 				;;
@@ -872,8 +874,9 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--debug-level [LEVEL]						Debug level (1 will generate quite a fancy output, 8 will be very verbose).
 
 		Next parameters may be used mainly with "configure" action, but not exclusively.
+		--protocol [PUBLIC_MIP_PROTOCOL]				Set the protocol (http/https) on which the MIP will listen. For "local" installation and "ui" federation node.
 		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen. For "local" installation and "ui" federation node.
-		--component [MIP_COMPONENT]					Specific MIP component which can be targetted (in logs, install, or version action).
+		--component [MIP_COMPONENT]					Specific MIP component which can be targetted (in logs, install, version, pull, start, stop, restart action).
 			Typical MIP_COMPONENT for "local" MIP:
 				[frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
 			Typical MIP_COMPONENT for "ui" federation node:
@@ -1030,6 +1033,18 @@ load_mip_env(){
 		envvar_changes=1
 	fi
 
+	if [[ -n $ARG_PROTOCOL ]]; then
+		__debug --level 5 "ARG_PROTOCOL=<$ARG_PROTOCOL>"
+		__debug --level 6 "Setting env var: MIP_ENV_PUBLIC_MIP_PROTOCOL=<$ARG_PROTOCOL>"
+		export MIP_ENV_PUBLIC_MIP_PROTOCOL=$ARG_PROTOCOL
+		if [[ "$MIP_ENV_MIP_TYPE" = "local" && -n $ARG_KEYCLOAK_PROTOCOL ]]; then
+			__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
+			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=<$ARG_PROTOCOL>"
+			DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=$ARG_PROTOCOL
+		fi
+		envvar_changes=1
+	fi
+
 	if [[ -n $ARG_HOST ]]; then
 		__debug --level 5 "ARG_HOST=<$ARG_HOST>"
 		if [[ "$ARG_HOST" = "127.0.0.1" ]]; then
@@ -1059,7 +1074,7 @@ load_mip_env(){
 		envvar_changes=1
 	fi
 
-	if [[ (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) && (( -n $ARG_KEYCLOAK_AUTHENTICATION || -n $ARG_KEYCLOAK_PROTOCOL || -n $ARG_KEYCLOAK_URL || -n $ARG_KEYCLOAK_REALM || -n $ARG_KEYCLOAK_CLIENT_ID || -n $ARG_KEYCLOAK_CLIENT_SECRET )) ]]; then
+	if [[ (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) && (( -n $ARG_PROTOCOL || -n $ARG_KEYCLOAK_AUTHENTICATION || -n $ARG_KEYCLOAK_PROTOCOL || -n $ARG_KEYCLOAK_URL || -n $ARG_KEYCLOAK_REALM || -n $ARG_KEYCLOAK_CLIENT_ID || -n $ARG_KEYCLOAK_CLIENT_SECRET )) ]]; then
 		__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
 		__debug --level 5 "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"
 		if [[ -n $ARG_KEYCLOAK_AUTHENTICATION ]]; then
@@ -1163,13 +1178,6 @@ load_mip_env(){
 		DATA_PATH=/data
 	elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 		__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
-		if [[ -n $MIP_ENV_PUBLIC_MIP_HOST ]]; then
-			__debug --level 5 "MIP_ENV_PUBLIC_MIP_HOST=<$MIP_ENV_PUBLIC_MIP_HOST>"
-			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=<http>"
-			DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=http
-			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$MIP_ENV_PUBLIC_MIP_HOST>"
-			DEFAULT_MIP_ENV_KEYCLOAK_URL=$MIP_ENV_PUBLIC_MIP_HOST
-		fi
 		__debug --level 6 "Setting global var: LOGS_PATH=<$MIP_PATH/logs>"
 		LOGS_PATH=$MIP_PATH/logs
 		__debug --level 6 "Setting global var: DATA_PATH=<$MIP_PATH/data>"
@@ -2882,9 +2890,16 @@ _pull(){
 			load_mip_env
 			load_mip_versions
 			_prepare_mip_env set
-			if [[ -n $ARG_CONTAINER ]]; then
-				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME pull $ARG_CONTAINER"
-				docker-compose --project-name $DOCKER_PROJECT_NAME pull $ARG_CONTAINER
+			if [[ -n $ARG_COMPONENT ]]; then
+				_contains "$MIP_COMPONENTS" $ARG_COMPONENT
+				local ret=$?
+				if [[ $ret -ne 0 ]]; then
+					__red "Usage: $0 --component [$MIP_COMPONENTS_LIST] pull"
+					if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
+					exit 1
+				fi
+				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME pull $ARG_COMPONENT"
+				docker-compose --project-name $DOCKER_PROJECT_NAME pull $ARG_COMPONENT
 			else
 				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME pull"
 				docker-compose --project-name $DOCKER_PROJECT_NAME pull
@@ -4842,6 +4857,62 @@ _configure_pathologies(){
 	fi
 }
 
+_configure_protocol(){
+	__debug --level 4 "_configure_protocol($*)"
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
+		return 0
+	fi
+	if [[ -n $MIP_ENV_PUBLIC_MIP_PROTOCOL && $ARG_FORCE -ne 1 ]]; then
+		return 0
+	fi
+	__debug --level 1 --levelcompare "eq" "Configuring protocol..."
+
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		return 1
+	fi
+	local answer=""
+
+	# Checking the PUBLIC_MIP_PROTOCOL env variable
+	if [[ ! -n $ARG_PROTOCOL ]]; then
+		__echo -e "\nPUBLIC_MIP_PROTOCOL. It's the protocol (http/https) where MIP will be reachable at."
+	fi
+
+	local tmpval=""
+
+	if [[ -n $MIP_ENV_PUBLIC_MIP_PROTOCOL && ! -n $ARG_PROTOCOL ]]; then
+		__echo -e "\n'PUBLIC_MIP_PROTOCOL' is set to value: $MIP_ENV_PUBLIC_MIP_PROTOCOL"
+		__echo -ne "\nWould you like to change it? [y/n] "
+		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+		if [[ "$answer" != "y" ]]; then
+			return 0
+		fi
+	fi
+
+	# Read HOST from the user
+	if [[ -n $ARG_PROTOCOL ]]; then
+		answer=$ARG_PROTOCOL
+	else
+		__echo -ne "\nPlease provide a value for the variable 'PUBLIC_MIP_PROTOCOL' (directly hit ENTER for default <$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL>): "
+		read answer
+		if [[ "$answer" = "" ]]; then
+			answer=$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL
+		fi
+	fi
+	while [[ "$answer" != "http" && "$answer" != "https" ]]; do
+		__echo
+		__red -n "'$answer' is not a valid PROTOCOL. Try again: "
+		read answer
+		if [[ "$answer" = "" ]]; then
+			answer=$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL
+		fi
+	done
+
+	# Store HOST to the env file
+	__debug --level 6 "Setting env var: MIP_ENV_PUBLIC_MIP_PROTOCOL=<$answer>"
+	export MIP_ENV_PUBLIC_MIP_PROTOCOL=$answer
+	_write_mip_env
+}
+
 _configure_host(){
 	__debug --level 4 "_configure_host($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
@@ -4858,12 +4929,14 @@ _configure_host(){
 	local answer=""
 
 	# Checking the PUBLIC_MIP_HOST env variable
-	local first_int_ip=$(hostname -I|awk '{print $1}')
-	__echo -e "\nPUBLIC_MIP_HOST. It's the HOSTNAME/IP:PORT where MIP will be reachable at.\nIt IS very important that you understand that BOTH YOU and THIS machine MUST be able to access this PUBLIC_MIP_HOST with the exact HOSTNAME/IP:PORT that you give here!\nIf you only want to install it on your local machine, you can initialize it with your internal IP ($first_int_ip).\n127.0.0.1 (or anything which points to this IP) is NOT allowed, as it's in use by the MIP."
+	if [[ ! -n $ARG_HOST ]]; then
+		local first_int_ip=$(hostname -I|awk '{print $1}')
+		__echo -e "\nPUBLIC_MIP_HOST. It's the HOSTNAME/IP:PORT where MIP will be reachable at.\nIt IS very important that you understand that BOTH YOU and THIS machine MUST be able to access this PUBLIC_MIP_HOST with the exact HOSTNAME/IP:PORT that you give here!\nIf you only want to install it on your local machine, you can initialize it with your internal IP ($first_int_ip).\n127.0.0.1 (or anything which points to this IP) is NOT allowed, as it's in use by the MIP."
+	fi
 
 	local tmpval=""
 
-	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST ]]; then
+	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST && ! -n $ARG_HOST ]]; then
 		__echo -e "\n'PUBLIC_MIP_HOST' is set to value: $MIP_ENV_PUBLIC_MIP_HOST"
 		__echo -ne "\nWould you like to change it? [y/n] "
 		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
@@ -4873,10 +4946,14 @@ _configure_host(){
 	fi
 
 	# Read HOST from the user
-	__echo -ne "\nPlease provide a value for the variable 'PUBLIC_MIP_HOST' (directly hit ENTER for default <$first_int_ip>): "
-	read answer
-	if [[ "$answer" = "" ]]; then
-		answer=$first_int_ip
+	if [[ -n $ARG_HOST ]]; then
+		answer=$ARG_HOST
+	else
+		__echo -ne "\nPlease provide a value for the variable 'PUBLIC_MIP_HOST' (directly hit ENTER for default <$first_int_ip>): "
+		read answer
+		if [[ "$answer" = "" ]]; then
+			answer=$first_int_ip
+		fi
 	fi
 	while [[ "$answer" = "127.0.0.1" ]]; do
 		__echo
@@ -4908,7 +4985,7 @@ _configure_exareme_ip(){
 	fi
 	local answer=""
 
-	if [[ -n $MIP_ENV_EXAREME_IP ]]; then
+	if [[ -n $MIP_ENV_EXAREME_IP && ! -n $ARG_EXAREME_IP ]]; then
 		__echo -e "\n'EXAREME_IP' is set to value: $MIP_ENV_EXAREME_IP"
 		__echo -ne "\nWould you like to change it? [y/n] "
 		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
@@ -4918,8 +4995,12 @@ _configure_exareme_ip(){
 	fi
 
 	# Read IP from the user
-	__echo -ne "\nPlease provide a value for the variable 'EXAREME_IP': "
-	read answer
+	if [[ -n $ARG_EXAREME_IP ]]; then
+		answer=$ARG_EXAREME_IP
+	else
+		__echo -ne "\nPlease provide a value for the variable 'EXAREME_IP': "
+		read answer
+	fi
 	_valid_IPv4 $answer
 	local ret=$?
 	while [[ $ret -ne 0 ]]; do
@@ -4945,13 +5026,11 @@ check_configure(){
 	_configure_ssh
 	_configure_pusher
 	_configure_pathologies
+	_configure_protocol
 	_configure_host
 	_configure_exareme_ip
 	_prepare_logs
 	_prepare_data
-	if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-		_data compile
-	fi
 	_prepare_keycloak
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
@@ -4973,6 +5052,9 @@ do_configure(){
 			;;
 		pathologies)
 			_configure_pathologies
+			;;
+		protocol)
+			_configure_protocol
 			;;
 		host)
 			_configure_host
@@ -5002,6 +5084,7 @@ do_configure(){
 			_configure_ssh
 			_configure_pusher
 			_configure_pathologies
+			_configure_protocol
 			_configure_host
 			_configure_exareme_ip
 			_prepare_logs
@@ -5090,7 +5173,7 @@ _prepare_data(){
 	fi
 
 	if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-		_data compile
+		_data -q compile
 	fi
 
 	return 0
@@ -7907,6 +7990,7 @@ _data(){
 	local result=0
 
 	local action=$DATA_ACTION
+	local quiet=$ARG_QUIET
 	local force=$ARG_FORCE
 	local pathologies=$ARG_PATHOLOGY
 
@@ -7915,6 +7999,10 @@ _data(){
 		case $1 in
 			consolidate|compile)
 				action="$1"
+				shift
+				;;
+			-q)
+				quiet=1
 				shift
 				;;
 			-f)
@@ -7943,7 +8031,9 @@ _data(){
 			if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
 				return 0
 			fi
-			__echo "Consolidating data..."
+			if [[ $quiet -ne 1 ]]; then
+				__echo "Consolidating data..."
+			fi
 
 			if [[ $ARG_PUSHER -eq 1 ]]; then
 				if [[ ! -f $SSH_PATH/.ssh/config ]]; then
@@ -8004,7 +8094,9 @@ _data(){
 					fi
 
 					if [[ "$nodetype" = "wk" ]]; then
-						__echo "\${cyan}Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list\${reset}"
+						if [[ $quiet -ne 1 ]]; then
+							__echo "\${cyan}Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list\${reset}"
+						fi
 						datafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "$MIP_COMMAND --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null" 2>/dev/null)
 						if [[ "$datafile" != "" ]]; then
 							hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
@@ -8016,7 +8108,9 @@ _data(){
 								if [[ ! -d /tmp/miptmpfeddata/$host ]]; then
 									mkdir -p /tmp/miptmpfeddata/$host
 								fi
-								__echo -e "\${cyan}Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)\${reset}\n"
+								if [[ $quiet -ne 1 ]]; then
+									__echo -e "\${cyan}Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)\${reset}\n"
+								fi
 								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host:$datafile /tmp/miptmpfeddata/$host >/dev/null 2>&1
 								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "rm $datafile" 2>/dev/null
 								tar xzf /tmp/miptmpfeddata/$host/$remotehostname.tar.gz --directory /tmp/miptmpfeddata/$host
@@ -8027,7 +8121,9 @@ _data(){
 										masterdatapath=$(_get_remote_var ms DATA_PATH)
 										metadatafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ -f /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME ]]; then echo /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME; else echo ""; fi" 2>/dev/null)
 										if [[ "$metadatafile" != "" ]]; then
-											__echo "\${magenta}Downloading CDE for pathology <$pathology> from Master <ms/$remotemshostname> node ($localmshostname)\${reset}"
+											if [[ $quiet -ne 1 ]]; then
+												__echo "\${magenta}Downloading CDE for pathology <$pathology> from Master <ms/$remotemshostname> node ($localmshostname)\${reset}"
+											fi
 											__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1"
 											scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1
 										else
@@ -8080,10 +8176,14 @@ _data(){
 				__debug --level 2 "Aligning CDEs and generating pathologies.json"
 				local pathologies_generator_args="--data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --pathologies-preserve-dataset-var"
 				if [[ $ARG_ONLINE_CDES -eq 1 ]]; then
-					__echo -e "\n\${yellow}Have been asked to download CDEs from datacatalogue. I'll try to take latest versions there and overwrite local CDEs\${reset}"
+					if [[ $quiet -ne 1 ]]; then
+						__echo -e "\n\${yellow}Have been asked to download CDEs from datacatalogue. I'll try to take latest versions there and overwrite local CDEs\${reset}"
+					fi
 					pathologies_generator_args="$pathologies_generator_args --metadata-online-sync"
 					local datacatalogue_host=$(echo $MIP_ENV_DATACATALOGUE_HOST|awk -F ':' '{print $1}')
-					__echo "\${yellow}Setting datacatalogue API URL: <$DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT>\${reset}"
+					if [[ $quiet -ne 1 ]]; then
+						__echo "\${yellow}Setting datacatalogue API URL: <$DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT>\${reset}"
+					fi
 					pathologies_generator_args="$pathologies_generator_args --metadata-datacatalogue-api-url $DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT"
 				fi
 
@@ -8091,10 +8191,14 @@ _data(){
 					pathologies_generator_args="$pathologies_generator_args --force-relabel"
 				fi
 
-				__echo -en "\n\${yellow}Gathering datasets list, aligning CDEs enumerations and preparing generation of pathologies file...\${reset} "
+				if [[ $quiet -ne 1 ]]; then
+					__echo -en "\n\${yellow}Gathering datasets list, aligning CDEs enumerations and preparing generation of pathologies file...\${reset} "
+				fi
 				__debug --level 6 "pathologies_generator.py $pathologies_generator_args"
 				pathologies_generator.py $pathologies_generator_args
-				__green "done"
+				if [[ $quiet -ne 1 ]]; then
+					__green "done"
+				fi
 				__debug --level 5 "Parsing pathologies..."
 				for pathology in $pathologies; do
 					__debug --level 5 "pathology=<$pathology>"
@@ -8106,7 +8210,9 @@ _data(){
 							if [[ "${!pathologyvar}" != "" ]]; then
 								customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bms\b"|awk '{print $NF}')
 								masterdatapath=$(_get_remote_var ms DATA_PATH)
-								__echo -e "\n\${magenta}Deploying aligned CDE in Master <ms/$customhostname> node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/\${reset}"
+								if [[ $quiet -ne 1 ]]; then
+									__echo -e "\n\${magenta}Deploying aligned CDE in Master <ms/$customhostname> node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/\${reset}"
+								fi
 								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms 'if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi' 2>/dev/null"
 								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi" 2>/dev/null
 								__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1"
@@ -8118,7 +8224,9 @@ _data(){
 									hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
 									__debug --level 5 "hostdatapath=<${!hostdatapath}>"
 									localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host \b$host\b"|awk '/Hostname / {print $2}')
-									__echo "\${cyan}Deploying aligned CDE in worker node <$host/$customhostname> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/\${reset}"
+									if [[ $quiet -ne 1 ]]; then
+										__echo "\${cyan}Deploying aligned CDE in worker node <$host/$customhostname> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/\${reset}"
+									fi
 									__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1"
 									scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1
 								done
@@ -8136,7 +8244,9 @@ _data(){
 				local remoteuidir=$uimippath/Federation
 				if [[ -f /tmp/miptmpfeddata/config/pathologies.json ]]; then
 					customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bui\b"|awk '{print $NF}')
-					__echo -e "\n\${magenta}Deploying pathologies file in Frontend <ui/$customhostname> node ($localuihostname), in $remoteuidir/config/\${reset}"
+					if [[ $quiet -ne 1 ]]; then
+						__echo -e "\n\${magenta}Deploying pathologies file in Frontend <ui/$customhostname> node ($localuihostname), in $remoteuidir/config/\${reset}"
+					fi
 					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi' 2>/dev/null"
 					ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi" 2>/dev/null
 					__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json ui:$remoteuidir/config/ >/dev/null 2>&1"
@@ -8148,14 +8258,18 @@ _data(){
 				if [[ -d /tmp/miptmpfeddata ]]; then
 					rm -rf /tmp/miptmpfeddata
 				fi
-				__green "done"
+				if [[ $quiet -ne 1 ]]; then
+					__green "done"
+				fi
 			else
 				_configure_pathologies -f
 				_prepare_data -f
 			fi
 			;;
 		compile)
-			__echo "Compiling data..."
+			if [[ $quiet -ne 1 ]]; then
+				__echo "Compiling data..."
+			fi
 
 			if [[ $ARG_PUSHER -eq 1 ]]; then
 				if [[ -f $SSH_PATH/.ssh/config ]]; then
@@ -8297,10 +8411,12 @@ _data(){
 						if [[ "$pathologies" != "" ]]; then
 							arg_pathologies=" -p $pathologies"
 						fi
-						if [[ "$nodetype" = "ms" ]]; then
-							__magenta "Asking master <$node/$remotehostname> node ($localhostname) to compile CDEs"
-						else
-							__cyan "Asking worker <$node/$remotehostname> node ($localhostname) to compile datasets"
+						if [[ $quiet -ne 1 ]]; then
+							if [[ "$nodetype" = "ms" ]]; then
+								__magenta "Asking master <$node/$remotehostname> node ($localhostname) to compile CDEs"
+							else
+								__cyan "Asking worker <$node/$remotehostname> node ($localhostname) to compile datasets"
+							fi
 						fi
 						__debug --level 6 _remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force}${arg_pathologies} 2>/dev/null
 						_remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force}${arg_pathologies} 2>/dev/null
@@ -8354,7 +8470,9 @@ _data(){
 					fi
 				done
 				if [[ $dbok -eq 1 && $force -ne 1 ]]; then
-					__yellow "All pathologies have db. Nothing to do."
+					if [[ $quiet -ne 1 ]]; then
+						__yellow "All pathologies have db. Nothing to do."
+					fi
 					if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
 					return 0
 				fi
@@ -8370,7 +8488,9 @@ _data(){
 				fi
 
 				# CSVs and metadata validation
-				__echo -e "\nValidating if the CSVs match with the metadata..."
+				if [[ $quiet -ne 1 ]]; then
+					__echo -e "\nValidating if the CSVs match with the metadata..."
+				fi
 				if [[ "$pathologies" != "" && ${#check_pathologies[@]} -gt 0 ]]; then
 					for tmp_pathology in ${check_pathologies[@]}; do
 						__debug --level 6 find $data_path/$tmp_pathology -name '*.db' -delete 2>/dev/null
@@ -8956,7 +9076,7 @@ _install_mip(){
 			part)
 				local backupfile=""
 				if [[ "$installed_part" = "$part" ]]; then
-					__echo -n "Creating backup of existing $part: "
+					__echo -n "Creating backup of existing $part... "
 					_backup
 					backupfile=$(_backup list | head -1)
 					__echo -n "$backupfile..."
@@ -9197,7 +9317,7 @@ EOF
 			fi
 			if [[ "$answer" = "y" && $ARG_NORUN -ne 1 ]]; then
 				check_configure
-				run_mip
+				start_mip
 			fi
 		fi
 
@@ -9339,7 +9459,7 @@ _run_keycloak(){
 		count=`expr $count + 1`
 		if [[ $count -eq 8 ]]; then
 			__echo
-			__red -n "MIP seems to be up and running on http://${PUBLIC_MIP_HOST} but could not be configured properly. \nAs a result you can't access the administration console. You can retry by launching $0 configure keycloak "
+			__red -n "MIP seems to be up and running on ${MIP_ENV_PUBLIC_MIP_PROTOCOL}://${MIP_ENV_PUBLIC_MIP_HOST} but could not be configured properly. \nAs a result you can't access the administration console. You can retry by launching $0 configure keycloak "
 			if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 			exit 1
 		fi
@@ -9375,9 +9495,16 @@ _services_up(){
 				load_mip_env
 				load_mip_versions
 				_prepare_mip_env set
-				if [[ -n $ARG_CONTAINER ]]; then
-					__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME up $ARG_CONTAINER"
-					docker-compose --project-name $DOCKER_PROJECT_NAME up $ARG_CONTAINER
+				if [[ -n $ARG_COMPONENT ]]; then
+					_contains "$MIP_COMPONENTS" $ARG_COMPONENT
+					local ret=$?
+					if [[ $ret -ne 0 ]]; then
+						__red "Usage: $0 --component [$MIP_COMPONENTS_LIST] start"
+						if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
+						exit 1
+					fi
+					__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME up $ARG_COMPONENT"
+					docker-compose --project-name $DOCKER_PROJECT_NAME up $ARG_COMPONENT
 				else
 					__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME up -d"
 					docker-compose --project-name $DOCKER_PROJECT_NAME up -d
@@ -9431,8 +9558,20 @@ _services_down(){
 			load_mip_env
 			load_mip_versions
 			_prepare_mip_env set
-			__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME down"
-			docker-compose --project-name $DOCKER_PROJECT_NAME down
+			if [[ -n $ARG_COMPONENT ]]; then
+				_contains "$MIP_COMPONENTS" $ARG_COMPONENT
+				local ret=$?
+				if [[ $ret -ne 0 ]]; then
+					__red "Usage: $0 --component [$MIP_COMPONENTS_LIST] stop"
+					if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
+					exit 1
+				fi
+				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME stop $ARG_COMPONENT"
+				docker-compose --project-name $DOCKER_PROJECT_NAME stop $ARG_COMPONENT
+			else
+				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME down"
+				docker-compose --project-name $DOCKER_PROJECT_NAME down
+			fi
 			ret=$?
 			_prepare_mip_env unset
 			cd $path
@@ -9449,8 +9588,76 @@ _services_down(){
 	return $ret
 }
 
-run_mip(){
-	__debug --level 4 "run_mip($*)"
+_services_restart(){
+	__debug --level 4 "_services_restart($*)"
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
+		return 0
+	fi
+	__debug --level 1 --levelcompare "eq" "Restarting services..."
+
+	local result=1
+
+	_check_installed_mip -q
+	local ret=$?
+	if [[ $ret -eq 0 ]]; then
+		if [[ $(command -v docker-compose) ]]; then
+			ret=1
+			# Redeploying MIP services
+			__echo -e "\nRedeploying Services..."
+			local path=$(pwd)
+			cd $DOCKER_COMPOSE_PATH
+			local max_tries=2
+			local try=0
+			while [[ $result -ne 0 && $try -lt $max_tries ]]; do
+				load_mip_env
+				load_mip_versions
+				_prepare_mip_env set
+				if [[ -n $ARG_COMPONENT ]]; then
+					_contains "$MIP_COMPONENTS" $ARG_COMPONENT
+					local ret=$?
+					if [[ $ret -ne 0 ]]; then
+						__red "Usage: $0 --component [$MIP_COMPONENTS_LIST] restart"
+						if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
+						exit 1
+					fi
+					__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME restart $ARG_COMPONENT"
+					docker-compose --project-name $DOCKER_PROJECT_NAME restart $ARG_COMPONENT
+				else
+					__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME restart -d"
+					docker-compose --project-name $DOCKER_PROJECT_NAME restart
+				fi
+				ret=$?
+				_prepare_mip_env unset
+
+				if [[ $ret -eq 0 ]]; then
+					result=0
+				else
+					if [[ "$(docker ps | grep -v '^CONTAINER ID')" != "" && "$(docker ps -a | grep portal-frontend)" != "" && "$(docker ps | grep portal-frontend)" = "" ]]; then
+						docker-compose --project-name $DOCKER_PROJECT_NAME down $(docker ps -a -q --filter name=portal-frontend)
+						_force_portal_frontend_compile
+						ret=$?
+
+						try=$((try + 1))
+					fi
+				fi
+			done
+
+			cd $path
+		else
+			__red -n "docker-compose not found!"
+			ret=1
+		fi
+		if [[ $ret -ne 0 ]]; then
+			__red -n "An error has occurred while redeploying services! "
+		fi
+	fi
+
+	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+	return $result
+}
+
+start_mip(){
+	__debug --level 4 "start_mip($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
@@ -9483,10 +9690,41 @@ run_mip(){
 		_prepare_docker_compose
 		_services_up
 		if [[ $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 ]]; then
+			if [[ "$ARG_COMPONENT" = "" || (( "$ARG_COMPONENT" != "" && "$ARG_COMPONENT" = "keycloak" )) ]]; then
+				_run_keycloak
+			fi
+		fi
+		__echo -e "\nMIP is up and running you can access it on: ${MIP_ENV_PUBLIC_MIP_PROTOCOL}://${MIP_ENV_PUBLIC_MIP_HOST} "
+	fi
+	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
+}
+
+restart_mip(){
+	__debug --level 4 "restart_mip($*)"
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
+		return 0
+	fi
+	__debug --level 1 --levelcompare "eq" "Restarting MIP..."
+
+	check_required -q
+	local ret=$?
+	if [[ $ret -ne 0 ]]; then
+		__red -n "Some of the requirements are missing. Check with $0 check-required. "
+		if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $ret; fi
+		exit $ret
+	fi
+	ensure_running_dockerd
+	check_configure
+
+	_prepare_docker_compose
+	_services_restart
+	if [[ $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 ]]; then
+		if [[ "$ARG_COMPONENT" = "" || (( "$ARG_COMPONENT" != "" && "$ARG_COMPONENT" = "keycloak" )) ]]; then
 			_run_keycloak
 		fi
-		__echo -e "\nMIP is up and running you can access it on: http://${MIP_ENV_PUBLIC_MIP_HOST} "
 	fi
+	__echo -e "\nMIP is up and running you can access it on: ${MIP_ENV_PUBLIC_MIP_PROTOCOL}://${MIP_ENV_PUBLIC_MIP_HOST} "
+
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
 }
 
@@ -9543,6 +9781,9 @@ logs(){
 						image=$DOCKER_PROJECT_NAME"-"$logpart".1"
 					fi
 					containers="exareme-master exareme-keystore portainer"
+					;;
+				ui)
+					image=${DOCKER_PROJECT_NAME}_${logpart}_1
 					;;
 				wk)
 					image=$HOSTNAME"_"$logpart
@@ -9820,7 +10061,7 @@ main(){
 
 	case $ACTION in
 		start)
-			run_mip
+			start_mip
 			;;
 		stop)
 			_check_docker
@@ -9828,8 +10069,7 @@ main(){
 			;;
 		restart)
 			_check_docker
-			stop_mip
-			run_mip
+			restart_mip
 			;;
 		check-required)
 			if [[ $(id -u) -ne 0 ]]; then __red "Call this method with sudo!"; exit 1; fi
@@ -9889,9 +10129,9 @@ main(){
 					elif [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 						__red "Usage: $0 --node-type $MIP_ENV_NODE_TYPE configure [docker-mtu|user|ssh|logs|data|all]"
 					elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
-						__red "Usage: $0 --node-type $MIP_ENV_NODE_TYPE configure [docker-mtu|user|ssh|host|exareme-ip|logs|keycloak|all]"
+						__red "Usage: $0 --node-type $MIP_ENV_NODE_TYPE configure [docker-mtu|user|ssh|protocol|host|exareme-ip|logs|keycloak|all]"
 					elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-						__red "Usage: $0 configure [docker-mtu|user|ssh|pathologies|host|logs|keycloak|all]"
+						__red "Usage: $0 configure [docker-mtu|user|ssh|pathologies|protocol|host|logs|keycloak|all]"
 					fi
 					exit 1
 			esac
