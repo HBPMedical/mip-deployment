@@ -8,3 +8,4 @@ Federation/logs
 Federation/.combined_env
 federated
 local
+**/.fuse*

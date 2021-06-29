@@ -1,4 +1,4 @@
-version: '3.2'
+version: '3.7'
 
 services:
   exareme_keystore:
@@ -93,10 +93,14 @@ services:
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
       ### Keycloak ###
-      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      #KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      #KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://keycloak:8095/auth/
+      KEYCLOAK_AUTH_URL: ${PUBLIC_MIP_PROTOCOL}://${PUBLIC_MIP_HOST}/auth/
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_SSL_REQUIRED: external
+
     depends_on:
       - create_dbs
     volumes:
@@ -110,19 +114,24 @@ services:
       - portalbackend
     ports:
       - '80:80'
+      - '443:443'
+    volumes:
+      - ./.stored_data/caddy/caddy_data:/data
     environment:
-      WORKER_PROCESSES: 1
       ERROR_LOG_LEVEL: warn
-      PORTAL_VIRTUAL_HOST: frontend
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       INSTANCE_NAME: 'MIP ${MIP}'
       VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
-      GALAXY_URL: http://galaxy/nativeGalaxy
-      # TODO      KEYCLOAK_AUTH_URL: /services/sso/login
-      KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
-      KEYCLOAK_LOGIN_URL: http://keycloak:8095/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
+      GALAXY_HOST: http://galaxy
+      GALAXY_PATH: /nativeGalaxy
+      KEYCLOAK_HOST: ${KEYCLOAK_PROTOCOL}://keycloak:8095
+      KEYCLOAK_AUTH_PATH: /auth
+      PUBLIC_MIP_HOST: ${PUBLIC_MIP_HOST}
+      PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}
+      PRIVATE_MIP_HOST: ${PRIVATE_MIP_HOST}
+      PRIVATE_MIP_PROTOCOL: ${PRIVATE_MIP_PROTOCOL}
     restart: unless-stopped
 
   keycloak_db:
@@ -153,6 +162,9 @@ services:
       KEYCLOAK_PASSWORD: Pa55w0rd
       KEYCLOAK_IMPORT: /tmp/mip.json
       KEYCLOAK_HOSTNAME: ${PUBLIC_MIP_HOST}
+      #REDIRECT_SOCKET: "proxy-https"
+      #KEYCLOAK_FRONTEND_URL: ${PUBLIC_MIP_PROTOCOL}://${PUBLIC_MIP_HOST}/auth
+      PROXY_ADDRESS_FORWARDING: 'true'  #important for reverse proxy
     ports:
       - '8095:8095'
       - '8443:8443'
