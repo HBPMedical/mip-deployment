@@ -132,6 +132,7 @@ services:
       PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}
       PRIVATE_MIP_HOST: ${PRIVATE_MIP_HOST}
       PRIVATE_MIP_PROTOCOL: ${PRIVATE_MIP_PROTOCOL}
+      MIP_HOST: ${MIP_HOST}
     restart: unless-stopped
 
   keycloak_db:
