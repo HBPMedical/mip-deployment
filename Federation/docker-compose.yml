@@ -1,17 +1,17 @@
-version: '3.2'
+version: '3.7'
 
 services:
   galaxy:
     image: hbpmip/galaxy:${GALAXY}
-    expose:
-      - '80'
-    ports:
-      - '8090:80'
     environment:
       - EXAREME_IP=${EXAREME_IP}
       - EXAREME_PORT=9090
       - PASSWORD=password
     command: bash -c "htpasswd -bc /etc/apache2/htpasswd admin $$PASSWORD && ./createExaremeVariables.sh && /etc/init.d/apache2 restart && ./run.sh"
+    expose:
+      - '80'
+    ports:
+      - '8090:80'
     restart: unless-stopped
 
   portalbackend_db:
@@ -63,10 +63,14 @@ services:
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
       ### Keycloak ###
-      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      #KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      #KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://keycloak:8095/auth/
+      KEYCLOAK_AUTH_URL: ${EXTERNAL_MIP_PROTOCOL}://${KEYCLOAK_URL}/auth/
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_SSL_REQUIRED: external
+
     depends_on:
       - create_dbs
     volumes:
@@ -80,15 +84,19 @@ services:
       - portalbackend
     ports:
       - '80:80'
+      - '443:443'
+    volumes:
+      - ./.stored_data/caddy/caddy_data:/data
     environment:
-      WORKER_PROCESSES: 1
-      ERROR_LOG_LEVEL: warn
-      PORTAL_VIRTUAL_HOST: frontend
+      ERROR_LOG_LEVEL: info
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       INSTANCE_NAME: 'MIP ${MIP}'
       VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
-      GALAXY_URL: http://galaxy/nativeGalaxy
+      GALAXY_HOST: http://galaxy
+      GALAXY_PATH: /nativeGalaxy
       DATACATALOGUE_SERVER: ${DATACATALOGUE_PROTOCOL}://${DATACATALOGUE_HOST}
+      PUBLIC_MIP_HOST: ${PUBLIC_MIP_HOST}
+      PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}
     restart: unless-stopped
