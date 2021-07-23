@@ -131,7 +131,6 @@ services:
       PUBLIC_MIP_HOST: ${PUBLIC_MIP_HOST}
       PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}
       EXTERNAL_MIP_PROTOCOL: ${EXTERNAL_MIP_PROTOCOL}
-      MIP_LINK: ${MIP_LINK}
     restart: unless-stopped
 
   keycloak_db:
