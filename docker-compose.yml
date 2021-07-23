@@ -93,8 +93,6 @@ services:
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
       ### Keycloak ###
-      #KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
-      #KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://keycloak:8095/auth/
       KEYCLOAK_AUTH_URL: ${EXTERNAL_MIP_PROTOCOL}://${KEYCLOAK_URL}/auth/
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
@@ -162,8 +160,6 @@ services:
       KEYCLOAK_PASSWORD: Pa55w0rd
       KEYCLOAK_IMPORT: /tmp/mip.json
       KEYCLOAK_HOSTNAME: ${KEYCLOAK_URL}
-      #REDIRECT_SOCKET: "proxy-https"
-      #KEYCLOAK_FRONTEND_URL: ${PUBLIC_MIP_PROTOCOL}://${PUBLIC_MIP_HOST}/auth
       PROXY_ADDRESS_FORWARDING: 'true'  #important for reverse proxy
     ports:
       - '8095:8095'
