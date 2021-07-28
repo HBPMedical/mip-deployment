@@ -24,29 +24,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v1
-      
-      - name: ls
-        run: ls -la
-      
       - name: Build the docker-compose stack
         run: docker-compose --env-file .mipenv up -d
-        env:
-          DATACATALOGUE_HOST: iam.humanbrainproject.eu
-          DATACATALOGUE_PROTOCOL: https
-          KEYCLOAK_AUTHENTICATION: 0
-          KEYCLOAK_CLIENT_ID: mipfedqa
-          KEYCLOAK_CLIENT_SECRET: 492ddb7d-a7c6-4143-89ae-dbfa6f970aca
-          KEYCLOAK_PROTOCOL: http
-          KEYCLOAK_REALM: MIP
-          KEYCLOAK_URL: 192.168.1.20
-          MIP_TYPE: local
-          PUBLIC_MIP_HOST: 192.168.1.20
-          MIP_ENGINE_URL: http://192.168.1.20:5000
-          EXAREME: 24.1.2
-          PORTALBACKEND: 7.1.0
-          FRONTEND: dev_7.0.2
-          GALAXY: 1.3.4
-          MIP: 6.4.0
       - name: Sleep
         uses: jakejarvis/wait-action@master
         with:
