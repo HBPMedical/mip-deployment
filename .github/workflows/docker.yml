@@ -31,6 +31,8 @@ jobs:
       - name: Sleep
         uses: jakejarvis/wait-action@master
         with:
-          time: '120s'
+          time: '20s'
       - name: Check running containers
         run: docker ps
+      - name: Check portalbackend
+        run: docker logs mip-deployment_portalbackend_1
