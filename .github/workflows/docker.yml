@@ -25,6 +25,10 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: print pwd
         run: pwd
+      - name: one folder back
+        run: cd ..
+      - name: print pwd
+        run: pwd
       - name: print ls  -la
         run: ls -la
       - name: print .mipenv
