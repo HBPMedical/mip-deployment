@@ -26,7 +26,7 @@ jobs:
       - name: print pwd
         run: pwd
       - name: print .mipenv
-        run: cat ./.mipenv
+        run: cat .mipenv
       - uses: actions/checkout@v1
       - name: Build the docker-compose stack
         run: docker-compose --env-file .mipenv up -d
