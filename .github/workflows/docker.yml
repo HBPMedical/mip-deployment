@@ -23,12 +23,14 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: print .mipenv
+        run: cat .mipenv
       - uses: actions/checkout@v1
       - name: Build the docker-compose stack
-        run: docker-compose up -d
+        run: docker-compose --env-file .mipenv up -d
       - name: Sleep
         uses: jakejarvis/wait-action@master
         with:
-          time: '60s'
+          time: '120s'
       - name: Check running containers
         run: docker ps
