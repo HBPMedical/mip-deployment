@@ -63,7 +63,8 @@ all_success_cases = [
              "type": "python_iterative"
          },
          "name": "dsafas"
-     }
+     },
+     "error"
      ),
     ("Invalid label",
      {
@@ -115,7 +116,8 @@ all_success_cases = [
              "type": "python_iterative"
          },
          "name": "dsafas"
-     }
+     },
+     "success"
      ),
     ("Invalid parameter name",
      {
@@ -167,7 +169,8 @@ all_success_cases = [
              "type": "python_iterative"
          },
          "name": "dsafas"
-     }
+     },
+     "success"
      ),
     ("Invalid parameter label",
      {
@@ -219,7 +222,8 @@ all_success_cases = [
              "type": "python_iterative"
          },
          "name": "dsafas"
-     }
+     },
+     "success"
      ),
     ("Invalid parameter value",
      {
@@ -271,15 +275,16 @@ all_success_cases = [
              "type": "python_iterative"
          },
          "name": "dsafas"
-     }
+     },
+     "success"
      ),
 ]
 
 
 @pytest.mark.parametrize(
-    "test_case,test_input", all_success_cases
+    "test_case,test_input,expected_status", all_success_cases
 )
-def test_post_request_exareme(test_case, test_input):
+def test_post_request_exareme(test_case, test_input, expected_status):
     url = "http://127.0.0.1/services/experiments"
 
     request_json = json.dumps(test_input)
@@ -297,9 +302,9 @@ def test_post_request_exareme(test_case, test_input):
         status = logistic_current_state["status"]
         if status != "pending":
             print(test_case)
-            print(logistic_current_state["result"])
-            assert status == "error"
-            assert "result" not in logistic_current_state
+            assert status == expected_status
+            if status == "success":
+                assert "text/plain+user_error" == logistic_current_state["result"][0]["type"]
             break
         time.sleep(2)
 
