@@ -9,13 +9,13 @@ def test_get_algorithms_request():
     response = requests.get(url, headers=headers)
     print(f"Algorithms result-> {response.text}")
     algorithms = json.loads(response.text)
-    assert len(algorithms) == 31
+    assert len(algorithms) == 32
 
-    # mip_engine_algorithms = [algorithm for algorithm in algorithms if algorithm["type"] == "mipengine"]
-    # logistic_regression = mip_engine_algorithms[0]
-    # print(f"mip_engine_algorithms-> {mip_engine_algorithms}")
-    # assert len(mip_engine_algorithms) == 1
-    # assert logistic_regression["name"] == "LOGISTIC_REGRESSION"
+    mip_engine_algorithms = [algorithm for algorithm in algorithms if algorithm["type"] == "mipengine"]
+    logistic_regression = mip_engine_algorithms[0]
+    print(f"mip_engine_algorithms-> {mip_engine_algorithms}")
+    assert len(mip_engine_algorithms) == 1
+    assert logistic_regression["name"] == "LOGISTIC_REGRESSION"
 
     galaxy_algorithms = [algorithm for algorithm in algorithms if algorithm["type"] == "workflow"]
     print(f"galaxy_algorithms-> {galaxy_algorithms}")

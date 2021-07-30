@@ -44,6 +44,68 @@ services:
       - '8090:80'
     restart: unless-stopped
 
+  rabbitmq_global_node:
+    image: kostas/rabbitmq:latest
+    ports:
+      - '5670:5672'
+    environment:
+      - RABBITMQ_ADMIN_USER=user
+      - RABBITMQ_ADMIN_PASSWORD=password
+      - RABBITMQ_ADMIN_VHOST=user_vhost
+      - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+
+  rabbitmq_local_node:
+      image: kostas/rabbitmq:latest
+      ports:
+        - '5671:5672'
+      environment:
+        - RABBITMQ_ADMIN_USER=user
+        - RABBITMQ_ADMIN_PASSWORD=password
+        - RABBITMQ_ADMIN_VHOST=user_vhost
+        - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+
+  globalnode_monetdb:
+    image: madgik/mipenginedb:dev1.4
+
+  localnode_monetdb:
+    image: madgik/mipenginedb:dev1.4
+
+  globalnode:
+    image: madgik/mipengine_node:0.1
+    environment:
+      - NODE_IDENTIFIER=globalnode
+      - NODE_ROLE=GLOBALNODE
+      - LOG_LEVEL=INFO
+      - NODE_REGISTRY_IP=172.17.0.1
+      - NODE_REGISTRY_PORT=8500
+      - RABBITMQ_IP=172.17.0.1
+      - RABBITMQ_PORT=5671
+      - MONETDB_IP=172.17.0.1
+      - MONETDB_PORT=50000
+
+  localnode:
+    image: madgik/mipengine_node:0.1
+    environment:
+      - NODE_IDENTIFIER=localnode
+      - NODE_ROLE=LOCALNODE
+      - LOG_LEVEL=INFO
+      - NODE_REGISTRY_IP=172.17.0.1
+      - NODE_REGISTRY_PORT=8500
+      - RABBITMQ_IP=172.17.0.1
+      - RABBITMQ_PORT=5672
+      - MONETDB_IP=172.17.0.1
+      - MONETDB_PORT=50000
+
+  controller:
+      image: madgik/mipengine_controller:0.1
+      ports:
+        - '5000:5000'
+      environment:
+        - NODE_REGISTRY_IP=172.17.0.1
+        - NODE_REGISTRY_PORT=8500
+
+
+
   portalbackend_db:
     image: postgres:11.3-alpine
     volumes:
