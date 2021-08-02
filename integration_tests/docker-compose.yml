@@ -23,54 +23,56 @@ services:
       - CONVERT_CSVS=FALSE                      # TRUE / FALSE
     depends_on:
       - exareme_keystore
-    ports:
-      - '9090:9090'
     volumes:
       - ./data:/root/exareme/data/
     restart: unless-stopped
 
-  galaxy:
-    image: hbpmip/galaxy:${GALAXY}
-    environment:
-      - EXAREME_IP=exareme_master
-      - EXAREME_PORT=9090
-      - PASSWORD=password
-    command: bash -c "htpasswd -bc /etc/apache2/htpasswd admin $$PASSWORD && ./createExaremeVariables.sh && /etc/init.d/apache2 restart && ./run.sh"
-    depends_on:
-      - exareme_master
-    expose:
-      - '80'
+  mipengine_node_registry:
+    image: consul
     ports:
-      - '8090:80'
-    restart: unless-stopped
+      - "8500:8500"
 
-  rabbitmq_global_node:
-    image: kostas/rabbitmq:latest
+  rabbitmq_globalnode:
+    image: madgik/mipengine_rabbitmq:0.1
     ports:
-      - '5670:5672'
+      - "5670:5672"
     environment:
       - RABBITMQ_ADMIN_USER=user
       - RABBITMQ_ADMIN_PASSWORD=password
       - RABBITMQ_ADMIN_VHOST=user_vhost
       - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
 
-  rabbitmq_local_node:
-      image: kostas/rabbitmq:latest
-      ports:
-        - '5671:5672'
-      environment:
-        - RABBITMQ_ADMIN_USER=user
-        - RABBITMQ_ADMIN_PASSWORD=password
-        - RABBITMQ_ADMIN_VHOST=user_vhost
-        - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+  rabbitmq_localnode:
+    image: madgik/mipengine_rabbitmq:0.1
+    ports:
+      - "5671:5672"
+    environment:
+      - RABBITMQ_ADMIN_USER=user
+      - RABBITMQ_ADMIN_PASSWORD=password
+      - RABBITMQ_ADMIN_VHOST=user_vhost
+      - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
 
-  globalnode_monetdb:
+  monetdb_globalnode:
     image: madgik/mipenginedb:dev1.4
+    ports:
+      - "50000:50000"
 
-  localnode_monetdb:
+  monetdb_localnode:
     image: madgik/mipenginedb:dev1.4
+    ports:
+      - "50001:50000"
 
-  globalnode:
+  mipengine_globalnode:
     image: madgik/mipengine_node:0.1
     environment:
       - NODE_IDENTIFIER=globalnode
@@ -79,11 +81,16 @@ services:
       - NODE_REGISTRY_IP=172.17.0.1
       - NODE_REGISTRY_PORT=8500
       - RABBITMQ_IP=172.17.0.1
-      - RABBITMQ_PORT=5671
+      - RABBITMQ_PORT=5670
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50000
+    depends_on:
+      - rabbitmq_globalnode
+      - mipengine_node_registry
+      - monetdb_globalnode
+    restart: unless-stopped
 
-  localnode:
+  mipengine_localnode:
     image: madgik/mipengine_node:0.1
     environment:
       - NODE_IDENTIFIER=localnode
@@ -92,19 +99,25 @@ services:
       - NODE_REGISTRY_IP=172.17.0.1
       - NODE_REGISTRY_PORT=8500
       - RABBITMQ_IP=172.17.0.1
-      - RABBITMQ_PORT=5672
+      - RABBITMQ_PORT=5671
       - MONETDB_IP=172.17.0.1
-      - MONETDB_PORT=50000
+      - MONETDB_PORT=50001
+    depends_on:
+      - rabbitmq_localnode
+      - mipengine_node_registry
+      - monetdb_localnode
+    restart: unless-stopped
 
-  controller:
-      image: madgik/mipengine_controller:0.1
-      ports:
-        - '5000:5000'
-      environment:
-        - NODE_REGISTRY_IP=172.17.0.1
-        - NODE_REGISTRY_PORT=8500
-
-
+  mipengine_controller:
+    image: madgik/mipengine_controller:0.1
+    ports:
+      - '5000:5000'
+    environment:
+      - NODE_REGISTRY_IP=172.17.0.1
+      - NODE_REGISTRY_PORT=8500
+    depends_on:
+      - mipengine_node_registry
+    restart: unless-stopped
 
   portalbackend_db:
     image: postgres:11.3-alpine
@@ -148,14 +161,14 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       ### MIP-Engine ###
-      MIPENGINE_URL: ${MIP_ENGINE_URL}
+      MIPENGINE_URL: mipengine_controller:5000
       ### Exareme ###
       EXAREME_URL: http://exareme_master:9090
       ### Galaxy ###
-      GALAXY_URL: http://galaxy
-      GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
-      GALAXY_USERNAME: admin
-      GALAXY_PASSWORD: password
+      #GALAXY_URL: http://galaxy
+      #GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
+      #GALAXY_USERNAME: admin
+      #GALAXY_PASSWORD: password
       ### Keycloak ###
       KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
@@ -167,60 +180,4 @@ services:
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
-    restart: unless-stopped
-
-  frontend:
-    image: hbpmip/portal-frontend:${FRONTEND}
-    depends_on:
-      - portalbackend
-    ports:
-      - '80:80'
-    environment:
-      WORKER_PROCESSES: 1
-      ERROR_LOG_LEVEL: warn
-      PORTAL_VIRTUAL_HOST: frontend
-      PORTAL_BACKEND_SERVER: portalbackend:8080
-      PORTAL_BACKEND_CONTEXT: services
-      INSTANCE_NAME: 'MIP ${MIP}'
-      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
-      TRACKER_ID: UA-80660232-5
-      GALAXY_URL: http://galaxy/nativeGalaxy
-      # TODO      KEYCLOAK_AUTH_URL: /services/sso/login
-      KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
-      KEYCLOAK_LOGIN_URL: http://keycloak:8095/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
-    restart: unless-stopped
-
-  keycloak_db:
-    image: postgres:12.2
-    volumes:
-      - ./.stored_data/keycloak:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: password
-    restart: unless-stopped
-
-  keycloak:
-    image: jboss/keycloak:11.0.2
-    command: -Djboss.http.port=8095
-    volumes:
-      - ./config/keycloak/keycloak.json:/tmp/mip.json
-      - ./config/keycloak/HBPTheme:/opt/jboss/keycloak/themes/HBPTheme
-    environment:
-      DB_VENDOR: POSTGRES
-      DB_ADDR: keycloak_db
-      DB_PORT: 5432
-      DB_DATABASE: keycloak
-      DB_USER: keycloak
-      DB_SCHEMA: public
-      DB_PASSWORD: password
-      KEYCLOAK_USER: admin
-      KEYCLOAK_PASSWORD: Pa55w0rd
-      KEYCLOAK_IMPORT: /tmp/mip.json
-      KEYCLOAK_HOSTNAME: ${PUBLIC_MIP_HOST}
-    ports:
-      - '8095:8095'
-      - '8443:8443'
-    depends_on:
-      - keycloak_db
     restart: unless-stopped
