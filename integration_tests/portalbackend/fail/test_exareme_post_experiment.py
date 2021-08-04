@@ -6,7 +6,7 @@ import requests
 
 
 def do_get_experiment_request(uuid):
-    url = f"http://127.0.0.1/services/experiments/{uuid}"
+    url = f"http://127.0.0.1:8080/services/experiments/{uuid}"
     headers = {"Content-type": "application/json", "Accept": "application/json"}
     response = requests.get(url, headers=headers)
     return response
@@ -285,7 +285,7 @@ all_success_cases = [
     "test_case,test_input,expected_status", all_success_cases
 )
 def test_post_request_exareme(test_case, test_input, expected_status):
-    url = "http://127.0.0.1/services/experiments"
+    url = "http://127.0.0.1:8080/services/experiments"
 
     request_json = json.dumps(test_input)
 
@@ -301,16 +301,16 @@ def test_post_request_exareme(test_case, test_input, expected_status):
         logistic_current_state = json.loads(logistic_current_state_response.text)
         status = logistic_current_state["status"]
         if status != "pending":
-            print(test_case)
             assert status == expected_status
             if status == "success":
+                print(logistic_current_state["result"])
                 assert "text/plain+user_error" == logistic_current_state["result"][0]["type"]
             break
         time.sleep(2)
 
 
 def test_post_request_exareme_invalid_parameter_type():
-    url = "http://127.0.0.1/services/experiments"
+    url = "http://127.0.0.1:8080/services/experiments"
 
     request_json = json.dumps(
         {

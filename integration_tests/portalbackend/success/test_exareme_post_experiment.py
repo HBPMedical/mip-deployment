@@ -6,7 +6,7 @@ import requests
 
 
 def do_get_experiment_request(uuid):
-    url = f"http://127.0.0.1/services/experiments/{uuid}"
+    url = f"http://127.0.0.1:8080/services/experiments/{uuid}"
     headers = {"Content-type": "application/json", "Accept": "application/json"}
     response = requests.get(url, headers=headers)
     return response
@@ -150,7 +150,7 @@ all_success_cases = [
     "test_input", all_success_cases
 )
 def test_post_request_exareme(test_input):
-    url = "http://127.0.0.1/services/experiments"
+    url = "http://127.0.0.1:8080/services/experiments"
 
     print(f"POST to {url}")
     request_json = json.dumps(test_input)
