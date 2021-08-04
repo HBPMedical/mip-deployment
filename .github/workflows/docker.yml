@@ -40,11 +40,11 @@ jobs:
       - name: Sleep
         uses: jakejarvis/wait-action@master
         with:
-          time: '60s'
+          time: '120s'
       - name: Check running containers
         run: docker ps
       - name: Test Success
         run: pytest integration_tests/portalbackend/success
-      - name: Test fail
-        run: pytest integration_tests/portalbackend/fail
+      #- name: Test fail
+      #  run: pytest integration_tests/portalbackend/fail
 
