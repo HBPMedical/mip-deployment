@@ -12,6 +12,8 @@ services:
 
   exareme_master:
     image: hbpmip/exareme:${EXAREME}
+    ports:
+      - '9090:9090'
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
@@ -24,7 +26,7 @@ services:
     depends_on:
       - exareme_keystore
     volumes:
-      - ./data:/root/exareme/data/
+      - ../data:/root/exareme/data/
     restart: unless-stopped
 
   mipengine_node_registry:
@@ -33,7 +35,7 @@ services:
       - "8500:8500"
 
   rabbitmq_globalnode:
-    image: madgik/mipengine_rabbitmq:0.1
+    image: madgik/mipengine_rabbitmq:0.0.1
     ports:
       - "5670:5672"
     environment:
@@ -47,8 +49,8 @@ services:
       timeout: 30s
       retries: 3
 
-  rabbitmq_localnode:
-    image: madgik/mipengine_rabbitmq:0.1
+  rabbitmq_localnode1:
+    image: madgik/mipengine_rabbitmq:0.0.1
     ports:
       - "5671:5672"
     environment:
@@ -62,18 +64,38 @@ services:
       timeout: 30s
       retries: 3
 
+  rabbitmq_localnode2:
+    image: madgik/mipengine_rabbitmq:0.0.1
+    ports:
+      - "5672:5672"
+    environment:
+      - RABBITMQ_ADMIN_USER=user
+      - RABBITMQ_ADMIN_PASSWORD=password
+      - RABBITMQ_ADMIN_VHOST=user_vhost
+      - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
   monetdb_globalnode:
-    image: madgik/mipenginedb:dev1.4
+    image: madgik/mipenginedb_with_data:0.0.1
     ports:
       - "50000:50000"
 
-  monetdb_localnode:
-    image: madgik/mipenginedb:dev1.4
+  monetdb_localnode1:
+    image: madgik/mipenginedb_with_data:0.0.1
     ports:
       - "50001:50000"
 
+  monetdb_localnode2:
+    image: madgik/mipenginedb_with_data:0.0.1
+    ports:
+      - "50002:50000"
+
   mipengine_globalnode:
-    image: madgik/mipengine_node:0.1
+    image: madgik/mipengine_node:0.0.1
     environment:
       - NODE_IDENTIFIER=globalnode
       - NODE_ROLE=GLOBALNODE
@@ -90,10 +112,10 @@ services:
       - monetdb_globalnode
     restart: unless-stopped
 
-  mipengine_localnode:
-    image: madgik/mipengine_node:0.1
+  mipengine_localnode1:
+    image: madgik/mipengine_node:0.0.1
     environment:
-      - NODE_IDENTIFIER=localnode
+      - NODE_IDENTIFIER=localnode1
       - NODE_ROLE=LOCALNODE
       - LOG_LEVEL=INFO
       - NODE_REGISTRY_IP=172.17.0.1
@@ -103,13 +125,31 @@ services:
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50001
     depends_on:
-      - rabbitmq_localnode
+      - rabbitmq_localnode1
       - mipengine_node_registry
-      - monetdb_localnode
+      - monetdb_localnode1
+    restart: unless-stopped
+
+  mipengine_localnode2:
+    image: madgik/mipengine_node:0.0.1
+    environment:
+      - NODE_IDENTIFIER=localnode2
+      - NODE_ROLE=LOCALNODE
+      - LOG_LEVEL=INFO
+      - NODE_REGISTRY_IP=172.17.0.1
+      - NODE_REGISTRY_PORT=8500
+      - RABBITMQ_IP=172.17.0.1
+      - RABBITMQ_PORT=5672
+      - MONETDB_IP=172.17.0.1
+      - MONETDB_PORT=50002
+    depends_on:
+      - rabbitmq_localnode2
+      - mipengine_node_registry
+      - monetdb_localnode2
     restart: unless-stopped
 
   mipengine_controller:
-    image: madgik/mipengine_controller:0.1
+    image: madgik/mipengine_controller:0.0.1
     ports:
       - '5000:5000'
     environment:
@@ -161,7 +201,7 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       ### MIP-Engine ###
-      MIPENGINE_URL: mipengine_controller:5000
+      MIPENGINE_URL: http://172.17.0.1:5000
       ### Exareme ###
       EXAREME_URL: http://exareme_master:9090
       ### Galaxy ###
