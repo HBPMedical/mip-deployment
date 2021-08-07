@@ -303,7 +303,6 @@ def test_post_request_exareme(test_case, test_input, expected_status):
         if status != "pending":
             assert status == expected_status
             if status == "success":
-                print(logistic_current_state["result"])
                 assert "text/plain+user_error" == logistic_current_state["result"][0]["type"]
             break
         time.sleep(2)
