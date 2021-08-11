@@ -33,18 +33,24 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r tests/portal_backend_integration_tests/setup/requirements.txt
-      - name: ifconfig
-        run: ifconfig
+
+      - name: Add versions to env
+        run: cat .versions_env >> tests/portal_backend_integration_tests/setup/env
+
       - name: Build the docker-compose stack
         run: docker-compose -f tests/portal_backend_integration_tests/setup/docker-compose.yml  --env-file tests/portal_backend_integration_tests/setup/env up -d
+
       - name: Sleep
         uses: jakejarvis/wait-action@master
         with:
           time: '120s'
+
       - name: Check running containers
         run: docker ps
+
       - name: Test Success
         run: pytest tests/portal_backend_integration_tests/success
+
       - name: Test fail
         run: pytest tests/portal_backend_integration_tests/fail
 
