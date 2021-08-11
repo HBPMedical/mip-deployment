@@ -61,7 +61,7 @@ all_success_cases = [
             ],
             "type": "python_iterative"
         },
-        "name": "dsafas"
+        "name": "LOGISTIC_REGRESSION"
     },
     {
        "algorithm":{
@@ -165,7 +165,6 @@ def test_post_request_exareme(test_input):
         logistic_curent_state_response = do_get_experiment_request(algorithm["uuid"])
         logistic_curent_state = json.loads(logistic_curent_state_response.text)
         status = logistic_curent_state["status"]
-        print(status)
         if status != "pending":
             assert status == "success"
             assert logistic_curent_state["result"] is not None

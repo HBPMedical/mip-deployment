@@ -22,11 +22,11 @@ services:
       - NODE_COMMUNICATION_TIMEOUT=30000        # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
       - ENVIRONMENT_TYPE=PROD                   # TEST / DEV / PROD
       - LOG_LEVEL=INFO                          # INFO / DEBUG
-      - CONVERT_CSVS=FALSE                      # TRUE / FALSE
+      - CONVERT_CSVS=TRUE                      # TRUE / FALSE
     depends_on:
       - exareme_keystore
     volumes:
-      - ../data:/root/exareme/data/
+      - ../../../data:/root/exareme/data/
     restart: unless-stopped
 
   mipengine_node_registry:
@@ -35,7 +35,7 @@ services:
       - "8500:8500"
 
   rabbitmq_globalnode:
-    image: madgik/mipengine_rabbitmq:0.0.1
+    image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
     ports:
       - "5670:5672"
     environment:
@@ -50,7 +50,7 @@ services:
       retries: 3
 
   rabbitmq_localnode1:
-    image: madgik/mipengine_rabbitmq:0.0.1
+    image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
     ports:
       - "5671:5672"
     environment:
@@ -65,7 +65,7 @@ services:
       retries: 3
 
   rabbitmq_localnode2:
-    image: madgik/mipengine_rabbitmq:0.0.1
+    image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
     ports:
       - "5672:5672"
     environment:
@@ -80,22 +80,22 @@ services:
       retries: 3
 
   monetdb_globalnode:
-    image: madgik/mipenginedb_with_data:0.0.1
+    image: madgik/mipenginedb_with_data:${MIP_ENGINE}
     ports:
       - "50000:50000"
 
   monetdb_localnode1:
-    image: madgik/mipenginedb_with_data:0.0.1
+    image: madgik/mipenginedb_with_data:${MIP_ENGINE}
     ports:
       - "50001:50000"
 
   monetdb_localnode2:
-    image: madgik/mipenginedb_with_data:0.0.1
+    image: madgik/mipenginedb_with_data:${MIP_ENGINE}
     ports:
       - "50002:50000"
 
   mipengine_globalnode:
-    image: madgik/mipengine_node:0.0.1
+    image: madgik/mipengine_node:${MIP_ENGINE}
     environment:
       - NODE_IDENTIFIER=globalnode
       - NODE_ROLE=GLOBALNODE
@@ -113,7 +113,7 @@ services:
     restart: unless-stopped
 
   mipengine_localnode1:
-    image: madgik/mipengine_node:0.0.1
+    image: madgik/mipengine_node:${MIP_ENGINE}
     environment:
       - NODE_IDENTIFIER=localnode1
       - NODE_ROLE=LOCALNODE
@@ -131,7 +131,7 @@ services:
     restart: unless-stopped
 
   mipengine_localnode2:
-    image: madgik/mipengine_node:0.0.1
+    image: madgik/mipengine_node:${MIP_ENGINE}
     environment:
       - NODE_IDENTIFIER=localnode2
       - NODE_ROLE=LOCALNODE
@@ -149,12 +149,14 @@ services:
     restart: unless-stopped
 
   mipengine_controller:
-    image: madgik/mipengine_controller:0.0.1
+    image: madgik/mipengine_controller:${MIP_ENGINE}
     ports:
       - '5000:5000'
     environment:
       - NODE_REGISTRY_IP=172.17.0.1
       - NODE_REGISTRY_PORT=8500
+    volumes:
+      - ../../../data:/opt/data/
     depends_on:
       - mipengine_node_registry
     restart: unless-stopped
@@ -193,7 +195,7 @@ services:
     environment:
       ### API ###
       LOG_LEVEL: INFO
-      LOG_LEVEL_FRAMEWORK: INFO 
+      LOG_LEVEL_FRAMEWORK: INFO
       AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
       ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
@@ -220,4 +222,25 @@ services:
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
+    restart: unless-stopped
+
+  frontend:
+    image: hbpmip/portal-frontend:${FRONTEND}
+    depends_on:
+      - portalbackend
+    ports:
+      - '80:80'
+    environment:
+      WORKER_PROCESSES: 1
+      ERROR_LOG_LEVEL: warn
+      PORTAL_VIRTUAL_HOST: frontend
+      PORTAL_BACKEND_SERVER: portalbackend:8080
+      PORTAL_BACKEND_CONTEXT: services
+      INSTANCE_NAME: 'MIP ${MIP}'
+      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
+      TRACKER_ID: UA-80660232-5
+      GALAXY_URL: http://127.0.0.1:8095/nativeGalaxy
+      # TODO      KEYCLOAK_AUTH_URL: /services/sso/login
+      KEYCLOAK_AUTH_URL: http://127.0.0.1:8095/auth/
+      KEYCLOAK_LOGIN_URL: http://127.0.0.1:8095/auth/
     restart: unless-stopped

@@ -62,62 +62,8 @@ all_success_cases = [
              ],
              "type": "python_iterative"
          },
-         "name": "dsafas"
-     },
-     "error"
-     ),
-    ("Invalid label",
-     {
-         "algorithm": {
-             "name": "LOGISTIC_REGRESSION",
-             "label": "Logistic",
-             "parameters": [
-                 {
-                     "name": "x",
-                     "label": "x",
-                     "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala"
-                 },
-                 {
-                     "name": "y",
-                     "label": "y",
-                     "value": "alzheimerbroadcategory"
-                 },
-                 {
-                     "name": "pathology",
-                     "label": "pathology",
-                     "value": "dementia"
-                 },
-                 {
-                     "name": "dataset",
-                     "label": "dataset",
-                     "value": "edsd,ppmi"
-                 },
-                 {
-                     "name": "filter",
-                     "label": "filter",
-                     "value": ""
-                 },
-                 {
-                     "name": "formula",
-                     "label": "formula",
-                     "value": ""
-                 },
-                 {
-                     "name": "positive_level",
-                     "label": "Positive level",
-                     "value": "AD"
-                 },
-                 {
-                     "name": "negative_level",
-                     "label": "Negative level",
-                     "value": "CN"
-                 }
-             ],
-             "type": "python_iterative"
-         },
-         "name": "dsafas"
-     },
-     "success"
+         "name": "Exarene Invalid name"
+     }
      ),
     ("Invalid parameter name",
      {
@@ -166,64 +112,10 @@ all_success_cases = [
                      "value": "CN"
                  }
              ],
-             "type": "python_iterative"
+             "type": "Exarene Invalid parameter name"
          },
          "name": "dsafas"
-     },
-     "success"
-     ),
-    ("Invalid parameter label",
-     {
-         "algorithm": {
-             "name": "LOGISTIC_REGRESSION",
-             "label": "Logistic Regression",
-             "parameters": [
-                 {
-                     "name": "x",
-                     "label": "xyz",
-                     "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala"
-                 },
-                 {
-                     "name": "y",
-                     "label": "xyz",
-                     "value": "alzheimerbroadcategory"
-                 },
-                 {
-                     "name": "pathology",
-                     "label": "pathology",
-                     "value": "dementia"
-                 },
-                 {
-                     "name": "dataset",
-                     "label": "dataset",
-                     "value": "edsd,ppmi"
-                 },
-                 {
-                     "name": "filter",
-                     "label": "filter",
-                     "value": ""
-                 },
-                 {
-                     "name": "formula",
-                     "label": "formula",
-                     "value": ""
-                 },
-                 {
-                     "name": "positive_level",
-                     "label": "Positive level",
-                     "value": "AD"
-                 },
-                 {
-                     "name": "negative_level",
-                     "label": "Negative level",
-                     "value": "CN"
-                 }
-             ],
-             "type": "python_iterative"
-         },
-         "name": "dsafas"
-     },
-     "success"
+     }
      ),
     ("Invalid parameter value",
      {
@@ -274,17 +166,16 @@ all_success_cases = [
              ],
              "type": "python_iterative"
          },
-         "name": "dsafas"
-     },
-     "success"
+         "name": "Exarene Invalid parameter value"
+     }
      ),
 ]
 
 
 @pytest.mark.parametrize(
-    "test_case,test_input,expected_status", all_success_cases
+    "test_case,test_input", all_success_cases
 )
-def test_post_request_exareme(test_case, test_input, expected_status):
+def test_post_request_exareme(test_case, test_input):
     url = "http://127.0.0.1:8080/services/experiments"
 
     request_json = json.dumps(test_input)
@@ -301,9 +192,7 @@ def test_post_request_exareme(test_case, test_input, expected_status):
         logistic_current_state = json.loads(logistic_current_state_response.text)
         status = logistic_current_state["status"]
         if status != "pending":
-            assert status == expected_status
-            if status == "success":
-                assert "text/plain+user_error" == logistic_current_state["result"][0]["type"]
+            assert status == "error"
             break
         time.sleep(2)
 
