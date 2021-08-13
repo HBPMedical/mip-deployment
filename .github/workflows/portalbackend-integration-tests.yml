@@ -1,0 +1,49 @@
+name: CI
+
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v1
+      
+      - name: Set up python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/portal_backend_integration_tests/setup/requirements.txt
+
+      - name: Configure the deployment env file
+        run: cat .versions_env >> tests/portal_backend_integration_tests/setup/.env
+
+      - name: Deploy portalbackend, exareme and mip-engine
+        run: docker-compose -f tests/portal_backend_integration_tests/setup/docker-compose.yml  --env-file tests/portal_backend_integration_tests/setup/.env up -d
+
+      - name: Wait for services to be up
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '120s'
+
+      - name: Get deployment status
+        run: docker ps
+
+      - name: Run the success tests
+        run: pytest tests/portal_backend_integration_tests/success
+
+      - name: Run the failure tests
+        run: pytest tests/portal_backend_integration_tests/fail
+
