@@ -43,10 +43,12 @@ MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy cre
 MIP_FEDERATION_UI_COMPONENT_LABELS="Portal Frontend,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,Create DBs"
 MIP_FEDERATION_WK_COMPONENTS="exareme"
 MIP_FEDERATION_WK_COMPONENT_LABELS="Exareme"
-CONFIGURE_PARTS="docker-mtu user ssh pusher pathologies protocol host exareme-ip logs data keycloak dataset-compilation all"
+CONFIGURE_PARTS="docker-mtu user ssh pusher pathologies link protocol host exareme-ip logs data keycloak dataset-compilation all"
 
 DEFAULT_METADATA_FILENAME="CDEsMetadata.json"
 
+DEFAULT_MIP_ENV_MIP_LINK="direct"
+DEFAULT_MIP_ENV_EXTERNAL_MIP_PROTOCOL="https"
 DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL="http"
 
 DEFAULT_MIP_ENV_MIP_TYPE="local"
@@ -200,13 +202,27 @@ args_parser(){
 				shift
 				shift
 				;;
+			--gen-test-env-file)
+				ARG_GEN_TEST_ENV_FILE=1
+				shift
+				;;
+			--link)
+				ARG_MIP_LINK=$2
+				shift
+				shift
+				;;
 			--protocol)
-				ARG_PROTOCOL=$2
+				ARG_MIP_PROTOCOL=$2
+				shift
+				shift
+				;;
+			--ext-protocol)
+				ARG_EXTERNAL_MIP_PROTOCOL=$2
 				shift
 				shift
 				;;
 			--host)
-				ARG_HOST=$2
+				ARG_MIP_HOST=$2
 				shift
 				shift
 				;;
@@ -874,7 +890,9 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--debug-level [LEVEL]						Debug level (1 will generate quite a fancy output, 8 will be very verbose).
 
 		Next parameters may be used mainly with "configure" action, but not exclusively.
-		--protocol [PUBLIC_MIP_PROTOCOL]				Set the protocol (http/https) on which the MIP will listen. For "local" installation and "ui" federation node.
+		--link [MIP_LINK]						Set how the MIP is reached (direct/proxied). For "local" installation and "ui" federation node.
+		--protocol [PUBLIC_MIP_PROTOCOL]				Set the protocol (http/https) on which the MIP will listen (directly, or from the inside of the proxy). For "local" installation and "ui" federation node.
+		--ext-protocol [EXTERNAL_MIP_PROTOCOL]				Set the external MIP protocol (public protocol (on the outside of the proxy or direct))
 		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen. For "local" installation and "ui" federation node.
 		--component [MIP_COMPONENT]					Specific MIP component which can be targetted (in logs, install, version, pull, start, stop, restart action).
 			Typical MIP_COMPONENT for "local" MIP:
@@ -896,6 +914,7 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--datacatalogue-host [DATACATALOGUE_HOST]			Set the Data Catalogue host (<HOSTNAME> or <HOSTNAME>:<PORT>)
 		--review-dataset-labels						Force the user review of pathologies and datasets labels before generating and deploying
 											files to federation nodes.
+		--gen-test-env-file						Generates a .env.test file in the folder where docker-compose.yml file is located. For dev purpose.
 		--all								Display all output, without filter (typically in version, it will display the unstable versions as well)
 		--latest							Represents the latest item version.
 		--commit [COMMIT]						Specific commit ID. It has precedence over --version and --branch
@@ -1033,30 +1052,61 @@ load_mip_env(){
 		envvar_changes=1
 	fi
 
-	if [[ -n $ARG_PROTOCOL ]]; then
-		__debug --level 5 "ARG_PROTOCOL=<$ARG_PROTOCOL>"
-		__debug --level 6 "Setting env var: MIP_ENV_PUBLIC_MIP_PROTOCOL=<$ARG_PROTOCOL>"
-		export MIP_ENV_PUBLIC_MIP_PROTOCOL=$ARG_PROTOCOL
-		if [[ "$MIP_ENV_MIP_TYPE" = "local" && -n $ARG_KEYCLOAK_PROTOCOL ]]; then
-			__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
-			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=<$ARG_PROTOCOL>"
-			DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=$ARG_PROTOCOL
+	if [[ -n $ARG_MIP_LINK ]]; then
+		if [[ "$ARG_MIP_LINK" = "direct" || "$ARG_MIP_LINK" = "proxied" ]]; then
+			__debug --level 5 "ARG_MIP_LINK=<$ARG_MIP_LINK>"
+			__debug --level 6 "Setting env var: MIP_ENV_MIP_LINK=<$ARG_MIP_LINK>"
+			export MIP_ENV_MIP_LINK=$ARG_MIP_LINK
+			envvar_changes=1
+		else
+			unset ARG_MIP_LINK
 		fi
-		envvar_changes=1
 	fi
 
-	if [[ -n $ARG_HOST ]]; then
-		__debug --level 5 "ARG_HOST=<$ARG_HOST>"
-		if [[ "$ARG_HOST" = "127.0.0.1" ]]; then
+	if [[ -n $ARG_EXTERNAL_MIP_PROTOCOL ]]; then
+		if [[ "$ARG_EXTERNAL_MIP_PROTOCOL" = "https" || "$ARG_EXTERNAL_MIP_PROTOCOL" = "http" ]]; then
+			__debug --level 5 "ARG_EXTERNAL_MIP_PROTOCOL=<$ARG_EXTERNAL_MIP_PROTOCOL>"
+			__debug --level 6 "Setting env var: MIP_ENV_EXTERNAL_MIP_PROTOCOL=<$ARG_EXTERNAL_MIP_PROTOCOL>"
+			export MIP_ENV_EXTERNAL_MIP_PROTOCOL=$ARG_EXTERNAL_MIP_PROTOCOL
+			if [[ "$MIP_ENV_MIP_TYPE" = "local" && -n $ARG_KEYCLOAK_PROTOCOL ]]; then
+				__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
+				__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=<$ARG_MIP_PROTOCOL>"
+				DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=$ARG_MIP_PROTOCOL
+			fi
+			envvar_changes=1
+		else
+			unset ARG_EXTERNAL_MIP_PROTOCOL
+		fi
+	fi
+
+	if [[ -n $ARG_MIP_PROTOCOL ]]; then
+		if [[ "$ARG_MIP_PROTOCOL" = "https" || "$ARG_MIP_PROTOCOL" = "http" ]]; then
+			__debug --level 5 "ARG_MIP_PROTOCOL=<$ARG_MIP_PROTOCOL>"
+			__debug --level 6 "Setting env var: MIP_ENV_PUBLIC_MIP_PROTOCOL=<$ARG_MIP_PROTOCOL>"
+			export MIP_ENV_PUBLIC_MIP_PROTOCOL=$ARG_MIP_PROTOCOL
+			if [[ "$MIP_ENV_MIP_TYPE" = "local" && -n $ARG_KEYCLOAK_PROTOCOL ]]; then
+				__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
+				__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=<$ARG_MIP_PROTOCOL>"
+				DEFAULT_MIP_ENV_KEYCLOAK_PROTOCOL=$ARG_MIP_PROTOCOL
+			fi
+			envvar_changes=1
+		else
+			unset ARG_MIP_PROTOCOL
+		fi
+	fi
+
+	if [[ -n $ARG_MIP_HOST ]]; then
+		__debug --level 5 "ARG_MIP_HOST=<$ARG_MIP_HOST>"
+		if [[ "$ARG_MIP_HOST" = "127.0.0.1" ]]; then
 			__red "127.0.0.1 is not an acceptable value for PUBLIC_MIP_HOST!"
 			exit 1
 		fi
-		__debug --level 6 "Setting env var: MIP_ENV_PUBLIC_MIP_HOST=<$ARG_HOST>"
-		export MIP_ENV_PUBLIC_MIP_HOST=$ARG_HOST
+		__debug --level 6 "Setting env var: MIP_ENV_PUBLIC_MIP_HOST=<$ARG_MIP_HOST>"
+		export MIP_ENV_PUBLIC_MIP_HOST=$ARG_MIP_HOST
 		if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 			__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
-			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$ARG_HOST>"
-			DEFAULT_MIP_ENV_KEYCLOAK_URL=$ARG_HOST
+			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$ARG_MIP_HOST>"
+			DEFAULT_MIP_ENV_KEYCLOAK_URL=$ARG_MIP_HOST
 		fi
 		envvar_changes=1
 	fi
@@ -1074,7 +1124,7 @@ load_mip_env(){
 		envvar_changes=1
 	fi
 
-	if [[ (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) && (( -n $ARG_PROTOCOL || -n $ARG_KEYCLOAK_AUTHENTICATION || -n $ARG_KEYCLOAK_PROTOCOL || -n $ARG_KEYCLOAK_URL || -n $ARG_KEYCLOAK_REALM || -n $ARG_KEYCLOAK_CLIENT_ID || -n $ARG_KEYCLOAK_CLIENT_SECRET )) ]]; then
+	if [[ (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) && (( -n $ARG_MIP_PROTOCOL || -n $ARG_KEYCLOAK_AUTHENTICATION || -n $ARG_KEYCLOAK_PROTOCOL || -n $ARG_KEYCLOAK_URL || -n $ARG_KEYCLOAK_REALM || -n $ARG_KEYCLOAK_CLIENT_ID || -n $ARG_KEYCLOAK_CLIENT_SECRET )) ]]; then
 		__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
 		__debug --level 5 "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"
 		if [[ -n $ARG_KEYCLOAK_AUTHENTICATION ]]; then
@@ -1113,6 +1163,18 @@ load_mip_env(){
 			export MIP_ENV_KEYCLOAK_CLIENT_SECRET=$ARG_KEYCLOAK_CLIENT_SECRET
 			envvar_changes=1
 		fi
+	fi
+
+	if [[ (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) && $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 && "$MIP_ENV_KEYCLOAK_PROTOCOL" = "http" ]]; then
+		local keycloak_ssl_required="external"
+		if [[ "$MIP_ENV_MIP_LINK" = "direct" && "$MIP_ENV_PUBLIC_MIP_PROTOCOL" = "http" ]]; then
+			keycloak_ssl_required="none"
+		elif [[ "$MIP_ENV_MIP_LINK" = "proxied" && "$MIP_ENV_EXTERNAL_MIP_PROTOCOL" = "http" && "$MIP_ENV_PUBLIC_MIP_PROTOCOL" = "http" ]]; then
+			keycloak_ssl_required="none"
+		fi
+
+		__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_SSL_REQUIRED=<$keycloak_ssl_required>"
+		export MIP_ENV_KEYCLOAK_SSL_REQUIRED="$keycloak_ssl_required"
 	fi
 
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) ]]; then
@@ -1490,6 +1552,23 @@ _compare_component_list(){
 
 	echo "$result"
 	return 0
+}
+
+_docker-compose(){
+	__debug --level 4 "_docker-compose($*)"
+	local result=0
+	local ret=1
+	if [[ "$(docker-compose --help 2>/dev/null | grep -A2 '^Management Commands' | grep compose)" != "" ]]; then	# "new" docker-compose
+		docker-compose compose $@
+		ret=$?
+	else
+		docker-compose $@
+		ret=$?
+	fi
+
+	result=$ret
+
+	return $result
 }
 
 _check_os(){
@@ -2764,10 +2843,20 @@ install_custom_package_docker-compose(){
 			tag=$(_get_git_tags --owner $owner --repo $repo --releases --latest)
 		fi
 
-		local httpcode
-		__debug --level 6 "_get_github_file --owner $owner --repo $repo --mode release_download --tag $tag --filename $filename --targetpath $targetpath"
-		_get_github_file --httpcodevar 'httpcode' --owner $owner --repo $repo --mode release_download --tag "$tag" --filename "$filename" --targetpath "$targetpath"
-		ret=$?
+		local tries=2
+		while [[ $ret -ne 0 && $tries -gt 0 ]]; do
+			local httpcode=0
+			__debug --level 6 "_get_github_file --owner $owner --repo $repo --mode release_download --tag $tag --filename $filename --targetpath $targetpath"
+			_get_github_file --httpcodevar 'httpcode' --owner $owner --repo $repo --mode release_download --tag "$tag" --filename "$filename" --targetpath "$targetpath"
+			ret=$?
+			if [[ $ret -ne 0 ]]; then
+				__red "Something went wrong during the attempt to download $filename (HTTP code <$httpcode>). Trying with another filename..."
+				if [[ "$(uname -s)-$(uname -m)" = "Linux-x86_64" ]]; then
+					filename="docker-compose-linux-amd64"
+				fi
+			fi
+			tries=$(expr $tries - 1)
+		done
 		if [[ $ret -eq 0 ]]; then
 			__debug --level 6 "chmod +x /usr/local/bin/docker-compose"
 			chmod +x /usr/local/bin/docker-compose
@@ -2886,6 +2975,10 @@ _pull(){
 		if [[ $(command -v docker-compose) ]]; then
 			__echo "Pulling Services..."
 			local path=$(pwd)
+			local quiet_opt=""
+			if [[ $ARG_QUIET -eq 1 ]]; then
+				quiet_opt=" --quiet"
+			fi
 			cd $DOCKER_COMPOSE_PATH
 			load_mip_env
 			load_mip_versions
@@ -2898,11 +2991,11 @@ _pull(){
 					if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 					exit 1
 				fi
-				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME pull $ARG_COMPONENT"
-				docker-compose --project-name $DOCKER_PROJECT_NAME pull $ARG_COMPONENT
+				__debug --level 6 "_docker-compose --project-name $DOCKER_PROJECT_NAME pull${quiet_opt} $ARG_COMPONENT"
+				_docker-compose --project-name $DOCKER_PROJECT_NAME pull${quiet_opt} $ARG_COMPONENT
 			else
-				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME pull"
-				docker-compose --project-name $DOCKER_PROJECT_NAME pull
+				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME pull${quiet_opt}"
+				_docker-compose --project-name $DOCKER_PROJECT_NAME pull${quiet_opt}
 			fi
 			ret=$?
 			_prepare_mip_env unset
@@ -4857,29 +4950,104 @@ _configure_pathologies(){
 	fi
 }
 
-_configure_protocol(){
-	__debug --level 4 "_configure_protocol($*)"
+_configure_link(){
+	__debug --level 4 "_configure_link($*)"
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
 		return 0
 	fi
-	if [[ -n $MIP_ENV_PUBLIC_MIP_PROTOCOL && $ARG_FORCE -ne 1 ]]; then
+	if [[ -n $MIP_ENV_MIP_LINK && $ARG_FORCE -ne 1 ]]; then
 		return 0
 	fi
-	__debug --level 1 --levelcompare "eq" "Configuring protocol..."
+	__debug --level 1 --levelcompare "eq" "Configuring link..."
 
 	if [[ $ARG_QUIET -eq 1 ]]; then
 		return 1
 	fi
 	local answer=""
 
-	# Checking the PUBLIC_MIP_PROTOCOL env variable
-	if [[ ! -n $ARG_PROTOCOL ]]; then
-		__echo -e "\nPUBLIC_MIP_PROTOCOL. It's the protocol (http/https) where MIP will be reachable at."
+	# Checking the MIP_LINK env variable
+	if [[ ! -n $ARG_MIP_LINK ]]; then
+		__echo -e "\nMIP_LINK. It's the type of link (direct/proxied) through which the MIP will be reachable."
 	fi
 
 	local tmpval=""
 
-	if [[ -n $MIP_ENV_PUBLIC_MIP_PROTOCOL && ! -n $ARG_PROTOCOL ]]; then
+	if [[ -n $MIP_ENV_MIP_LINK && ! -n $ARG_MIP_LINK ]]; then
+		__echo -e "\n'MIP_LINK' is set to value: $MIP_ENV_MIP_LINK"
+		__echo -ne "\nWould you like to change it? [y/n] "
+		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+		if [[ "$answer" != "y" ]]; then
+			return 0
+		fi
+	fi
+
+	# Read MIP_LINK from the user
+	if [[ -n $ARG_MIP_LINK ]]; then
+		answer=$ARG_MIP_LINK
+	else
+		__echo -ne "\nPlease provide a value for the variable 'MIP_LINK' (directly hit ENTER for default <$DEFAULT_MIP_ENV_MIP_LINK>): "
+		read answer
+		if [[ "$answer" = "" ]]; then
+			answer=$DEFAULT_MIP_ENV_MIP_LINK
+		fi
+	fi
+	while [[ "$answer" != "direct" && "$answer" != "proxied" ]]; do
+		__echo
+		__red -n "'$answer' is not a valid LINK. Try again: "
+		read answer
+		if [[ "$answer" = "" ]]; then
+			answer=$DEFAULT_MIP_ENV_MIP_LINK
+		fi
+	done
+
+	# Store MIP_LINK to the env file
+	__debug --level 6 "Setting env var: MIP_ENV_MIP_LINK=<$answer>"
+	export MIP_ENV_MIP_LINK=$answer
+	_write_mip_env
+}
+
+_configure_protocol(){
+	__debug --level 4 "_configure_protocol($*)"
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" )) ]]; then
+		return 0
+	fi
+
+	ext=0
+	if [[ "$1" = "ext" ]]; then
+		ext=1
+	fi
+
+	if [[ $ARG_FORCE -ne 1 ]]; then
+		if [[ (( $ext -eq 1 && -n $MIP_ENV_EXTERNAL_MIP_PROTOCOL )) || (( $ext -eq 0 && -n $MIP_ENV_PUBLIC_MIP_PROTOCOL )) ]]; then
+			return 0
+		fi
+	fi
+	if [[ $ext -eq 1 ]]; then
+		__debug --level 1 --levelcompare "eq" "Configuring external protocol..."
+	else
+		__debug --level 1 --levelcompare "eq" "Configuring protocol..."
+	fi
+
+	if [[ $ARG_QUIET -eq 1 ]]; then
+		return 1
+	fi
+	local answer=""
+
+	if [[ $ext -eq 1 ]]; then
+		# Checking the EXTERNAL_MIP_PROTOCOL env variable
+		if [[ ! -n $ARG_EXTERNAL_MIP_PROTOCOL ]]; then
+			__echo -e "\nEXTERNAL_MIP_PROTOCOL. It's the external (i.e. in front of a reverse-proxy) protocol (http/https) where MIP will be reachable at."
+		fi
+	else
+		# Checking the PUBLIC_MIP_PROTOCOL env variable
+		if [[ ! -n $ARG_MIP_PROTOCOL ]]; then
+			__echo -e "\nPUBLIC_MIP_PROTOCOL. It's the protocol (http/https) where MIP will be reachable at."
+		fi
+	fi
+
+	local tmpval=""
+
+	if [[ -n $MIP_ENV_PUBLIC_MIP_PROTOCOL && ! -n $ARG_MIP_PROTOCOL ]]; then
 		__echo -e "\n'PUBLIC_MIP_PROTOCOL' is set to value: $MIP_ENV_PUBLIC_MIP_PROTOCOL"
 		__echo -ne "\nWould you like to change it? [y/n] "
 		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
@@ -4888,14 +5056,24 @@ _configure_protocol(){
 		fi
 	fi
 
-	# Read HOST from the user
-	if [[ -n $ARG_PROTOCOL ]]; then
-		answer=$ARG_PROTOCOL
+	# Read PROTOCOL from the user
+	if [[ $ext -eq 1 && -n $ARG_EXTERNAL_MIP_PROTOCOL ]]; then
+		answer=$ARG_EXTERNAL_MIP_PROTOCOL
+	elif [[ $ext -eq 0 && -n $ARG_MIP_PROTOCOL ]]; then
+		answer=$ARG_MIP_PROTOCOL
 	else
-		__echo -ne "\nPlease provide a value for the variable 'PUBLIC_MIP_PROTOCOL' (directly hit ENTER for default <$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL>): "
+		if [[ $ext -eq 1 ]]; then
+			__echo -ne "\nPlease provide a value for the variable 'EXTERNAL_MIP_PROTOCOL' (directly hit ENTER for default <$DEFAULT_MIP_ENV_EXTERNAL_MIP_PROTOCOL>): "
+		else
+			__echo -ne "\nPlease provide a value for the variable 'PUBLIC_MIP_PROTOCOL' (directly hit ENTER for default <$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL>): "
+		fi
 		read answer
 		if [[ "$answer" = "" ]]; then
-			answer=$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL
+			if [[ $ext -eq 1 ]]; then
+				answer=$DEFAULT_MIP_ENV_EXTERNAL_MIP_PROTOCOL
+			else
+				answer=$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL
+			fi
 		fi
 	fi
 	while [[ "$answer" != "http" && "$answer" != "https" ]]; do
@@ -4903,13 +5081,22 @@ _configure_protocol(){
 		__red -n "'$answer' is not a valid PROTOCOL. Try again: "
 		read answer
 		if [[ "$answer" = "" ]]; then
-			answer=$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL
+			if [[ $ext -eq 1 ]]; then
+				answer=$DEFAULT_MIP_ENV_EXTERNAL_MIP_PROTOCOL
+			else
+				answer=$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL
+			fi
 		fi
 	done
 
-	# Store HOST to the env file
-	__debug --level 6 "Setting env var: MIP_ENV_PUBLIC_MIP_PROTOCOL=<$answer>"
-	export MIP_ENV_PUBLIC_MIP_PROTOCOL=$answer
+	# Store PROTOCOL to the env file
+	if [[ $ext -eq 1 ]]; then
+		__debug --level 6 "Setting env var: MIP_ENV_EXTERNAL_MIP_PROTOCOL=<$answer>"
+		export MIP_ENV_EXTERNAL_MIP_PROTOCOL=$answer
+	else
+		__debug --level 6 "Setting env var: MIP_ENV_PUBLIC_MIP_PROTOCOL=<$answer>"
+		export MIP_ENV_PUBLIC_MIP_PROTOCOL=$answer
+	fi
 	_write_mip_env
 }
 
@@ -4929,14 +5116,14 @@ _configure_host(){
 	local answer=""
 
 	# Checking the PUBLIC_MIP_HOST env variable
-	if [[ ! -n $ARG_HOST ]]; then
+	if [[ ! -n $ARG_MIP_HOST ]]; then
 		local first_int_ip=$(hostname -I|awk '{print $1}')
 		__echo -e "\nPUBLIC_MIP_HOST. It's the HOSTNAME/IP:PORT where MIP will be reachable at.\nIt IS very important that you understand that BOTH YOU and THIS machine MUST be able to access this PUBLIC_MIP_HOST with the exact HOSTNAME/IP:PORT that you give here!\nIf you only want to install it on your local machine, you can initialize it with your internal IP ($first_int_ip).\n127.0.0.1 (or anything which points to this IP) is NOT allowed, as it's in use by the MIP."
 	fi
 
 	local tmpval=""
 
-	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST && ! -n $ARG_HOST ]]; then
+	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST && ! -n $ARG_MIP_HOST ]]; then
 		__echo -e "\n'PUBLIC_MIP_HOST' is set to value: $MIP_ENV_PUBLIC_MIP_HOST"
 		__echo -ne "\nWould you like to change it? [y/n] "
 		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
@@ -4946,8 +5133,8 @@ _configure_host(){
 	fi
 
 	# Read HOST from the user
-	if [[ -n $ARG_HOST ]]; then
-		answer=$ARG_HOST
+	if [[ -n $ARG_MIP_HOST ]]; then
+		answer=$ARG_MIP_HOST
 	else
 		__echo -ne "\nPlease provide a value for the variable 'PUBLIC_MIP_HOST' (directly hit ENTER for default <$first_int_ip>): "
 		read answer
@@ -5026,6 +5213,8 @@ check_configure(){
 	_configure_ssh
 	_configure_pusher
 	_configure_pathologies
+	_configure_link
+	_configure_protocol -ext
 	_configure_protocol
 	_configure_host
 	_configure_exareme_ip
@@ -5053,7 +5242,11 @@ do_configure(){
 		pathologies)
 			_configure_pathologies
 			;;
+		link)
+			_configure_link
+			;;
 		protocol)
+			_configure_protocol -ext
 			_configure_protocol
 			;;
 		host)
@@ -5084,6 +5277,8 @@ do_configure(){
 			_configure_ssh
 			_configure_pusher
 			_configure_pathologies
+			_configure_link
+			_configure_protocol -ext
 			_configure_protocol
 			_configure_host
 			_configure_exareme_ip
@@ -5481,6 +5676,11 @@ _prepare_mip_env(){
 		__debug --level 5 "vars=<$vars>"
 
 		__debug --level 5 "Clearing MIP_ENV variables"
+		if [[ $ARG_GEN_TEST_ENV_FILE -eq 1 && -f $DOCKER_COMPOSE_PATH/.env.test ]]; then
+			__debug --level 5 "Deleting $DOCKER_COMPOSE_PATH/.env.test file"
+			rm $DOCKER_COMPOSE_PATH/.env.test
+		fi
+
 		for var in $vars; do
 			envvar=$(echo $var | awk -F 'MIP_ENV_' '{print $2}')
 			if [[ -n ${!envvar} ]]; then
@@ -5497,6 +5697,10 @@ _prepare_mip_env(){
 				envvar=$(echo $var | awk -F 'MIP_ENV_' '{print $2}')
 				__debug --level 6 "Setting env var: $envvar=<${!var}>"
 				export $envvar=${!var}
+				if [[ $ARG_GEN_TEST_ENV_FILE -eq 1 ]]; then
+					__debug --level 5 "Setting env var $envvar=<${!var}> in $DOCKER_COMPOSE_PATH/.env.test"
+					echo "$envvar=${!var}" >> $DOCKER_COMPOSE_PATH/.env.test
+				fi
 			done
 		fi
 	fi
@@ -9488,6 +9692,10 @@ _services_up(){
 			# Deploying MIP services
 			__echo -e "\nDeploying Services..."
 			local path=$(pwd)
+			local quiet_opt=""
+			if [[ $ARG_QUIET -eq 1 ]]; then
+				quiet_opt=" --quiet-pull"
+			fi
 			cd $DOCKER_COMPOSE_PATH
 			local max_tries=2
 			local try=0
@@ -9503,11 +9711,11 @@ _services_up(){
 						if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 						exit 1
 					fi
-					__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME up $ARG_COMPONENT"
-					docker-compose --project-name $DOCKER_PROJECT_NAME up $ARG_COMPONENT
+					__debug --level 6 "_docker-compose --project-name $DOCKER_PROJECT_NAME up${quiet_opt} $ARG_COMPONENT"
+					_docker-compose --project-name $DOCKER_PROJECT_NAME up${quiet_opt} $ARG_COMPONENT
 				else
-					__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME up -d"
-					docker-compose --project-name $DOCKER_PROJECT_NAME up -d
+					__debug --level 6 "_docker-compose --project-name $DOCKER_PROJECT_NAME up${quiet_opt} -d"
+					_docker-compose --project-name $DOCKER_PROJECT_NAME up${quiet_opt} -d
 				fi
 				ret=$?
 				_prepare_mip_env unset
@@ -9566,11 +9774,11 @@ _services_down(){
 					if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 					exit 1
 				fi
-				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME stop $ARG_COMPONENT"
-				docker-compose --project-name $DOCKER_PROJECT_NAME stop $ARG_COMPONENT
+				__debug --level 6 "_docker-compose --project-name $DOCKER_PROJECT_NAME stop $ARG_COMPONENT"
+				_docker-compose --project-name $DOCKER_PROJECT_NAME stop $ARG_COMPONENT
 			else
-				__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME down"
-				docker-compose --project-name $DOCKER_PROJECT_NAME down
+				__debug --level 6 "_docker-compose --project-name $DOCKER_PROJECT_NAME down"
+				_docker-compose --project-name $DOCKER_PROJECT_NAME down
 			fi
 			ret=$?
 			_prepare_mip_env unset
@@ -9620,11 +9828,11 @@ _services_restart(){
 						if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 						exit 1
 					fi
-					__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME restart $ARG_COMPONENT"
-					docker-compose --project-name $DOCKER_PROJECT_NAME restart $ARG_COMPONENT
+					__debug --level 6 "_docker-compose --project-name $DOCKER_PROJECT_NAME restart $ARG_COMPONENT"
+					_docker-compose --project-name $DOCKER_PROJECT_NAME restart $ARG_COMPONENT
 				else
-					__debug --level 6 "docker-compose --project-name $DOCKER_PROJECT_NAME restart -d"
-					docker-compose --project-name $DOCKER_PROJECT_NAME restart
+					__debug --level 6 "_docker-compose --project-name $DOCKER_PROJECT_NAME restart -d"
+					_docker-compose --project-name $DOCKER_PROJECT_NAME restart
 				fi
 				ret=$?
 				_prepare_mip_env unset
@@ -9633,7 +9841,7 @@ _services_restart(){
 					result=0
 				else
 					if [[ "$(docker ps | grep -v '^CONTAINER ID')" != "" && "$(docker ps -a | grep portal-frontend)" != "" && "$(docker ps | grep portal-frontend)" = "" ]]; then
-						docker-compose --project-name $DOCKER_PROJECT_NAME down $(docker ps -a -q --filter name=portal-frontend)
+						_docker-compose --project-name $DOCKER_PROJECT_NAME down $(docker ps -a -q --filter name=portal-frontend)
 						_force_portal_frontend_compile
 						ret=$?
 
