@@ -20,7 +20,7 @@ services:
       - NODE_COMMUNICATION_TIMEOUT=30000        # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
       - ENVIRONMENT_TYPE=PROD                   # TEST / DEV / PROD
       - LOG_LEVEL=INFO                          # INFO / DEBUG
-      - CONVERT_CSVS=FALSE                      # TRUE / FALSE
+      - CONVERT_CSVS=TRUE                       # TRUE / FALSE
     depends_on:
       - exareme_keystore
     ports:
@@ -144,7 +144,7 @@ services:
     restart: unless-stopped
 
   keycloak:
-    image: jboss/keycloak:11.0.2
+    image: jboss/keycloak:15.0.2
     command: -Djboss.http.port=8095
     volumes:
       - ./config/keycloak/keycloak.json:/tmp/mip.json
