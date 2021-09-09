@@ -185,12 +185,16 @@ class gen_pathologies:
         datasets_codes = [sub['code'] for sub in metadata_datasets]
 
         missing_datasets = []
+        changed_datasets = []
         exceeding_datasets = []
         for dataset in self.__datasets_codes[pathology]:
             if dataset in self.__get_filtered_dict_list(metadata_datasets, 'code'):
                 dataset_id = self.__get_dict_id(metadata_datasets, 'code', dataset)
                 label = metadata_datasets[dataset_id]['label']
-                label = self.__relabel(label, "Pathology '%s': Relabel dataset '%s'? [%s] " %(pathology, dataset, label))
+                newlabel = self.__relabel(label, "Pathology '%s': Relabel dataset '%s'? [%s] " %(pathology, dataset, label))
+                if newlabel != label:
+                    changed_datasets.append(dataset)
+                label = newlabel
                 self.__datasets[pathology].append({'code': dataset, 'label': label})
             else:
                 missing_datasets.append(dataset)
@@ -208,6 +212,14 @@ class gen_pathologies:
                 metadata_dataset_variable_id = self.__get_dict_id(self.__metadatas[pathology]['source']['variables'], 'code', 'dataset')
                 self.__metadatas[pathology]['source']['variables'][metadata_dataset_variable_id]['enumerations'].append(self.__datasets[pathology][missing_dataset_id])
                 metadata_dataset_file_change = True
+        for changed_dataset in changed_datasets:
+            changed_dataset_id = self.__get_dict_id(self.__datasets[pathology], 'code', changed_dataset)
+            metadata_dataset_variable_id = self.__get_dict_id(self.__metadatas[pathology]['source']['variables'], 'code', 'dataset')
+            for i, dataset in enumerate(self.__metadatas[pathology]['source']['variables'][metadata_dataset_variable_id]['enumerations']):
+                if dataset['code'] == changed_dataset:
+                    self.__metadatas[pathology]['source']['variables'][metadata_dataset_variable_id]['enumerations'][i] = self.__datasets[pathology][changed_dataset_id]
+                    self.__metadatas[pathology]['final']['variables'][metadata_dataset_variable_id]['enumerations'][i] = self.__datasets[pathology][changed_dataset_id]
+                    metadata_dataset_file_change = True
         for exceeding_dataset in exceeding_datasets:
             for i, dataset in enumerate(metadata_datasets):
                 if dataset['code'] == exceeding_dataset:

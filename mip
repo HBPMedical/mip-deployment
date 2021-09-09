@@ -8,6 +8,7 @@ REQUIRED_OS_DISTRIBUTOR_ID="Ubuntu"
 REQUIRED_OS_RELEASE="20.04"
 REQUIRED_DOCKER_VERSION="20.10.0"
 MAX_ALLOWED_DOCKER_VERSION=""
+PYTHON2_VERSION="2.7.18"
 ###########################################################################################
 INSTALL_PATH="/opt"
 BACKUP_PATH="/var/backups"
@@ -1165,12 +1166,14 @@ load_mip_env(){
 		fi
 	fi
 
-	if [[ (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) && $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 && "$MIP_ENV_KEYCLOAK_PROTOCOL" = "http" ]]; then
+	if [[ (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) && $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 ]]; then
 		local keycloak_ssl_required="external"
-		if [[ "$MIP_ENV_MIP_LINK" = "direct" && "$MIP_ENV_PUBLIC_MIP_PROTOCOL" = "http" ]]; then
-			keycloak_ssl_required="none"
-		elif [[ "$MIP_ENV_MIP_LINK" = "proxied" && "$MIP_ENV_EXTERNAL_MIP_PROTOCOL" = "http" && "$MIP_ENV_PUBLIC_MIP_PROTOCOL" = "http" ]]; then
-			keycloak_ssl_required="none"
+		if [[ "$MIP_ENV_KEYCLOAK_PROTOCOL" = "http" ]]; then
+			if [[ "$MIP_ENV_MIP_LINK" = "direct" && "$MIP_ENV_PUBLIC_MIP_PROTOCOL" = "http" ]]; then
+				keycloak_ssl_required="none"
+			elif [[ "$MIP_ENV_MIP_LINK" = "proxied" && "$MIP_ENV_EXTERNAL_MIP_PROTOCOL" = "http" && "$MIP_ENV_PUBLIC_MIP_PROTOCOL" = "http" ]]; then
+				keycloak_ssl_required="none"
+			fi
 		fi
 
 		__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_SSL_REQUIRED=<$keycloak_ssl_required>"
@@ -2883,18 +2886,18 @@ install_custom_package_python2(){
 			__debug --level 6 "Python 2.7 not found in pyenv environments. apt-get install build-essential zlib1g-dev libreadline-dev libbz2-dev libsqlite3-dev libssl-dev"
 			apt-get install $aptoption build-essential zlib1g-dev libreadline-dev libbz2-dev libsqlite3-dev libssl-dev
 			__echo "Installing Python 2.7. This may take a while..."
-			__debug --level 6 "pyenv install 2.7.17"
-			pyenv install 2.7.17
+			__debug --level 6 "pyenv install $PYTHON2_VERSION"
+			pyenv install $PYTHON2_VERSION
 			ret=$?
 		fi
 
-		if [[ $ret -eq 0 && -d $PYENV_ROOT/versions/2.7.17 ]]; then
+		if [[ $ret -eq 0 && -d $PYENV_ROOT/versions/$PYTHON2_VERSION ]]; then
 			ret=1
 
-			__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/pip2.7 /usr/bin/"
+			__debug --level 6 "ln -s $PYENV_ROOT/versions/$PYTHON2_VERSION/bin/pip2.7 /usr/bin/"
 			__debug --level 6 "ln -s pip2.7 /usr/bin/pip2"
 			__debug --level 6 "ln -s pip2 /usr/bin/pip"
-			ln -s $PYENV_ROOT/versions/2.7.17/bin/pip2.7 /usr/bin/
+			ln -s $PYENV_ROOT/versions/$PYTHON2_VERSION/bin/pip2.7 /usr/bin/
 			ln -s pip2.7 /usr/bin/pip2
 			if [[ -f /usr/bin/pip ]]; then
 				local installed_pip_version=$(/usr/bin/pip --version 2>/dev/null | awk '{print $NF}' | rev | cut -c2- | rev)
@@ -2908,17 +2911,17 @@ install_custom_package_python2(){
 				ln -s pip2 /usr/bin/pip
 			fi
 
-			__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7 /usr/bin/"
+			__debug --level 6 "ln -s $PYENV_ROOT/versions/$PYTHON2_VERSION/bin/python2.7 /usr/bin/"
 			__debug --level 6 "ln -s python2.7 /usr/bin/python2"
 			__debug --level 6 "ln -s python2 /usr/bin/python"
-			ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7 /usr/bin/
+			ln -s $PYENV_ROOT/versions/$PYTHON2_VERSION/bin/python2.7 /usr/bin/
 			ln -s python2.7 /usr/bin/python2
 			ln -s python2 /usr/bin/python
 
-			__debug --level 6 "ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7-config /usr/bin/"
+			__debug --level 6 "ln -s $PYENV_ROOT/versions/$PYTHON2_VERSION/bin/python2.7-config /usr/bin/"
 			__debug --level 6 "ln -s python2.7-config /usr/bin/python2-config"
 			__debug --level 6 "ln -s python2-config /usr/bin/python-config"
-			ln -s $PYENV_ROOT/versions/2.7.17/bin/python2.7-config /usr/bin/
+			ln -s $PYENV_ROOT/versions/$PYTHON2_VERSION/bin/python2.7-config /usr/bin/
 			ln -s python2.7-config /usr/bin/python2-config
 			ln -s python2-config /usr/bin/python-config
 
@@ -4730,6 +4733,8 @@ _generate_tmux_config(){
 			__debug --level 9 "<Tmux main config, first window, second window and first pane in second window>"
 			cat << EOF > $tmuxfile
 set -g default-terminal "screen-256color"
+set -g prefix2 C-j
+bind-key C-j send-prefix -2
 
 bind-key R respawn-window
 bind-key r respawn-pane
