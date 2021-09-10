@@ -1,4 +1,4 @@
-version: '3.2'
+version: '3.7'
 
 services:
   exareme_keystore:
@@ -20,7 +20,7 @@ services:
       - NODE_COMMUNICATION_TIMEOUT=30000        # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
       - ENVIRONMENT_TYPE=PROD                   # TEST / DEV / PROD
       - LOG_LEVEL=INFO                          # INFO / DEBUG
-      - CONVERT_CSVS=FALSE                      # TRUE / FALSE
+      - CONVERT_CSVS=TRUE                       # TRUE / FALSE
     depends_on:
       - exareme_keystore
     ports:
@@ -78,7 +78,7 @@ services:
     environment:
       ### API ###
       LOG_LEVEL: INFO
-      LOG_LEVEL_FRAMEWORK: INFO 
+      LOG_LEVEL_FRAMEWORK: INFO
       AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
       ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
@@ -95,11 +95,11 @@ services:
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
       ### Keycloak ###
-      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      KEYCLOAK_AUTH_URL: ${EXTERNAL_MIP_PROTOCOL}://${KEYCLOAK_URL}/auth/
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-      KEYCLOAK_SSL_REQUIRED: external
+      KEYCLOAK_SSL_REQUIRED: ${KEYCLOAK_SSL_REQUIRED}
     depends_on:
       - create_dbs
     volumes:
@@ -113,19 +113,24 @@ services:
       - portalbackend
     ports:
       - '80:80'
+      - '443:443'
+    volumes:
+      - ./.stored_data/caddy/caddy_data:/data
     environment:
-      WORKER_PROCESSES: 1
-      ERROR_LOG_LEVEL: warn
-      PORTAL_VIRTUAL_HOST: frontend
+      ERROR_LOG_LEVEL: info
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
       INSTANCE_NAME: 'MIP ${MIP}'
       VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
-      GALAXY_URL: http://galaxy/nativeGalaxy
-      # TODO      KEYCLOAK_AUTH_URL: /services/sso/login
-      KEYCLOAK_AUTH_URL: http://keycloak:8095/auth/
-      KEYCLOAK_LOGIN_URL: http://keycloak:8095/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth
+      GALAXY_HOST: http://galaxy
+      GALAXY_PATH: /nativeGalaxy
+      KEYCLOAK_HOST: ${KEYCLOAK_PROTOCOL}://keycloak:8095
+      KEYCLOAK_AUTH_PATH: /auth
+      PUBLIC_MIP_HOST: ${PUBLIC_MIP_HOST}
+      PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}
+      EXTERNAL_MIP_PROTOCOL: ${EXTERNAL_MIP_PROTOCOL}
+      MIP_LINK: ${MIP_LINK}
     restart: unless-stopped
 
   keycloak_db:
@@ -139,7 +144,7 @@ services:
     restart: unless-stopped
 
   keycloak:
-    image: jboss/keycloak:11.0.2
+    image: jboss/keycloak:15.0.2
     command: -Djboss.http.port=8095
     volumes:
       - ./config/keycloak/keycloak.json:/tmp/mip.json
@@ -155,10 +160,17 @@ services:
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: Pa55w0rd
       KEYCLOAK_IMPORT: /tmp/mip.json
-      KEYCLOAK_HOSTNAME: ${PUBLIC_MIP_HOST}
+      KEYCLOAK_HOSTNAME: ${KEYCLOAK_URL}
+      PROXY_ADDRESS_FORWARDING: 'true'  #important for reverse proxy
     ports:
       - '8095:8095'
       - '8443:8443'
     depends_on:
       - keycloak_db
     restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450
