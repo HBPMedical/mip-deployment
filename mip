@@ -18,7 +18,7 @@ DOCKER_USER="mipadmin"
 DOCKER_USER_PASSWD='$6$hZTew7vztbwhQHx$/F8I.cs78bBy9lO.rQ4AUICGrkZLVjPt7zkV3xXEC3.mip0rVrrxPmTgvrZQ0DcsNqpnb10Cn6InVt441BIUo0'
 CONFLICTING_PACKAGES="docker docker-engine docker.io docker-compose containerd runc"
 CONFLICTING_SNAP_PACKAGES="docker"
-PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates ssl-cert curl gnupg-agent software-properties-common neofetch net-tools mtr-tiny inetutils-traceroute haveged whois lsof jq expect python3-pip"
+PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates ssl-cert curl gnupg-agent software-properties-common neofetch net-tools mtr-tiny inetutils-traceroute haveged whois lsof expect python3-pip"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli docker-ce-rootless-extras containerd.io"
 REQUIRED_PIP3_PACKAGES="chardet bpytop"
 REQUIRED_CUSTOM_PACKAGES="docker-compose python2"
@@ -310,8 +310,18 @@ args_parser(){
 				shift
 				shift
 				;;
+			--mip-branch)
+				ARG_MIP_BRANCH=$2
+				shift
+				shift
+				;;
 			--version)
 				ARG_VERSION=$2
+				shift
+				shift
+				;;
+			--mip-version)
+				ARG_MIP_VERSION=$2
 				shift
 				shift
 				;;
@@ -322,6 +332,11 @@ args_parser(){
 				;;
 			--commit)
 				ARG_COMMIT=$2
+				shift
+				shift
+				;;
+			--mip-commit)
+				ARG_MIP_COMMIT=$2
 				shift
 				shift
 				;;
@@ -850,6 +865,7 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 											aligns these with all available datasets for each pathology, then deploys CDEs on each
 											implied workers per pathology and also on the master, and deploys the pathologies.json
 											on the UI node.
+			compile							(PUSHER action) Compile datasets on workers and master nodes. Can be used with --node and --pathology options.
 		tmux								(PUSHER action) Create+launch/join a tmux session to manage all the configured nodes.
 											Requires "configure pusher" to be done to have a ssh config file ready to reach all
 											federation nodes.
@@ -930,6 +946,9 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 
 		FEDERATION SPECIFIC OPTION
 		==========================
+		--mip-commit [COMMIT]						Only in PUSHER. Specific MIP commit ID. It has precedence over --mip-version and --mip-branch
+		--mip-version [VERSION]						Only in PUSHER. Specific MIP version. It has precedence over --mip-branch
+		--mip-branch [BRANCH]						Only in PUSHER. Specific MIP branch.
 		--node-type [local (default)|ms/master|ui/frontend|wk/worker]
 										Type of node, typically in a federation. The script will react differently and adapt to the
 											node-type related context.
@@ -940,7 +959,7 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--federation [FEDERATION_NAME]					Federation name (mipfed1, mipqa1...). This is kind of arbitrary, but then, you'll have to stick
 											to this name everytime you want to administrate the federation. Il also means that a pusher
 											can manage many different federations.
-		--node [NODE]							Limit the action to the specified NODE. Used in case of "node" or "service" action.
+		--node [NODE]							Limit the action to the specified NODE. Used in case of "node", "service", or "data compile" action.
 			NODE can be the node "short name" (ms|ui|wk1|wk2...), the node "name" (real hostname), the node "id" (1=master, 2=ui, 3..n for workers) or the node "IP".
 		--without-exareme						Can be used to remove exareme (included by default) from the list of tasks in "service [deploy|start|restart|stop]".
 		--with-portainer						Can be used to add portainer (excluded by default) from the list of tasks in "service [deploy|start|restart|stop]".
@@ -1178,6 +1197,7 @@ load_mip_env(){
 
 		__debug --level 6 "Setting env var: MIP_ENV_KEYCLOAK_SSL_REQUIRED=<$keycloak_ssl_required>"
 		export MIP_ENV_KEYCLOAK_SSL_REQUIRED="$keycloak_ssl_required"
+		envvar_changes=1
 	fi
 
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) ]]; then
@@ -4743,7 +4763,7 @@ new -s $ARG_FEDERATION -n bash -c $MIP_PATH/Federated-Deployment bash
 set remain-on-exit on
 respawn-window -k
 
-neww -n logs 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
+neww -n logs 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node -t "bash -c \"$MIP_COMMAND -f logs\"" 2>/dev/null'
 set remain-on-exit on
 respawn-window -k
 EOF
@@ -4769,7 +4789,7 @@ EOF
 				__debug --level 9 "<Tmux pane vertical split $p%, then in node <$node>>"
 				cat << EOF >> $tmuxfile
 
-splitw -v -p $p $splitoption 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
+splitw -v -p $p $splitoption 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node -t "bash -c \"$MIP_COMMAND -f logs\"" 2>/dev/null'
 respawn-pane -k
 EOF
 				__debug --level 9 "</Tmux pane vertical split $p%, then in node <$node>>"
@@ -4802,7 +4822,7 @@ EOF
 			cat << EOF >> $tmuxfile
 
 selectp -t $panecount
-splitw -h -p 50 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
+splitw -h -p 50 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node -t "bash -c \"$MIP_COMMAND -f logs\"" 2>/dev/null'
 respawn-pane -k
 EOF
 			__debug --level 9 "</Tmux select pane <$panecount> and horizontal split 50%, then in node <$node>>"
@@ -4850,7 +4870,7 @@ EOF
 					__debug --level 9 "<Tmux pane horizontal split $p%, then in node <$node>>"
 					cat << EOF >> $tmuxfile
 
-splitw -h -p $p 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
+splitw -h -p $p 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node -t "bash -c \"$MIP_COMMAND -f logs\"" 2>/dev/null'
 respawn-pane -k
 EOF
 					__debug --level 9 "</Tmux pane horizontal split $p%, then in node <$node>>"
@@ -4883,18 +4903,36 @@ respawn-window -k
 EOF
 			__debug --level 9 "</Tmux select pane 0, synchronize-panes, and new window>"
 
+			node_id=0
 			for node in $nodes; do
 				__debug --level 9 "<Tmux new window for node <$node>>"
+				cd_path=""
+				cd_path_option=""
+				if [[ $node_id -eq 1 ]]; then	# ui
+					cd_path=$(_get_remote_var "$node" "DOCKER_COMPOSE_PATH")
+				else
+					cd_path=$(_get_remote_var "$node" "DATA_PATH")"/$ARG_FEDERATION"
+				fi
+
+				if [[ "$cd_path" != "" ]]; then
+					cd_path_option=" -t \"cd $cd_path; bash --login\""
+				fi
+
 				cat << EOF >> $tmuxfile
 
-neww -n $node 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null'
+neww -n $node 'ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node${cd_path_option} 2>/dev/null'
 set remain-on-exit on
 respawn-window -k
 EOF
 				__debug --level 9 "</Tmux new window for node <$node>>"
+				node_id=$(expr $node_id + 1)
 			done
 		fi
 	fi
+	cat << EOF >> $tmuxfile
+
+selectw -t 1
+EOF
 }
 
 _manage_tmux_session(){
@@ -6576,6 +6614,26 @@ _get_mip(){
 					exareme)
 						if [[ "$EXAREME_BRANCH" != "$default_branch" ]]; then
 							default_branch="$EXAREME_BRANCH"
+						fi
+						if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 && "$arg_component_version" = "" && (( "$ARG_MIP_VERSION" != "" || "$ARG_MIP_BRANCH" != "" || "$ARG_MIP_COMMIT" != "" )) ]]; then
+							tmp_cmd="_list_avail_version"
+							tmp_cmd_args=" --part mip --all"
+							tmp_cmd_args+=" --component exareme_master"
+							if [[ "$ARG_MIP_VERSION" != "" ]]; then
+								tmp_cmd_args+=" --tag $ARG_MIP_VERSION"
+							elif [[ "$ARG_MIP_BRANCH" != "" ]]; then
+								tmp_cmd_args+=" --branch $ARG_MIP_BRANCH"
+							elif [[ "$ARG_MIP_COMMIT" != "" ]]; then
+								tmp_cmd_args+=" --commit $ARG_MIP_COMMIT"
+							fi
+							tmp_cmd_args+=" --force-unstable --version-return-var tmp_component_version"
+							$tmp_cmd $tmp_cmd_args
+							if [[ "$tmp_component_version" != "" ]]; then
+								tmp_component_version=$(echo "$tmp_component_version" | cut -d";" -f2 | cut -d: -f2)
+								if [[ "$tmp_component_version" != "" ]]; then
+									arg_component_version="$tmp_component_version"
+								fi
+							fi
 						fi
 						;;
 				esac
@@ -8595,7 +8653,7 @@ _data(){
 								ret=$?
 								if [[ $ret -eq 0 ]]; then
 									export ANSIBLE_HOST_KEY_CHECKING=False
-									__debug --level 6 $ANSIBLE_ADHOC_CMD --ssh-common-args="$SSH_OPTIONS" --become $ansiblenodename --args "mv /tmp/$script_filename $script_dest_dir/"
+									__debug --level 6 "$ANSIBLE_ADHOC_CMD --ssh-common-args=\"$SSH_OPTIONS\" --become $ansiblenodename --args \"mv /tmp/$script_filename $script_dest_dir/\""
 									$ANSIBLE_ADHOC_CMD --ssh-common-args="$SSH_OPTIONS" --become $ansiblenodename --args "mv /tmp/$script_filename $script_dest_dir/" >/dev/null 2>&1
 									ret=$?
 									if [[ $ret -ne 0 ]]; then
@@ -8621,13 +8679,20 @@ _data(){
 							arg_pathologies=" -p $pathologies"
 						fi
 						if [[ $quiet -ne 1 ]]; then
+							msg_details=""
+							if [[ "$arg_force" != "" ]]; then
+								msg_details+=" (force (re-)compile)"
+							fi
+							if [[ "$pathologies" != "" ]]; then
+								msg_details+=" specific pathologies: $pathologies"
+							fi
 							if [[ "$nodetype" = "ms" ]]; then
-								__magenta "Asking master <$node/$remotehostname> node ($localhostname) to compile CDEs"
+								__magenta "Asking master <$node/$remotehostname> node ($localhostname) to compile CDEs${msg_details}"
 							else
-								__cyan "Asking worker <$node/$remotehostname> node ($localhostname) to compile datasets"
+								__cyan "Asking worker <$node/$remotehostname> node ($localhostname) to compile datasets${msg_details}"
 							fi
 						fi
-						__debug --level 6 _remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force}${arg_pathologies} 2>/dev/null
+						__debug --level 6 "_remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force}${arg_pathologies} 2>/dev/null"
 						_remote_exec $nodeshortname ${MIP_COMMAND} --node-type $nodetype --federation $ARG_FEDERATION data compile${arg_force}${arg_pathologies} 2>/dev/null
 					fi
 
@@ -8702,11 +8767,11 @@ _data(){
 				fi
 				if [[ "$pathologies" != "" && ${#check_pathologies[@]} -gt 0 ]]; then
 					for tmp_pathology in ${check_pathologies[@]}; do
-						__debug --level 6 find $data_path/$tmp_pathology -name '*.db' -delete 2>/dev/null
+						__debug --level 6 "find $data_path/$tmp_pathology -name '*.db' -delete 2>/dev/null"
 						find $data_path/$tmp_pathology -name '*.db' -delete 2>/dev/null # Removing previous .db file in selected pathology
 					done
 				else
-					__debug --level 6 find $data_path -name '*.db' -delete 2>/dev/null
+					__debug --level 6 "find $data_path -name '*.db' -delete 2>/dev/null"
 					find $data_path -name '*.db' -delete 2>/dev/null # Removing previous .db files
 				fi
 
@@ -8823,6 +8888,14 @@ _ssh_mc(){
 	else
 		__red "Usage: $0 --pusher --federation <FEDERATION> --node <NODE|USER@NODE> ssh-mc"
 		exit 1
+	fi
+}
+
+_early_depends_install(){
+	__debug --level 4 "_early_depends_install($*)"
+
+	if [[ "$(command -v jq)" = "" ]]; then
+		sudo bash -c "apt-get update; apt-get install --no-install-recommends --yes jq"
 	fi
 }
 
@@ -9382,6 +9455,24 @@ _install_mip(){
 								local filename="pathologies_generator.py"
 								local targetpath="/usr/local/bin/$filename"
 								local httpcode
+								if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 && (( "$ARG_MIP_VERSION" != "" || "$ARG_MIP_BRANCH" != "" || "$ARG_MIP_COMMIT" != "" )) ]]; then
+									install_commit=""
+									install_branch=""
+									ret_wanted_mip_version=""
+
+									if [[ "$ARG_MIP_COMMIT" != "" ]]; then
+										install_commit="$ARG_MIP_COMMIT"
+									fi
+									if [[ "$ARG_MIP_BRANCH" != "" ]]; then
+										install_branch="$ARG_MIP_BRANCH"
+										install_commit=""
+									fi
+									if [[ "$ARG_MIP_VERSION" != "" ]]; then
+										ret_wanted_mip_version="$ARG_MIP_VERSION"
+										install_branch=""
+										install_commit=""
+									fi
+								fi
 								__debug --level 6 _get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
 								_get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
 								ret=$?
@@ -10270,6 +10361,7 @@ delete_mip(){
 main(){
 	__config_colors
 	load_mip_env
+	_early_depends_install
 	local answer=""
 
 	case $ACTION in
