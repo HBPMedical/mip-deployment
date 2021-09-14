@@ -816,7 +816,10 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		uninstall							Stop and uninstall the MIP. Note it doesn't uninstall
 											the required components.
 		configure [CONFIGURE_PART]
+			docker-mtu						Configure the Docker MTU to be aligned with the main NIC's settings.
 			user							Create system user account to use to operate the MIP.
+			link							Configure the type of link (direct/proxied) through which the MIP will be reachable.
+			protocol						Configure the external (i.e. in front of a reverse-proxy) and/or internal protocol (http/https) where the MIP will be reachable at.
 			host							Configure the host on which the MIP ("local" MIP or "ui" federation node) will listen.
 			logs							Prepare logs directory used in "local" MIP or "ui" federation node.
 			data							Generate databases from datasets available.
@@ -3467,11 +3470,19 @@ ensure_running_dockerd(){
 		local enabled=$(systemctl status docker|grep 'Loaded:'|awk '{print $4}'|cut -d\; -f1)
 		local status=$(systemctl status docker|grep 'Active:'|awk '{print $2}')
 		if [[ "$enabled" != "enabled" ]]; then
+			if [[ $(id -u) -ne 0 ]]; then
+				__red "It seems that the MIP hasn't been configured properly. Exiting!"
+				exit 1
+			fi
 			__debug --level 5 "Docker SystemD unit not enabled"
 			__debug --level 6 "systemctl --quiet enable docker"
 			systemctl --quiet enable docker
 		fi
 		if [[ "$status" = "inactive" ]]; then
+			if [[ $(id -u) -ne 0 ]]; then
+				__red "It seems that the MIP hasn't been configured properly. Exiting!"
+				exit 1
+			fi
 			__debug --level 5 "Docker SystemD unit not started"
 			__debug --level 6 "systemctl --quiet start docker"
 			systemctl --quiet start docker
@@ -4189,6 +4200,10 @@ _configure_user(){
 	if [[ "$DOCKER_USER" != "" && "$DOCKER_USER" != "root" ]]; then
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ "$(cat /etc/passwd|grep $DOCKER_USER:)" = "" ]]; then
+			if [[ $(id -u) -ne 0 ]]; then
+				__red "It seems that the MIP hasn't been configured (sudo $0 configure user) properly. Exiting!"
+				exit 1
+			fi
 			__debug --level 5 "User $DOCKER_USER does not exist!"
 			if [[ $ARG_YES -eq 1 || $ARG_QUIET -eq 1 ]]; then
 				answer="y"
@@ -4217,6 +4232,11 @@ _configure_docker_mtu(){
 
 	local result=1
 
+	if [[ $(id -u) -ne 0 && "$(groups | grep -w docker)" = "" ]]; then
+		__red "You have to be a member of docker group. Maybe the MIP hasn't been configured properly. Exiting!"
+		exit 1
+	fi
+
 	_check_docker
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
@@ -4228,6 +4248,11 @@ _configure_docker_mtu(){
 
 			if [[ "$routable_dev_mtu" != "" ]]; then
 				if [[ "$docker_mtu" = "" || (( "$docker_mtu" != "" && "$docker_mtu" != "$routable_dev_mtu" )) ]]; then
+					if [[ $(id -u) -ne 0 ]]; then
+						__red "It seems that the MIP hasn't been configured (sudo $0 configure docker-mtu) properly. Exiting!"
+						exit 1
+					fi
+
 					__echo -n "\${yellow}Aligning Docker MTU (currently \${cyan}$docker_mtu\${yellow}) on the system's routable device's (\${magenta}$routable_dev\${yellow}) MTU: \${cyan}$routable_dev_mtu\${yellow}..."
 					cat << EOF > /etc/docker/daemon.json
 {
@@ -4260,6 +4285,10 @@ _configure_ssh(){
 	__debug --level 1 --levelcompare "eq" -n "Configuring SSH..."
 	__debug --level 4 "_configure_ssh($*)"
 	if [[ "$DOCKER_USER" != "root" ]]; then
+		if [[ $(id -u) -ne 0 && "$(id -un)" != "$DOCKER_USER" ]]; then
+			__red "It seems that the MIP hasn't been configured (sudo $0 configure ssh) properly. Exiting!"
+			exit 1
+		fi
 		__debug --level 5 "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"
 		__debug --level 5 "DOCKER_USER=<$DOCKER_USER>"
 		if [[ ! -d $SSH_PATH/.ssh ]]; then
@@ -4283,9 +4312,17 @@ _configure_ssh(){
 			chmod 700 $SSH_PATH/.ssh
 		fi
 		if [[ "$user" != "$DOCKER_USER" || "$group" != "$DOCKER_USER" ]]; then
+			if [[ $(id -u) -ne 0 ]]; then
+				__red "It seems that the MIP hasn't been configured (sudo $0 configure ssh) properly. Exiting!"
+				exit 1
+			fi
 			chown $DOCKER_USER.$DOCKER_USER $SSH_PATH/.ssh
 		fi
 		if [[ "$(cat /etc/ssh/sshd_config|grep '^PasswordAuthentication no')" != "" ]]; then
+			if [[ $(id -u) -ne 0 ]]; then
+				__red "It seems that the MIP hasn't been configured (sudo $0 configure ssh) properly. Exiting!"
+				exit 1
+			fi
 			__debug --level 2 "SSH configuration doesn't accept password connections. Fixing..."
 			__debug --level 6 "sed --in-place 's/^PasswordAuthentication no/#PasswordAuthentication no/g' /etc/ssh/sshd_config"
 			sed --in-place 's/^PasswordAuthentication no/#PasswordAuthentication no/g' /etc/ssh/sshd_config
@@ -4298,6 +4335,10 @@ _configure_ssh(){
 _configure_pusher(){
 	__debug --level 4 "_configure_pusher($*)"
 	if [[ $ARG_PUSHER -eq 1 ]]; then
+		if [[ $(id -u) -ne 0 ]]; then
+			__red "Call me with sudo!"
+			exit 1
+		fi
 		__debug --level 1 --levelcompare "eq" "Configuring pusher..."
 
 		local force=$ARG_FORCE
@@ -4319,7 +4360,7 @@ _configure_pusher(){
 		fi
 
 		if [[ -f $SSH_PATH/.ssh/config && "$SSH_PATH" != "/home/$DOCKER_USER" && $ARG_FORCE -ne 1 ]]; then
-			__debug --level 5 "SSH config file exists in $SSH_PATH/.ssh, so not in $DOCKER_USER home, but as ARG_FORCE was not passed, exiting..."
+			__debug --level 5 "SSH config file exists in $SSH_PATH/.ssh, so not in $DOCKER_USER home, but as --force was not passed, exiting..."
 			return 0
 		fi
 
@@ -5056,7 +5097,7 @@ _configure_protocol(){
 	fi
 
 	ext=0
-	if [[ "$1" = "ext" ]]; then
+	if [[ "$1" = "-ext" ]]; then
 		ext=1
 	fi
 
@@ -5079,7 +5120,7 @@ _configure_protocol(){
 	if [[ $ext -eq 1 ]]; then
 		# Checking the EXTERNAL_MIP_PROTOCOL env variable
 		if [[ ! -n $ARG_EXTERNAL_MIP_PROTOCOL ]]; then
-			__echo -e "\nEXTERNAL_MIP_PROTOCOL. It's the external (i.e. in front of a reverse-proxy) protocol (http/https) where MIP will be reachable at."
+			__echo -e "\nEXTERNAL_MIP_PROTOCOL. It's the external (ONLY used on a reverse-proxy) protocol (http/https) where MIP will be reachable at."
 		fi
 	else
 		# Checking the PUBLIC_MIP_PROTOCOL env variable
@@ -5090,9 +5131,16 @@ _configure_protocol(){
 
 	local tmpval=""
 
-	if [[ -n $MIP_ENV_PUBLIC_MIP_PROTOCOL && ! -n $ARG_MIP_PROTOCOL ]]; then
+	if [[ $ext -eq 1 && -n $MIP_ENV_EXTERNAL_MIP_PROTOCOL && ! -n $ARG_EXTERNAL_MIP_PROTOCOL ]]; then
+		__echo -e "\n'EXTERNAL_MIP_PROTOCOL' is set to value: $MIP_ENV_EXTERNAL_MIP_PROTOCOL"
+		__echo -ne "Would you like to change it? [y/n] "
+		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
+		if [[ "$answer" != "y" ]]; then
+			return 0
+		fi
+	elif [[ $ext -eq 0 && -n $MIP_ENV_PUBLIC_MIP_PROTOCOL && ! -n $ARG_MIP_PROTOCOL ]]; then
 		__echo -e "\n'PUBLIC_MIP_PROTOCOL' is set to value: $MIP_ENV_PUBLIC_MIP_PROTOCOL"
-		__echo -ne "\nWould you like to change it? [y/n] "
+		__echo -ne "Would you like to change it? [y/n] "
 		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 		if [[ "$answer" != "y" ]]; then
 			return 0
@@ -5106,9 +5154,9 @@ _configure_protocol(){
 		answer=$ARG_MIP_PROTOCOL
 	else
 		if [[ $ext -eq 1 ]]; then
-			__echo -ne "\nPlease provide a value for the variable 'EXTERNAL_MIP_PROTOCOL' (directly hit ENTER for default <$DEFAULT_MIP_ENV_EXTERNAL_MIP_PROTOCOL>): "
+			__echo -ne "Please provide a value for the variable 'EXTERNAL_MIP_PROTOCOL' (directly hit ENTER for default <$DEFAULT_MIP_ENV_EXTERNAL_MIP_PROTOCOL>): "
 		else
-			__echo -ne "\nPlease provide a value for the variable 'PUBLIC_MIP_PROTOCOL' (directly hit ENTER for default <$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL>): "
+			__echo -ne "Please provide a value for the variable 'PUBLIC_MIP_PROTOCOL' (directly hit ENTER for default <$DEFAULT_MIP_ENV_PUBLIC_MIP_PROTOCOL>): "
 		fi
 		read answer
 		if [[ "$answer" = "" ]]; then
@@ -5161,14 +5209,19 @@ _configure_host(){
 	# Checking the PUBLIC_MIP_HOST env variable
 	if [[ ! -n $ARG_MIP_HOST ]]; then
 		local first_int_ip=$(hostname -I|awk '{print $1}')
-		__echo -e "\nPUBLIC_MIP_HOST. It's the HOSTNAME/IP:PORT where MIP will be reachable at.\nIt IS very important that you understand that BOTH YOU and THIS machine MUST be able to access this PUBLIC_MIP_HOST with the exact HOSTNAME/IP:PORT that you give here!\nIf you only want to install it on your local machine, you can initialize it with your internal IP ($first_int_ip).\n127.0.0.1 (or anything which points to this IP) is NOT allowed, as it's in use by the MIP."
+		__echo -e "\nPUBLIC_MIP_HOST. It's the HOSTNAME/IP:PORT where MIP will be reachable at."
+		if [[ "$MIP_ENV_MIP_LINK" = "direct" ]]; then
+			__echo -e "As your MIP Link is 'direct', it IS very important that you understand that BOTH YOU and THIS machine MUST be able to access this PUBLIC_MIP_HOST with the exact HOSTNAME/IP:PORT that you give here!\nIf you only want to install it on your local machine, you can initialize it with your internal IP ($first_int_ip).\n127.0.0.1 (or anything which points to this IP) is NOT allowed, as it's in use by the MIP."
+		else
+			__echo -e "As your MIP Link is 'proxied', this MUST be the address configured on the reverse-proxy server to reach this machine!"
+		fi
 	fi
 
 	local tmpval=""
 
 	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST && ! -n $ARG_MIP_HOST ]]; then
-		__echo -e "\n'PUBLIC_MIP_HOST' is set to value: $MIP_ENV_PUBLIC_MIP_HOST"
-		__echo -ne "\nWould you like to change it? [y/n] "
+		__echo -e "'PUBLIC_MIP_HOST' is set to value: $MIP_ENV_PUBLIC_MIP_HOST"
+		__echo -ne "Would you like to change it? [y/n] "
 		read answer && answer=$(echo $answer|awk '{print tolower($0)}')
 		if [[ "$answer" != "y" ]]; then
 			return 0
@@ -5749,6 +5802,46 @@ _prepare_mip_env(){
 	fi
 
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
+}
+
+_get_mip_address(){
+	if [[ $ARG_PUSHER -ne 1 && (( "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" )) ]]; then
+		result=""
+
+		protocol=""
+		host=""
+		if [[ "$MIP_ENV_MIP_LINK" != "" ]]; then
+			if [[ "$MIP_ENV_MIP_LINK" = "direct" ]]; then
+				if [[ "$MIP_ENV_PUBLIC_MIP_PROTOCOL" != "" ]]; then
+					protocol="$MIP_ENV_PUBLIC_MIP_PROTOCOL"
+				fi
+				if [[ "$MIP_ENV_PUBLIC_MIP_HOST" != "" ]]; then
+					host="$MIP_ENV_PUBLIC_MIP_HOST"
+				fi
+			elif [[ "$MIP_ENV_MIP_LINK" = "proxied" ]]; then
+				if [[ "$MIP_ENV_EXTERNAL_MIP_PROTOCOL" != "" ]]; then
+					protocol="$MIP_ENV_EXTERNAL_MIP_PROTOCOL"
+				fi
+				if [[ $MIP_ENV_KEYCLOAK_AUTHENTICATION -eq 1 ]]; then
+					if [[ "$MIP_ENV_KEYCLOAK_URL" != "" && "$MIP_ENV_KEYCLOAK_URL" != "$DEFAULT_FED_MIP_ENV_KEYCLOAK_URL" ]]; then
+						host="$MIP_ENV_KEYCLOAK_URL"
+					fi
+				fi
+
+				if [[ "$host" = "" ]]; then
+					host="UNKNOWN_URL_ON_REV-PROXY"
+				fi
+			fi
+		fi
+
+		if [[ "$protocol" = "" ]]; then
+			protocol="UNKNOWN_http/https"
+		fi
+		if [[ "$host" = "" ]]; then
+			host="???"
+		fi
+		echo "$protocol://$host"
+	fi
 }
 
 _get_node(){
@@ -9759,7 +9852,7 @@ _run_keycloak(){
 		count=`expr $count + 1`
 		if [[ $count -eq 8 ]]; then
 			__echo
-			__red -n "MIP seems to be up and running on ${MIP_ENV_PUBLIC_MIP_PROTOCOL}://${MIP_ENV_PUBLIC_MIP_HOST} but could not be configured properly. \nAs a result you can't access the administration console. You can retry by launching $0 configure keycloak "
+			__red -en "MIP seems to be up and running on $(_get_mip_address) but could not be configured properly. \nAs a result you can't access the administration console. You can retry by launching sudo $0 configure keycloak "
 			if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 			exit 1
 		fi
@@ -9998,7 +10091,9 @@ start_mip(){
 				_run_keycloak
 			fi
 		fi
-		__echo -e "\nMIP is up and running you can access it on: ${MIP_ENV_PUBLIC_MIP_PROTOCOL}://${MIP_ENV_PUBLIC_MIP_HOST} "
+
+		mip_address=$(_get_mip_address)
+		__echo -e "\nMIP is up and running. You can access it on: ${mip_address} "
 	fi
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
 }
@@ -10027,7 +10122,7 @@ restart_mip(){
 			_run_keycloak
 		fi
 	fi
-	__echo -e "\nMIP is up and running you can access it on: ${MIP_ENV_PUBLIC_MIP_PROTOCOL}://${MIP_ENV_PUBLIC_MIP_HOST} "
+	__echo -e "\nMIP is up and running. You can access it on: $(_get_mip_address) "
 
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 0; fi
 }
@@ -10434,9 +10529,9 @@ main(){
 					elif [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
 						__red "Usage: $0 --node-type $MIP_ENV_NODE_TYPE configure [docker-mtu|user|ssh|logs|data|all]"
 					elif [[ "$MIP_ENV_NODE_TYPE" = "ui" ]]; then
-						__red "Usage: $0 --node-type $MIP_ENV_NODE_TYPE configure [docker-mtu|user|ssh|protocol|host|exareme-ip|logs|keycloak|all]"
+						__red "Usage: $0 --node-type $MIP_ENV_NODE_TYPE configure [docker-mtu|user|ssh|link|protocol|host|exareme-ip|logs|keycloak|all]"
 					elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-						__red "Usage: $0 configure [docker-mtu|user|ssh|pathologies|protocol|host|logs|keycloak|all]"
+						__red "Usage: $0 configure [docker-mtu|user|ssh|pathologies|link|protocol|host|logs|keycloak|all]"
 					fi
 					exit 1
 			esac
