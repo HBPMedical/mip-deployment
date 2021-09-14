@@ -4773,6 +4773,10 @@ _generate_tmux_config(){
 	if [[ $ARG_PUSHER -eq 1 ]]; then
 		local tmuxfile=$MIP_PATH/.tmux.conf
 		if [[ ! -f $tmuxfile || $ARG_FORCE -eq 1 || "$1" = "-f" ]]; then
+			if [[ ! -f $SSH_PATH/.ssh/config ]]; then
+				__red "It seems that the MIP is not configured properly. Did you run 'sudo $0 configure pusher'?"
+				exit 1
+			fi
 			local nodecount=$(cat $SSH_PATH/.ssh/config | grep '^Host'|wc -l)
 			local nodes=$(cat $SSH_PATH/.ssh/config | awk '/^Host/ {print $NF}')
 
