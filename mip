@@ -1342,7 +1342,7 @@ load_mip_env(){
 		__debug --level 6 "Setting global var: REQUIRED_PACKAGES=<>"
 		REQUIRED_PACKAGES=""
 		__debug --level 6 "Setting global var: REQUIRED_PIP3_PACKAGES=<chardet paramiko>"
-		REQUIRED_PIP3_PACKAGES="chardet paramiko"
+		REQUIRED_PIP3_PACKAGES="chardet bpytop paramiko"
 		__debug --level 6 "Setting global var: SSH_PATH=<$EXAREME_PATH>"
 		SSH_PATH=$EXAREME_PATH
 		__debug --level 6 "Setting global var: SSH_OPTIONS=<-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no>"
@@ -3314,7 +3314,10 @@ _get_list_element_by_id(){
 _get_remote_var(){
 	if [[ $ARG_PUSHER -ne 1 ]]; then
 		echo ""
+		return 1
 	fi
+	__debug --level 4 "_get_remote_var($*)"
+
 	local node=$1
 	local var=$2
 	local action="getvar"
@@ -3323,29 +3326,31 @@ _get_remote_var(){
 	fi
 
 	if [[ "$node" != "" && "$var" != "" ]]; then
-		if [[ -f $SSH_PATH/.ssh/config ]]; then
-			local nodes=$(awk '/^Host/ {print $2}' $SSH_PATH/.ssh/config)
-			_contains "$nodes" $node
-			local nodecheck=$?
-			if [[ $nodecheck -eq 0 ]]; then
-				local nodetype=""
-				case $node in
-					ms|ui)
-						nodetype=$node
-						;;
-					*)
-						nodetype="wk"
-						;;
-				esac
-				__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node \"$MIP_COMMAND --node-type $nodetype --federation $ARG_FEDERATION fedtask $action $var\" 2>/dev/null"
-				local val=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node "$MIP_COMMAND --node-type $nodetype --federation $ARG_FEDERATION fedtask $action $var" 2>/dev/null)
-				echo $val
-			fi
+		_node_exists "$node"
+		local ret=$?
+		if [[ $ret -eq 0 ]]; then
+			local node_shortname
+			_get_node --node "$node" --node-shortname-return-var 'node_shortname'
+			local nodetype=""
+			case $node_shortname in
+				ms|ui)
+					nodetype="$node_shortname"
+					;;
+				*)
+					nodetype="wk"
+					;;
+			esac
+
+			__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node \"$MIP_COMMAND --node-type $nodetype --federation $ARG_FEDERATION fedtask $action $var\" 2>/dev/null"
+			local val=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node "$MIP_COMMAND --node-type $nodetype --federation $ARG_FEDERATION fedtask $action $var" 2>/dev/null)
+			echo $val
 		fi
 	fi
 }
 
 _remote_exec(){
+	__debug --level 4 "_remote_exec($*)"
+
 	if [[ $ARG_PUSHER -ne 1 ]]; then
 		return 0
 	fi
@@ -3354,17 +3359,15 @@ _remote_exec(){
 	local node=$1
 	shift
 
-	if [[ -f $SSH_PATH/.ssh/config ]]; then
-		local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
-		local nodecount=$(cat $SSH_PATH/.ssh/config|wc -l)
-	else
+	if [[ ! -f $SSH_PATH/.ssh/config ]]; then
 		__red "SSH federation configuration file not found!"
 		exit 1
 	fi
 
-	_contains "$nodes" "$node"
+	_node_exists "$node"
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
+		__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node $@ --raw-color-codes"
 		result=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node $@ --raw-color-codes)
 	fi
 
@@ -3857,6 +3860,72 @@ _get_container_info_item(){
 	eval "docker inspect $id --format '$format' 2>/dev/null"
 }
 
+_get_sorted_swarm_services(){
+	if [[ "$MIP_ENV_NODE_TYPE" != "ms" ]]; then
+		return 1
+	fi
+
+	local node_hostname=""
+	local node_id=""
+	local node_role=""
+	local node_ip=""
+	local service_list=()
+	local master_service_list=()
+	local worker_service_list=()
+	local node_id_list=()
+	local node_ip_list=()
+
+	local service_ids=$(docker service ls --filter mode=replicated -q 2>/dev/null)
+	for service_id in $service_ids; do
+		node_hostname=""
+		node_id=""
+		node_role=""
+		node_ip=""
+
+		node_hostname=$(_get_container_info_item $service_id "/Spec/TaskTemplate/ContainerSpec/Labels/com.docker.stack.namespace")
+		node_id=$(docker node ls | awk -v hostname="$node_hostname" '{if($2~hostname || $3~hostname) print $1}')
+		node_role=$(_get_container_info_item $node_id "/Spec/Role")
+		node_ip=$(_get_container_info_item $node_id "/Status/Addr")
+		if [[ "$node_role" = "manager" ]]; then
+			master_service_list+=("$service_id")
+		else
+			if [[ ${#node_ip_list[@]} -eq 0 ]]; then
+				node_ip_list=("$node_ip")
+				worker_service_list=("$service_id")
+			else
+				pos_idx=0
+				for ((i=0; i<${#node_ip_list[@]}; i++)); do
+					if [[ $(echo $node_ip|sed 's/\.//g') -gt $(echo ${node_ip_list[$i]}|sed 's/\.//g') ]]; then
+						pos_idx=$(expr $i + 1)
+					fi
+				done
+
+				if [[ $pos_idx -lt ${#node_ip_list[@]} ]]; then
+					tmp_node_ip_list=()
+					tmp_worker_service_list=()
+					for ((i=0; i<${#node_ip_list[@]}; i++)); do
+						if [[ $i -eq $pos_idx ]]; then
+							tmp_node_ip_list+=("$node_ip")
+							tmp_worker_service_list+=("$service_id")
+						fi
+						tmp_node_ip_list+=(${node_ip_list[$i]})
+						tmp_worker_service_list+=(${worker_service_list[$i]})
+					done
+					node_ip_list=("${tmp_node_ip_list[@]}")
+					worker_service_list=("${tmp_worker_service_list[@]}")
+				else
+					node_ip_list+=("$node_ip")
+					worker_service_list+=("$service_id")
+				fi
+			fi
+		fi
+	done
+
+	service_list+=("${master_service_list[@]}")
+	service_list+=("${worker_service_list[@]}")
+	echo "${service_list[*]}"
+}
+
 check_running_swarm(){
 	__debug --level 4 "check_running_swarm($*)"
 
@@ -3875,7 +3944,7 @@ check_running_swarm(){
 					;;
 			esac
 		fi
-		local service_ids=$(docker service ls --filter mode=replicated -q 2>/dev/null)
+		local service_ids=$(_get_sorted_swarm_services)
 		local service_id
 		local tmp_service_name
 		local service_name
@@ -4777,6 +4846,7 @@ _generate_tmux_config(){
 				__red "It seems that the MIP is not configured properly. Did you run 'sudo $0 --pusher --federation <FEDERATION> configure pusher'?"
 				exit 1
 			fi
+			__echo "Generating new tmux session..."
 			local nodecount=$(cat $SSH_PATH/.ssh/config | grep '^Host'|wc -l)
 			local nodes=$(cat $SSH_PATH/.ssh/config | awk '/^Host/ {print $NF}')
 
@@ -4798,11 +4868,108 @@ _generate_tmux_config(){
 			__debug --level 9 "<Tmux main config, first window, second window and first pane in second window>"
 			cat << EOF > $tmuxfile
 set -g default-terminal "screen-256color"
+set -g history-limit 100000
+
+# CTRL-j as a new Action key
 set -g prefix2 C-j
 bind-key C-j send-prefix -2
 
-bind-key R respawn-window
-bind-key r respawn-pane
+# Refresh configuration with C-r
+unbind C-r
+bind C-r source-file $MIP_PATH/.tmux.conf\; display "Config reloaded"
+
+# Respawn window with R
+unbind R
+bind-key R respawn-window\; display "Respawn window"
+
+# Respawn pane with r
+unbind r
+bind-key r respawn-pane\; display "Respawn pane"
+
+# Toggle status bar
+unbind s
+bind s setw status
+
+# Toggle mouse mode
+unbind m
+bind m setw mouse\; display "Toggle mouse mode"
+
+# Switching between panes using ALT + Arrow
+bind -n M-Left select-pane -L
+bind -n M-Right select-pane -R
+bind -n M-Up select-pane -U
+bind -n M-Down select-pane -D
+
+# Switching between windows using SHIFT + Arrow
+bind -n C-Left previous-window
+bind -n C-Right next-window
+
+color_orange="colour166" # 208, 166
+color_purple="colour134" # 135, 134
+color_green="colour076" # 070
+color_blue="colour39"
+color_yellow="colour220"
+color_red="colour160"
+color_black="colour232"
+color_white="white" # 015
+
+color_dark="\$color_black"
+color_light="\$color_white"
+color_session_text="\$color_blue"
+color_status_text="colour245"
+color_main="\$color_orange"
+color_secondary="\$color_purple"
+color_level_ok="\$color_green"
+color_level_warn="\$color_yellow"
+color_level_stress="\$color_red"
+color_window_off_indicator="colour088"
+color_window_off_status_bg="colour238"
+color_window_off_status_current_bg="colour254"
+
+set -g mode-style "fg=default,bg=\$color_main"
+
+# command line style
+set -g message-style "fg=\$color_status_text,bg=\$color_dark"
+
+# status line style
+set -g status-style "fg=\$color_status_text,bg=\$color_dark"
+
+# window segments in status line
+set -g window-status-separator ""
+separator_powerline_left=""
+separator_powerline_right=""
+
+#setw -g window-status-style "fg=\$color_status_text,bg=\$color_dark"
+setw -g window-status-format " #I:#W "
+setw -g window-status-current-style "fg=\$color_light,bold,bg=\$color_main"
+setw -g window-status-current-format "#[fg=\$color_dark,bg=\$color_main]\$separator_powerline_right#[default] #[fg=\$color_main,bg=\$color_dark]#I:#W##[default] #[fg=\$color_main,bg=\$color_dark]\$separator_powerline_right#[default]"
+
+# when window has monitoring notification
+setw -g window-status-activity-style "fg=\$color_main"
+
+# outline for active pane
+setw -g pane-active-border-style "fg=\$color_main"
+
+# general status bar settings
+set -g status on
+set -g status-interval 1
+set -g status-position bottom
+set -g status-justify left
+set -g status-left-length 30
+set -g status-right-length 100
+
+# define widgets we're going to use in status bar
+# note that this is not the complete list, because some of them may be loaded from plugins
+wg_session="#[fg=\$color_session_text,bg=\$color_dark]#{?client_prefix,#[fg=\$color_dark],}#{?client_prefix,#[bg=\$color_secondary],} #S #[default]"
+wg_battery="#{battery_status_fg} #{battery_icon} #{battery_percentage}"
+wg_date="#[fg=\$color_secondary]%Y-%d-%m %H:%M:%S#[default]"
+wg_user_host="#[fg=\$color_secondary]#(whoami)#[default]@#[fg=\$color_yellow]#H#[default]"
+wg_is_zoomed="#[fg=\$color_dark,bg=\$color_secondary]#{?window_zoomed_flag,[ZOOM],}#[default]"
+# TODO: highlighted for nested local session as well
+wg_is_keys_off="#[fg=\$color_light,bg=\$color_window_off_indicator]#([ \$(tmux show-option -qv key-table) = 'off' ] && echo 'OFF')#[default]"
+
+set -g status-left "\$wg_session"
+set -g status-right "\$wg_is_keys_off \$wg_is_zoomed | \$wg_user_host | \$wg_date"
 
 new -s $ARG_FEDERATION -n bash -c $MIP_PATH/Federated-Deployment bash
 set remain-on-exit on
@@ -4978,6 +5145,13 @@ EOF
 
 selectw -t 1
 EOF
+	if [[ -f $MIP_PATH/.tmux/plugins/tpm/tpm ]]; then
+		cat << EOF >> $tmuxfile
+
+# Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
+run '$MIP_PATH/.tmux/plugins/tpm/tpm'
+EOF
+	fi
 }
 
 _manage_tmux_session(){
@@ -5004,7 +5178,7 @@ _manage_tmux_session(){
 		fi
 		if [[ $ret -ne 0 ]]; then
 			__debug --level 5 "tmuxsessions != <$ARG_FEDERATION>"
-			__debug --level 5 "_generate_tmux_config"
+			__debug --level 6 "_generate_tmux_config"
 			_generate_tmux_config
 			__debug --level 6 "tmux source $MIP_PATH/.tmux.conf \; new-session -s $ARG_FEDERATION"
 			tmux source $MIP_PATH/.tmux.conf \; new-session -s $ARG_FEDERATION
@@ -5848,7 +6022,46 @@ _get_mip_address(){
 	fi
 }
 
+_node_exists(){
+	local result=1
+
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		return $result
+	fi
+
+	local node="$1"
+
+	if [[ -f $SSH_PATH/.ssh/config ]]; then
+		local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+		local nodes_hostnames=$(cat $SSH_PATH/.ssh/config|awk '/Hostname / {print $NF}')
+		local nodes_shortnames=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $2}')
+		local nodecount=$(cat $SSH_PATH/.ssh/config|awk '/^Host/'|wc -l)
+	fi
+
+	_contains "$nodes" "$node"
+	result=$?
+	if [[ $result -ne 0 ]]; then
+		_contains "$nodes_hostnames" "$node"
+		result=$?
+	fi
+	if [[ $result -ne 0 ]]; then
+		_contains "$nodes_shortnames" "$node"
+		result=$?
+	fi
+
+	return $result
+}
+
 _get_node(){
+	__debug --level 4 "_get_node($*)"
+
+	result=1
+	if [[ $ARG_PUSHER -ne 1 ]]; then
+		return $result
+	fi
+
+	found=0
+
 	local machine=""
 	local node_var=""
 	local node_id_var=""
@@ -5933,37 +6146,43 @@ _get_node(){
 
 				_contains "$res_nodeid $res_nodeshortname $res_node $res_nodelocalhostname $res_nodeip" "$machine"
 				ret=$?
-				if [[ -n $ARG_NODE && $ret -ne 0 ]]; then
+				if [[ $ret -eq 0 ]]; then
+					found=1
+					result=0
+					break
+				else
 					res_nodeid=$(expr $res_nodeid + 1)
 					continue
 				fi
-
-				break
 			done
 
-			if [[ "$node_var" != "" ]]; then
-				eval "$node_var='$res_node'"
-			fi
-			if [[ "$node_id_var" != "" ]]; then
-				eval "$node_id_var='$res_nodeid'"
-			fi
-			if [[ "$node_shortname_var" != "" ]]; then
-				eval "$node_shortname_var='$res_nodeshortname'"
-			fi
-			if [[ "$node_localhostname_var" != "" ]]; then
-				eval "$node_localhostname_var='$res_nodelocalhostname'"
-			fi
-			if [[ "$node_ip_var" != "" ]]; then
-				eval "$node_ip_var='$res_nodeip'"
-			fi
-			if [[ "$node_user_var" != "" ]]; then
-				eval "$node_user_var='$res_nodeuser'"
-			fi
-			if [[ "$node_identity_var" != "" ]]; then
-				eval "$node_identity_var='$res_nodeidentity'"
+			if [[ $found -eq 1 ]]; then
+				if [[ "$node_var" != "" ]]; then
+					eval "$node_var='$res_node'"
+				fi
+				if [[ "$node_id_var" != "" ]]; then
+					eval "$node_id_var='$res_nodeid'"
+				fi
+				if [[ "$node_shortname_var" != "" ]]; then
+					eval "$node_shortname_var='$res_nodeshortname'"
+				fi
+				if [[ "$node_localhostname_var" != "" ]]; then
+					eval "$node_localhostname_var='$res_nodelocalhostname'"
+				fi
+				if [[ "$node_ip_var" != "" ]]; then
+					eval "$node_ip_var='$res_nodeip'"
+				fi
+				if [[ "$node_user_var" != "" ]]; then
+					eval "$node_user_var='$res_nodeuser'"
+				fi
+				if [[ "$node_identity_var" != "" ]]; then
+					eval "$node_identity_var='$res_nodeidentity'"
+				fi
 			fi
 		fi
 	fi
+
+	return $result
 }
 
 _ansible_services(){
@@ -10244,7 +10463,7 @@ logs(){
 				running)
 					running=$running" "$id
 					;;
-				exited)
+				exited|restarting)
 					exited=$exited" "$id
 					;;
 			esac
@@ -10570,7 +10789,6 @@ main(){
 			_federation_task $@
 			;;
 		tmux)
-			_generate_tmux_config
 			_manage_tmux_session
 			;;
 		test)
