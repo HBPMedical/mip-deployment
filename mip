@@ -21,7 +21,7 @@ CONFLICTING_SNAP_PACKAGES="docker"
 PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates ssl-cert curl gnupg-agent software-properties-common neofetch net-tools mtr-tiny inetutils-traceroute haveged whois lsof expect python3-pip"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli docker-ce-rootless-extras containerd.io"
 REQUIRED_PIP3_PACKAGES="chardet bpytop"
-REQUIRED_CUSTOM_PACKAGES="docker-compose python2"
+REQUIRED_CUSTOM_PACKAGES="docker-compose:latest"
 DEFAULT_MIP_GITHUB_OWNER="HBPMedical"
 DEFAULT_MIP_GITHUB_PROJECT="mip-deployment"
 DEFAULT_MIP_BRANCH=""
@@ -80,7 +80,7 @@ DISTRIB_CODENAME=""
 
 DEBUG_LEVEL=0
 VERBOSE_LEVEL=0
-MIP_COMMAND="mip"
+MIP_COMMAND="/vagrant/dev_repos/mip-deployment/mip"
 
 args_parser(){
 	POSITIONAL=()
@@ -89,80 +89,96 @@ args_parser(){
 		key="$1"
 
 		case $key in
-			check-required|install|uninstall|start|stop|restart|status|status-details|pull|clean|tmux|test)
+			check-required|install|uninstall|start|stop|restart|status|status-details|logs|pull|clean|tmux|backup|restore|ssh|ssh-mc|test)
 				ACTION=$1
 				shift
 				;;
 			configure)
-				ACTION=$1
-				CONFIGURE_PART=$2
-				shift
-				shift
-				;;
-			logs)
-				ACTION=$1
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ACTION=$1
+					CONFIGURE_PART=$2;
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			node)
-				ACTION=$1
-				NODE_ACTION=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ACTION=$1
+					NODE_ACTION=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			service)
-				ACTION=$1
-				SERVICE_ACTION=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ACTION=$1
+					SERVICE_ACTION=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			data)
-				ACTION=$1
-				DATA_ACTION=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ACTION=$1
+					DATA_ACTION=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			version)
-				ACTION=$1
-				VERSION_ACTION=$2
-				shift
-				shift
-				;;
-			backup)
-				ACTION=$1
-				shift
-				;;
-			restore)
-				ACTION=$1
-				shift
-				;;
-			ssh)
-				ACTION=$1
-				shift
-				;;
-			ssh-mc)
-				ACTION=$1
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ACTION=$1
+					VERSION_ACTION=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			fedtask)
-				ACTION=$1
-				FEDTASK=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ACTION=$1
+					FEDTASK=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--install-path)
-				ARG_INSTALL_PATH=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_INSTALL_PATH=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--debug-level)
-				DEBUG_LEVEL=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					DEBUG_LEVEL=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--node-type)
-				ARG_NODE_TYPE=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_NODE_TYPE=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--pusher)
 				ARG_PUSHER=1
@@ -181,9 +197,13 @@ args_parser(){
 				shift
 				;;
 			--federation)
-				ARG_FEDERATION=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_FEDERATION=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--online-cdes)
 				ARG_ONLINE_CDES=1
@@ -194,53 +214,89 @@ args_parser(){
 				shift
 				;;
 			--datacatalogue-protocol)
-				ARG_DATACATALOGUE_PROTOCOL=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_DATACATALOGUE_PROTOCOL=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--datacatalogue-host)
-				ARG_DATACATALOGUE_HOST=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_DATACATALOGUE_HOST=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--gen-test-env-file)
 				ARG_GEN_TEST_ENV_FILE=1
 				shift
 				;;
 			--link)
-				ARG_MIP_LINK=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_MIP_LINK=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--protocol)
-				ARG_MIP_PROTOCOL=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_MIP_PROTOCOL=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--ext-protocol)
-				ARG_EXTERNAL_MIP_PROTOCOL=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_EXTERNAL_MIP_PROTOCOL=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--host)
-				ARG_MIP_HOST=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_MIP_HOST=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component)
-				ARG_COMPONENT=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_COMPONENT=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--pathology)
-				ARG_PATHOLOGY=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_PATHOLOGY=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--exareme-ip)
-				ARG_EXAREME_IP=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_EXAREME_IP=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--with-keycloak-authentication)
 				ARG_KEYCLOAK_AUTHENTICATION=1
@@ -251,34 +307,58 @@ args_parser(){
 				shift
 				;;
 			--keycloak-protocol)
-				ARG_KEYCLOAK_PROTOCOL=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_KEYCLOAK_PROTOCOL=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--keycloak-url)
-				ARG_KEYCLOAK_URL=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_KEYCLOAK_URL=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--keycloak-realm)
-				ARG_KEYCLOAK_REALM=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_KEYCLOAK_REALM=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--keycloak-client-id)
-				ARG_KEYCLOAK_CLIENT_ID=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_KEYCLOAK_CLIENT_ID=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--keycloak-client-secret)
-				ARG_KEYCLOAK_CLIENT_SECRET=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_KEYCLOAK_CLIENT_SECRET=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--node)
-				ARG_NODE=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_NODE=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--with-portainer)
 				ARG_WITH_PORTAINER=1
@@ -293,9 +373,13 @@ args_parser(){
 				shift
 				;;
 			--limit)
-				ARG_LIMIT=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_LIMIT=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--all)
 				ARG_ALL=1
@@ -306,39 +390,67 @@ args_parser(){
 				shift
 				;;
 			--branch)
-				ARG_BRANCH=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_BRANCH=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--mip-branch)
-				ARG_MIP_BRANCH=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_MIP_BRANCH=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--version)
-				ARG_VERSION=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_VERSION=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--mip-version)
-				ARG_MIP_VERSION=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_MIP_VERSION=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-version)
-				ARG_COMPONENT_VERSION=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_COMPONENT_VERSION=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--commit)
-				ARG_COMMIT=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_COMMIT=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--mip-commit)
-				ARG_MIP_COMMIT=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_MIP_COMMIT=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			-f|--follow)
 				ARG_FOLLOW=1
@@ -366,10 +478,14 @@ args_parser(){
 				shift
 				;;
 			--verbose-level)
-				ARG_VERBOSE=1
-				VERBOSE_LEVEL=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					ARG_VERBOSE=1
+					VERBOSE_LEVEL=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--no-color)
 				ARG_NO_COLOR=1
@@ -392,6 +508,26 @@ args_parser(){
 	if [[ $ARG_QUIET -eq 1 && $DEBUG_LEVEL -gt 0 ]]; then
 		ARG_QUIET=0
 	fi
+
+	__debug --level 4 "args_parser()"
+	for param in $(echo "DEBUG_LEVEL ARG_QUIET ARG_YES ARG_VERBOSE VERBOSE_LEVEL ARG_NO_COLOR ARG_RAW_COLOR_CODES \
+					ACTION CONFIGURE_PART NODE_ACTION SERVICE_ACTION DATA_ACTION VERSION_ACTION FEDTASK ARG_INSTALL_PATH \
+					ARG_PUSHER ARG_FEDERATION ARG_WITH_PORTAINER ARG_WITH_SECURE_PORTAINER ARG_WITHOUT_EXAREME \
+					ARG_REVIEW_DATASET_LABELS ARG_ONLINE_CDES ARG_DATACATALOGUE_PROTOCOL ARG_DATACATALOGUE_HOST \
+					ARG_NODE_TYPE ARG_KEEP_INSTALLER ARG_NORUN ARG_PURGE ARG_GEN_TEST_ENV_FILE \
+					ARG_MIP_LINK ARG_EXTERNAL_MIP_PROTOCOL ARG_MIP_PROTOCOL MIP_HOST ARG_EXAREME_IP \
+					ARG_KEYCLOAK_AUTHENTICATION ARG_KEYCLOAK_PROTOCOL ARG_KEYCLOAK_URL ARG_KEYCLOAK_REALM ARG_KEYCLOAK_CLIENT_ID ARG_KEYCLOAK_CLIENT_SECRET \
+					ARG_NODE ARG_COMPONENT ARG_PATHOLOGY \
+					ARG_LIMIT ARG_ALL ARG_LATEST \
+					ARG_VERSION ARG_BRANCH ARG_COMMIT ARG_MIP_VERSION ARG_MIP_BRANCH ARG_MIP_COMMIT ARG_COMPONENT_VERSION \
+					ARG_FOLLOW ARG_FORCE ARG_FORCE_INSTALL_UNSTABLE"); do
+		if [[ $DEBUG_LEVEL -ge 8 ]]; then
+			__debug --level 8 "$param=<${!param}>"
+		elif [[ $DEBUG_LEVEL -eq 7 && "${!param}" != "" ]]; then
+			__debug --level 7 "$param=<${!param}>"
+		fi
+	done
+	__debug --level 4 "Remaining parameters after parsing: ${POSITIONAL[*]}"
 }
 
 __save_args(){
@@ -681,23 +817,35 @@ __debug(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--level)
-				level=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					level=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--levelcompare)
-				case $2 in
-					eq|ge)
-						compare="eq"
-						;;
-				esac
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					case $2 in
+						eq|ge)
+							compare="eq"
+							;;
+					esac
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--color)
-				color=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					color=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			-b) # Add additional new line before message
 				crbegin=1
@@ -1461,10 +1609,17 @@ _compare_versions(){
 		__debug --level 6 "'$1' = '$2'"
 		return 0
 	fi
+	if [[ "$1" != "" ]]; then
+		left=$(echo $1 | sed 's/[a-z]//g; s/[A-Z]//g; s/[-_\(\)\[\{\}\+\"\*\%\&\/\=\~]//g')
+	fi
+	if [[ "$2" != "" ]]; then
+		right=$(echo $2 | sed 's/[a-z]//g; s/[A-Z]//g; s/[-_\(\)\[\{\}\+\"\*\%\&\/\=\~]//g')
+	fi
+
 	local IFS=.
 	local i
-	local ver1=($1)
-	local ver2=($2)
+	local ver1=($left)
+	local ver2=($right)
 
 	# fill empty fields in ver1 with zeros
 	for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
@@ -1584,12 +1739,20 @@ _docker-compose(){
 	__debug --level 4 "_docker-compose($*)"
 	local result=0
 	local ret=1
-	if [[ "$(docker-compose --help 2>/dev/null | grep -A2 '^Management Commands' | grep compose)" != "" ]]; then	# "new" docker-compose
-		docker-compose compose $@
-		ret=$?
-	else
+
+	if [[ "$(command -v docker-compose)" ]]; then
 		docker-compose $@
 		ret=$?
+	else
+		docker compose >/dev/null 2>&1
+		ret=$?
+		if [[ $ret -eq 0 ]]; then	# "new" docker-compose, as a plugin
+			docker compose $@
+			ret=$?
+		else
+			__red "There was an issue while checking for docker-compose!"
+			exit 1
+		fi
 	fi
 
 	result=$ret
@@ -1742,39 +1905,67 @@ _file_tag(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--filename)
-				filename="$2"
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					filename="$2"
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--provider)
-				provider="$2"
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					provider="$2"
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--repo)
-				repo="$2"
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					repo="$2"
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--owner)
-				owner="$2"
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					owner="$2"
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--tag)
-				tag="$2"
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					tag="$2"
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--branch)
-				branch="$2"
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					branch="$2"
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--commit)
-				commit="$2"
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					commit="$2"
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -1858,9 +2049,13 @@ _get_git_tags(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--server)
-				server=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					server=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--releases)
 				releases=1
@@ -1871,24 +2066,40 @@ _get_git_tags(){
 				shift
 				;;
 			--owner)
-				owner=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					owner=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--repo)
-				repo=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					repo=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--filter)
-				filter=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					filter=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--limit)
-				limit=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					limit=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--latest)
 				latest=1
@@ -2062,58 +2273,98 @@ _get_github_file(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--httpcodevar)
-				httpcodevar=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					httpcodevar=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--onthefly-tagging)
 				onthefly_tagging=1
 				shift
 				;;
 			--owner)
-				owner=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					owner=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--repo)
-				repo=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					repo=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--mode)
-				mode=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					mode=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--commit)
-				commit=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					commit=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--tag)
-				tag=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					tag=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--branch)
-				branch=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					branch=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--path)
-				path=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					path=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--filename)
-				filename=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					filename=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--targetpath)
-				targetpath=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					targetpath=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -2289,24 +2540,40 @@ _get_git_commits(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--server)
-				server=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					server=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--owner)
-				owner=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					owner=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--repo)
-				repo=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					repo=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--limit)
-				limit=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					limit=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -2359,31 +2626,51 @@ _get_dockerhub_infos(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--owner)
-				owner=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					owner=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--mode)	# image|tag
-				if [[ "$2" = "tag" || "$2" = "image" || "$2" = "digest" ]]; then
-					mode=$2
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					if [[ "$2" = "tag" || "$2" = "image" || "$2" = "digest" ]]; then
+						mode=$2
+					fi
+					shift
+					shift
+				else
+					shift
 				fi
-				shift
-				shift
 				;;
 			--image)
-				image=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					image=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--tag)
-				tag=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					tag=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--digest)
-				digest=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					digest=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -2500,44 +2787,76 @@ _get_git_info(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--git-directory)
-				arg_git_directory=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					arg_git_directory=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--git-remote-origin-return-var)
-				git_remote_origin_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					git_remote_origin_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--git-provider-return-var)
-				git_provider_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					git_provider_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--git-owner-return-var)
-				git_owner_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					git_owner_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--git-repo-return-var)
-				git_repo_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					git_repo_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--git-tag-return-var)
-				git_tag_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					git_tag_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--git-branch-return-var)
-				git_branch_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					git_branch_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--git-commit-return-var)
-				git_commit_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					git_commit_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -2699,6 +3018,61 @@ install_required_packages(){
 	__debug --level 1 --levelcompare "eq" --color "green" "done"
 }
 
+_check_custom_package_version(){
+	__debug --level 1 --levelcompare "eq" -n "Checking custom package version..."
+	__debug --level 4 "_check_custom_package_version($*)"
+	local result=0
+	local packages=""
+	local package
+	local required_packages=$REQUIRED_CUSTOM_PACKAGES
+
+	if [[ "$1" != "" && "$2" != "" ]]; then
+		package=$1
+		required_version=$2
+		_check_custom_package_version_$package "$required_version"
+	fi
+}
+
+_check_custom_package_version_docker-compose(){
+	__debug --level 4 "_check_custom_package_version_docker-compose($*)"
+
+	local result=1
+	local required_version
+	local current_version
+	if [[ "$1" != "" ]]; then
+		required_version=$1
+		if [[ "$required_version" = "latest" ]]; then
+			local owner="docker"
+			local repo="compose"
+			required_version=$(_get_git_tags --owner $owner --repo $repo --releases --latest)
+		fi
+	fi
+
+	if [[ "$required_version" != "" ]]; then
+		if [[ "$(command -v docker-compose)" != "" ]]; then
+			filename=$(which docker-compose)
+			current_version=$(docker-compose --version 2>&1 | head -1)
+			if [[ "$current_version" = "unknown flag: --version" ]]; then
+				current_version=$(docker-compose compose version)
+			fi
+		else
+			docker compose >/dev/null 2>&1
+			if [[ $? -eq 0 ]]; then
+				current_version=$(docker compose version)
+			fi
+		fi
+	fi
+
+	if [[ "$required_version" != "" && "$current_version" != "" ]]; then
+		current_version=$(echo $current_version | cut -d, -f1 | awk '{print $NF}')
+		_has_minimum_version "$current_version" "$required_version"
+		result=$?
+	fi
+
+	__debug --level 6 "result=<$result>"
+	return $result
+}
+
 _check_required_packages(){
 	__debug --level 1 --levelcompare "eq" -n "Checking required packages..."
 	__debug --level 4 "_check_required_packages($*)"
@@ -2769,26 +3143,68 @@ _check_required_custom_packages(){
 	__debug --level 4 "_check_required_custom_packages($*)"
 	local result=0
 	local packages=""
+	local package
+	local version
 	local required_packages=$REQUIRED_CUSTOM_PACKAGES
 	if [[ "$2" != "" ]]; then
-		required_packages=$2
+		if [[ "$(echo $required_packages|grep -w $2)" != "" ]]; then
+			for package in $required_packages; do
+				if [[ "$(echo $package|grep -w $2)" != "" ]]; then
+					required_packages=$package
+					break
+				fi
+			done
+		fi
 	fi
 
+	local missing=0
 	for package in $required_packages; do
+		missing=0
+		version=""
 		if [[ "$(echo $package|grep docker)" != "" && $ARG_PUSHER -eq 1 ]]; then
 			continue
 		fi
 
+		if [[ "$(echo $package|grep ":")" != "" ]]; then
+			version=$(echo $package|cut -d':' -f2)
+			package=$(echo $package|cut -d':' -f1)
+		fi
+
 		if [[ ! $(command -v $package) ]]; then
-			if [[ "$1" != "-q" ]]; then
-				if [[ "$1" = "-v" ]]; then
-					__echo "${red}$package is missing!${reset}"
-				else
-					__red -n "$package is missing! "
+			missing=1
+			if [[ "$package" = "docker-compose" ]]; then
+				docker compose >/dev/null 2>&1
+				if [[ $? -eq 0 ]]; then
+					missing=0
 				fi
 			fi
-			packages="$packages $package"
-			result=1
+
+			if [[ $missing -eq 1 ]]; then
+				if [[ "$1" != "-q" ]]; then
+					if [[ "$1" = "-v" ]]; then
+						__echo "${red}$package is missing!${reset}"
+					else
+						__red -n "$package is missing! "
+					fi
+				fi
+				packages="$packages $package"
+				result=1
+			fi
+		fi
+
+		if [[ $missing -eq 0 && "$version" != "" ]]; then
+			_check_custom_package_version "$package" "$version"
+			if [[ $? -ne 0 ]]; then
+				if [[ "$1" != "-q" ]]; then
+					if [[ "$1" = "-v" ]]; then
+						__echo "${red}$package requires version $version!${reset}"
+					else
+						__red -n "$package requires version $version! "
+					fi
+				fi
+				packages="$packages $package"
+				result=1
+			fi
 		fi
 	done
 
@@ -2808,8 +3224,17 @@ install_required_custom_packages(){
 	local result=0
 	local packages=""
 	for package in $REQUIRED_CUSTOM_PACKAGES; do
+		if [[ "$(echo $package | grep ":")" != "" ]]; then
+			package=$(echo $package | cut -d':' -f1)
+		fi
 		if [[ ! $(command -v $package) || $ARG_FORCE -eq 1 || $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
-			packages="$packages $package"
+			packages+=" $package"
+		elif [[ "$package" = "docker-compose" ]]; then
+			_check_docker_compose
+			local ret=$?
+			if [[ $ret -ne 0 ]]; then
+				packages+=" $package"
+			fi
 		fi
 	done
 
@@ -2869,7 +3294,7 @@ install_custom_package_docker-compose(){
 			tag=$(_get_git_tags --owner $owner --repo $repo --releases --latest)
 		fi
 
-		local tries=2
+		local tries=3
 		while [[ $ret -ne 0 && $tries -gt 0 ]]; do
 			local httpcode=0
 			__debug --level 6 "_get_github_file --owner $owner --repo $repo --mode release_download --tag $tag --filename $filename --targetpath $targetpath"
@@ -2877,8 +3302,10 @@ install_custom_package_docker-compose(){
 			ret=$?
 			if [[ $ret -ne 0 ]]; then
 				__red "Something went wrong during the attempt to download $filename (HTTP code <$httpcode>). Trying with another filename..."
-				if [[ "$(uname -s)-$(uname -m)" = "Linux-x86_64" ]]; then
-					filename="docker-compose-linux-amd64"
+				if [[ "$filename" = "docker-compose-Linux-x86_64" ]]; then	# < v2.0.0-rc.3
+					filename="docker-compose-linux-amd64"					# > v2.0.0-rc.3 && < v2.0.1
+				elif [[ "$filename" = "docker-compose-linux-amd64" ]]; then
+					filename="docker-compose-linux-x86_64"					# >= v2.0.1
 				fi
 			fi
 			tries=$(expr $tries - 1)
@@ -2886,6 +3313,21 @@ install_custom_package_docker-compose(){
 		if [[ $ret -eq 0 ]]; then
 			__debug --level 6 "chmod +x /usr/local/bin/docker-compose"
 			chmod +x /usr/local/bin/docker-compose
+			local docker_plugins_dir=""
+			if [[ "$(/usr/local/bin/docker-compose --version 2>&1 | head -1)" = "unknown flag: --version" || "$(/usr/local/bin/docker-compose compose version 2>/dev/null | head -1 | grep "^Docker Compose version ")" != "" ]]; then
+				__debug --level 5 "This version of docker-compose is supposed to be installed as a Docker plugin! Moving it..."
+				docker_plugins_dir="/usr/local/lib/docker/cli-plugins"
+				mkdir -p $docker_plugins_dir
+				ret=$?
+				if [[ $ret -eq 0 ]]; then
+					mv /usr/local/bin/docker-compose $docker_plugins_dir/
+					ret=$?
+				fi
+			fi
+
+			if [[ $ret -ne 0 && "$docker_plugins_dir" != "" ]]; then
+				__red "Something went wrong during the attempt to install docker-compose as a plugin in $docker_plugins_dir!"
+			fi
 		else
 			__red "Something went wrong during the attempt to download $filename (HTTP code <$httpcode>). Therefore, it can't be installed!"
 		fi
@@ -2998,7 +3440,9 @@ _pull(){
 	_check_installed_mip -q
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
-		if [[ $(command -v docker-compose) ]]; then
+		_check_docker_compose
+		ret=$?
+		if [[ $ret -eq 0 ]]; then
 			__echo "Pulling Services..."
 			local path=$(pwd)
 			local quiet_opt=""
@@ -3221,19 +3665,31 @@ _list_to_array(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--list)
-				list=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					list=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--separator)
-				separator=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					separator=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--return-var)
-				return_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					return_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -3276,14 +3732,22 @@ _get_list_element_by_id(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--id)
-				id=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					id=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--sep)
-				sep=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					sep=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -3456,6 +3920,28 @@ _check_docker(){
 	return $result
 }
 
+_check_docker_compose(){
+	__debug --level 1 --levelcompare "eq" -n "Checking Docker Compose version..."
+	__debug --level 4 "_check_docker_compose($*)"
+	local result=0
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return $result
+	fi
+
+	_check_docker
+	result=$?
+	if [[ $result -ne 0 ]]; then
+		return $result
+	fi
+
+	_check_required_custom_packages -q docker-compose
+	result=$?
+
+	__debug --level 5 "result=<$result>"
+	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+	return $result
+}
+
 ensure_running_dockerd(){
 	__debug --level 1 --levelcompare "eq" -n "Making sure Docker is running..."
 	__debug --level 4 "ensure_running_dockerd($*)"
@@ -3559,6 +4045,7 @@ _check_installed_mip(){
 }
 
 _check_docker_container(){
+	# check docker container by exact component name
 	__debug --level 4 "_check_docker_container($*)"
 	local result=1
 	if [[ $ARG_PUSHER -eq 1 ]]; then
@@ -3577,7 +4064,7 @@ _check_docker_container(){
 	fi
 
 	local process_state=""
-	local process_id=$(docker ps|grep $container|awk '{print $1}')
+	local process_id=$(_get_docker_container_id $container)
 	__debug --level 6 "process_id=<$process_id>"
 	if [[ "$process_id" != "" ]]; then
 		local process_state=$(docker inspect $process_id --format '{{.State.Status}}')
@@ -3791,6 +4278,36 @@ _clean(){
 
 	__debug --level 5 "result=<$result>"
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return $result; fi
+}
+
+_get_docker_container_id(){
+	__debug --level 4 "_get_docker_container_id($*)"
+	local result
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		return 1
+	fi
+
+	if [[ "$(command -v docker)" = "" ]]; then
+		return 1
+	fi
+
+	local container=$1
+	if [[ "$MIP_ENV_NODE_TYPE" != "ui" && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+		if [[ "$MIP_ENV_NODE_TYPE" = "ms" && "$container" = "portainer" ]]; then
+			container="$DOCKER_PROJECT_NAME-$container"
+		else
+			container="$(hostname)_$container"
+		fi
+	fi
+
+	local container_id=$(docker ps -a -f name=$container|grep -v '^CONTAINER'|head -1|grep -w $container|awk '{print $1}')
+	__debug --level 5 "container_id=<$container_id>"
+
+	if [[ "$container_id" != "" ]]; then
+		result=$container_id
+	fi
+
+	echo "$result"
 }
 
 _get_container_info_item(){
@@ -4173,7 +4690,7 @@ _display_components_status(){
 	local label
 	local ret
 	local status
-	for container in $MIP_CONTAINERS; do
+	for container in $MIP_COMPONENTS; do
 		label=$(_get_list_element_by_id --id $i --sep ',' $MIP_COMPONENT_LABELS)
 		_check_docker_container -q $container
 		ret=$?
@@ -6075,44 +6592,76 @@ _get_node(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--node)
-				machine=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					machine=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--node-return-var)
-				node_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					node_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--node-id-return-var)
-				node_id_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					node_id_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--node-shortname-return-var)
-				node_shortname_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					node_shortname_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--node-localhostname-return-var)
-				node_localhostname_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					node_localhostname_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--node-ip-return-var)
-				node_ip_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					node_ip_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--node-user-return-var)
-				node_user_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					node_user_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--node-identity-return-var)
-				node_identity_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					node_identity_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -6654,34 +7203,58 @@ _extract_advanced_component_version(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--version)
-				version=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					version=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-return-var)
-				component_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--image-owner-return-var)
-				image_owner_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					image_owner_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--image-return-var)
-				image_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					image_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--version-return-var)
-				version_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					version_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--docker-image-return-var)
-				docker_image_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					docker_image_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -6791,108 +7364,188 @@ _get_mip(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--mode)
-				arg_mode=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					arg_mode=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--part)
-				arg_part=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					arg_part=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--release)
 				arg_release=1
 				shift
 				;;
 			--component)
-				arg_component=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					arg_component=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--tag)
-				arg_tag=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					arg_tag=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-version)
-				arg_component_version=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					arg_component_version=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--branch)
-				arg_branch=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					arg_branch=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--commit)
-				arg_commit=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					arg_commit=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--part-return-var)
-				part_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					part_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--git-owner-return-var)
-				git_owner_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					git_owner_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--git-repo-return-var)
-				git_repo_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					git_repo_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--tag-return-var)
-				tag_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					tag_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--mip-tag-return-var)
-				mip_tag_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					mip_tag_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--branch-return-var)
-				branch_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					branch_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--commit-return-var)
-				commit_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					commit_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-return-var)
-				component_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-image-owner-return-var)
-				component_image_owner_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component_image_owner_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-image-return-var)
-				component_image_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component_image_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-version-return-var)
-				component_version_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component_version_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--dockerhub-image-return-var)
-				dockerhub_image_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					dockerhub_image_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-list-return-var)
-				component_list_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component_list_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -7150,6 +7803,9 @@ _get_mip(){
 				ret_git_repo=$(basename $remote_origin)
 				local commit=$(git rev-parse HEAD)
 				local tag=$(git name-rev --tags --name-only $commit)
+				if [[ "$(echo $tag | grep '\^')" != "" ]]; then
+					tag=$(echo $tag | cut -d'^' -f1)
+				fi
 				if [[ "$tag" = "undefined" ]]; then
 					tag=""
 				fi
@@ -7238,34 +7894,58 @@ _get_mip_component_version(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--part)
-				part=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					part=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component)
-				component=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--branch)
-				branch=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					branch=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--tag)
-				tag=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					tag=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--commit)
-				commit=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					commit=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-version)
-				component_version=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component_version=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--from-dockerhub)
 				dockerhub=1
@@ -7445,9 +8125,13 @@ _list_avail_version(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--part)
-				part="$2"
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					part="$2"
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--all)
 				all=1
@@ -7458,48 +8142,80 @@ _list_avail_version(){
 				shift
 				;;
 			--component)
-				component=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--limit)
-				limit=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					limit=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--commit)
-				commit=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					commit=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--tag)
-				tag=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					tag=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--branch)
-				branch=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					branch=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--component-version)
-				component_version=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					component_version=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--force-unstable)
 				unstable=1
 				shift
 				;;
 			--version-return-var)
-				version_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					version_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--part-version-return-var)
-				partversion_var=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					partversion_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -7621,7 +8337,7 @@ _version_show(){
 
 		#if [[ "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 		#	if [[ -f $DOCKER_COMPOSE_PATH/docker-compose.yml ]]; then
-		#		tmp_services=$(docker-compose -f $DOCKER_COMPOSE_PATH/docker-compose.yml config --service 2>/dev/null)
+		#		tmp_services=$(_docker-compose -f $DOCKER_COMPOSE_PATH/docker-compose.yml config --service 2>/dev/null)
 		#		tmp_services=$(echo $tmp_services)
 		#		for service in $tmp_services; do
 		#			container_image=$(cat $DOCKER_COMPOSE_PATH/docker-compose.yml | grep -PA5 "^[ \t]+$service:" | awk '/^[ \t]+image:/ {print $2}')
@@ -7686,6 +8402,7 @@ _version_show(){
 				retvarname="installed_$(echo $varname | sed 's/-/_/g')"
 				cmdargs+=" --${varname}-return-var ${retvarname}"
 			done
+			__debug --level 6 "$cmd $cmdargs"
 			$cmd $cmdargs
 
 			for varname in $(echo "$ret_vars"); do
@@ -7907,9 +8624,13 @@ _get_installed_mip_components(){
 				shift
 				;;
 			--components-return-var)
-				components_var="$2"
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					components_var="$2"
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			*)
 				positional+=("$1")
@@ -8263,30 +8984,38 @@ _restore(){
 	while [[ $# -gt 0 ]]; do
 		case $1 in
 			--backup-file)
-				if [[ -f $2 ]]; then
-					filename=$2
-					filepath=$(dirname $filename)
-					filename=$(basename $filename)
-					fileext="${filename##*.}"
-					filename="${filename%.*}"
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					if [[ -f $2 ]]; then
+						filename=$2
+						filepath=$(dirname $filename)
+						filename=$(basename $filename)
+						fileext="${filename##*.}"
+						filename="${filename%.*}"
 
-					if [[ "$(echo $filename | grep "^mip_")" != "" ]]; then
-						node_type=$(echo $filename | awk -F '_-_' '{print $1}' | cut -d'_' -f2)
-						hostname=$(echo $filename | awk -F '_-_' '{print $2}')
-						datetime=$(echo $filename | awk -F '_-_' '{print $NF}')
-					else
-						filepath=""
-						filename=""
-						fileext=""
+						if [[ "$(echo $filename | grep "^mip_")" != "" ]]; then
+							node_type=$(echo $filename | awk -F '_-_' '{print $1}' | cut -d'_' -f2)
+							hostname=$(echo $filename | awk -F '_-_' '{print $2}')
+							datetime=$(echo $filename | awk -F '_-_' '{print $NF}')
+						else
+							filepath=""
+							filename=""
+							fileext=""
+						fi
 					fi
+					shift
+					shift
+				else
+					shift
 				fi
-				shift
-				shift
 				;;
 			--partial-restore-path)
-				partial_restore_path=$2
-				shift
-				shift
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					partial_restore_path=$2
+					shift
+					shift
+				else
+					shift
+				fi
 				;;
 			--no-version)
 				noversion=1
@@ -10099,7 +10828,9 @@ _services_up(){
 	_check_installed_mip -q
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
-		if [[ $(command -v docker-compose) ]]; then
+		_check_docker_compose
+		ret=$?
+		if [[ $ret -eq 0 ]]; then
 			ret=1
 			# Deploying MIP services
 			__echo -e "\nDeploying Services..."
@@ -10172,7 +10903,9 @@ _services_down(){
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
 		__echo -e "\nRemoving previous services..."
-		if [[ $(command -v docker-compose) ]]; then
+		_check_docker_compose
+		ret=$?
+		if [[ $ret -eq 0 ]]; then
 			local path=$(pwd)
 			cd $DOCKER_COMPOSE_PATH
 			load_mip_env
@@ -10220,7 +10953,9 @@ _services_restart(){
 	_check_installed_mip -q
 	local ret=$?
 	if [[ $ret -eq 0 ]]; then
-		if [[ $(command -v docker-compose) ]]; then
+		_check_docker_compose
+		ret=$?
+		if [[ $ret -eq 0 ]]; then
 			ret=1
 			# Redeploying MIP services
 			__echo -e "\nRedeploying Services..."
@@ -10294,7 +11029,7 @@ start_mip(){
 	check_configure
 
 	local ko_list=""
-	for image in $MIP_CONTAINERS; do
+	for image in $MIP_COMPONENTS; do
 		local image_check=$(_check_docker_container $image)
 		if [[ "$image_check" != "ok" ]]; then
 			ko_list=$ko_list" "$image_check
@@ -10368,68 +11103,52 @@ logs(){
 	local sleeptime=0
 	local elapsedtime=0
 	while [[ $poll -eq 1 ]]; do
-		local image=""
-		local containers=$MIP_CONTAINERS
+		local containers=$MIP_COMPONENTS
+		if [[ "$MIP_ENV_NODE_TYPE" = "ms" ]]; then
+			containers="portainer $containers"
+		fi
 		local logfile=""
 		local logpart=$ARG_COMPONENT
 		local running=""
 		local exited=""
-		if [[ (( "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_NODE_TYPE" = "wk" )) && ! -n $logpart ]]; then
-			image=$HOSTNAME
-			__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
-			case $MIP_ENV_NODE_TYPE in
-				ms)
-					image=$image"_exareme-master"
-					;;
-				ui)
-					if [[ -f $LOGS_PATH/portal-backend.txt ]]; then
-						logfile=$LOGS_PATH/portal-backend.txt
-					else
-						image=${DOCKER_PROJECT_NAME}_portalbackend_1
-					fi
-					;;
-				wk)
-					image=$image"_exareme"
-					;;
-			esac
-			__debug --level 5 "image=<$image>"
-		elif [[ -n $logpart ]]; then
+
+		if [[ ! -n $logpart ]]; then
+			if [[ "$MIP_ENV_NODE_TYPE" = "ms" || "$MIP_ENV_NODE_TYPE" = "ui" || "$MIP_ENV_NODE_TYPE" = "wk" ]]; then
+				case $MIP_ENV_NODE_TYPE in
+					ms)
+						logpart="exareme-master"
+						;;
+					ui)
+						logpart="portalbackend"
+						;;
+					wk)
+						logpart="exareme"
+						;;
+				esac
+			elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
+				logpart="portalbackend"
+			fi
+		fi
+
+		if [[ -n $logpart ]]; then
 			__debug --level 5 "MIP_ENV_MIP_TYPE=<$MIP_ENV_MIP_TYPE>"
 			__debug --level 5 "MIP_ENV_NODE_TYPE=<$MIP_ENV_NODE_TYPE>"
-			image=$HOSTNAME"_"$logpart".1"
-			case $MIP_ENV_NODE_TYPE in
-				ms)
-					if [[ "$logpart" = "portainer" ]]; then
-						image=$DOCKER_PROJECT_NAME"-"$logpart".1"
-					fi
-					containers="exareme-master exareme-keystore portainer"
-					;;
-				ui)
-					image=${DOCKER_PROJECT_NAME}_${logpart}_1
-					;;
-				wk)
-					image=$HOSTNAME"_"$logpart
-					containers="exareme"
-					;;
-			esac
-			if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
-				image=${DOCKER_PROJECT_NAME}_${logpart}_1
 
+			if [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 				if [[ "$logpart" = "portalbackend" && -f $LOGS_PATH/portal-backend.txt ]]; then
 					logfile=$LOGS_PATH/portal-backend.txt
 				fi
 			fi
-			__debug --level 5 "image=<$image>"
-			__debug --level 5 "containers=<$containers>"
-			_contains "$containers" $image
+
+			_contains "$containers" $logpart
 			local ret=$?
 			if [[ $ret -ne 0 ]]; then
-				__red "Usage: $0 --component [$MIP_COMPONENTS_LIST] logs"
+				__red "Usage: $0 --component [$(echo $containers|tr ' ' '|')] logs"
 				if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return 1; fi
 				exit 1
 			fi
 		else
-			__red "Usage: $0 --component [$MIP_COMPONENTS_LIST] logs"
+			__red "Usage: $0 --component [$(echo $containers|tr ' ' '|')] logs"
 			exit 1
 		fi
 
@@ -10453,8 +11172,8 @@ logs(){
 		fi
 
 		local status=""
-		__debug --level 6 docker ps -a --filter name=$image"|"grep $image"|"awk '{print \$1}'
-		local process_ids=$(docker ps -a --filter name=$image|grep $image|awk '{print $1}')
+		__debug --level 6 "_get_docker_container_id $logpart"
+		local process_ids=$(_get_docker_container_id $logpart)
 		__debug --level 5 "docker process_ids=<$process_ids>"
 		for id in $process_ids; do
 			status=$(docker inspect $id --format {{.State.Status}})
