@@ -80,7 +80,7 @@ DISTRIB_CODENAME=""
 
 DEBUG_LEVEL=0
 VERBOSE_LEVEL=0
-MIP_COMMAND="/vagrant/dev_repos/mip-deployment/mip"
+MIP_COMMAND="mip"
 
 args_parser(){
 	POSITIONAL=()
