@@ -11,7 +11,8 @@ services:
     restart: unless-stopped
 
   exareme_master:
-    image: hbpmip/exareme:${EXAREME}
+    #image: hbpmip/exareme:${EXAREME}
+    image: thanasulas/exareme:formula_v2
     environment:
       - CONSULURL=exareme_keystore:8500
       - FEDERATION_ROLE=master
@@ -107,10 +108,21 @@ services:
       - ./logs:/opt/portal/logs
     restart: unless-stopped
 
-  frontend:
-    image: hbpmip/portal-frontend:${FRONTEND}
+  gateway:
+    image: m4n0x/gateway
+    environment:
+      ENGINE_TYPE: exareme
+      ENGINE_BASE_URL: http://portalbackend:8080/services/
+      GATEWAY_PORT: 8081
+    ports:
+      - '8081:8081'
     depends_on:
       - portalbackend
+     
+  frontend:
+    image: m4n0x/mip-frontend
+    depends_on:
+      - gateway
     ports:
       - '80:80'
       - '443:443'
@@ -120,6 +132,7 @@ services:
       ERROR_LOG_LEVEL: info
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
+      GATEWAY_SERVER: gateway:8081
       INSTANCE_NAME: 'MIP ${MIP}'
       VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
