@@ -77,10 +77,21 @@ services:
       - ./logs:/opt/portal/logs
     restart: unless-stopped
 
+  gateway:
+    image: hbpmip/gateway:${GATEWAY}
+    environment:
+      ENGINE_TYPE: exareme
+      ENGINE_BASE_URL: http://portalbackend:8080/services/
+      GATEWAY_PORT: 8081
+    ports:
+      - '8081:8081'
+    depends_on:
+      - portalbackend
+
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
     depends_on:
-      - portalbackend
+      - gateway
     ports:
       - '80:80'
       - '443:443'
@@ -90,6 +101,7 @@ services:
       ERROR_LOG_LEVEL: info
       PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
+      GATEWAY_SERVER: gateway:8081
       INSTANCE_NAME: 'MIP ${MIP}'
       VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
