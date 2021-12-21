@@ -133,7 +133,7 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       GATEWAY_SERVER: gateway:8081
       INSTANCE_NAME: 'MIP ${MIP}'
-      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
+      VERSION: 'Frontend: ${FRONTEND}, Gateway: ${GATEWAY}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
       TRACKER_ID: UA-80660232-5
       GALAXY_HOST: http://galaxy
       GALAXY_PATH: /nativeGalaxy
