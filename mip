@@ -35,13 +35,13 @@ DOCKERHUB_APP_TOKEN="p5BLk2iEmpkJoJINBl2lIL2DmpnKmChGBlLkk22CAHLNKJ2Kpl2lK3ApmHn
 
 DOCKER_PROJECT_NAME="mip"
 DOCKER_FEDERATION_PROJECT_NAME="mipfederation"
-MIP_COMPONENTS="frontend portalbackend portalbackend_db galaxy keycloak keycloak_db create_dbs exareme_master exareme_keystore"
-MIP_COMPONENT_LABELS="Portal Frontend,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,KeyCloak,KeyCloak DB,Create DBs,Exareme Master,Exareme Keystore"
-MIP_COMPONENT_IMAGES=("portainer/portainer" "bitnami/consul" "hbpmip/exareme" "hbpmip/galaxy" "postgres" "hbpmip/create-databases" "hbpmip/portal-backend" "hbpmip/portal-frontend" "jboss/keycloak")
+MIP_COMPONENTS="frontend gateway portalbackend portalbackend_db galaxy keycloak keycloak_db create_dbs exareme_master exareme_keystore"
+MIP_COMPONENT_LABELS="Portal Frontend,Gateway,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,KeyCloak,KeyCloak DB,Create DBs,Exareme Master,Exareme Keystore"
+MIP_COMPONENT_IMAGES=("portainer/portainer" "bitnami/consul" "hbpmip/exareme" "hbpmip/galaxy" "postgres" "hbpmip/create-databases" "hbpmip/portal-backend" "hbpmip/gateway" "hbpmip/portal-frontend" "jboss/keycloak")
 MIP_FEDERATION_MS_COMPONENTS="exareme-master exareme-keystore"
 MIP_FEDERATION_MS_COMPONENT_LABELS="Exareme Master,Exareme Keystore"
-MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy create_dbs"
-MIP_FEDERATION_UI_COMPONENT_LABELS="Portal Frontend,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,Create DBs"
+MIP_FEDERATION_UI_COMPONENTS="frontend gateway portalbackend portalbackend_db galaxy create_dbs"
+MIP_FEDERATION_UI_COMPONENT_LABELS="Portal Frontend,Gateway,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,Create DBs"
 MIP_FEDERATION_WK_COMPONENTS="exareme"
 MIP_FEDERATION_WK_COMPONENT_LABELS="Exareme"
 CONFIGURE_PARTS="docker-mtu user ssh pusher pathologies link protocol host exareme-ip logs data keycloak dataset-compilation all"
@@ -1068,9 +1068,9 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen. For "local" installation and "ui" federation node.
 		--component [MIP_COMPONENT]					Specific MIP component which can be targetted (in logs, install, version, pull, start, stop, restart action).
 			Typical MIP_COMPONENT for "local" MIP:
-				[frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
+				[frontend|gateway|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
 			Typical MIP_COMPONENT for "ui" federation node:
-				[frontend|portalbackend|portalbackend_db|galaxy|create_dbs]
+				[frontend|gateway|portalbackend|portalbackend_db|galaxy|create_dbs]
 		--pathology [DATASET_PATHOLOGY(IES)]				In case of data compile, specify the pathology or pathologies (comma-separated) to compile.
 
 		--with-keycloak-authentication					Use Keycloak authentication. Complementary keycloak parameters may be set, or they may be asked at
@@ -1182,8 +1182,14 @@ load_mip_env(){
 
 	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST && "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 		__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
-		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$MIP_ENV_PUBLIC_MIP_HOST>"
-		DEFAULT_MIP_ENV_KEYCLOAK_URL=$MIP_ENV_PUBLIC_MIP_HOST
+		local first_int_ip=$(hostname -I|awk '{print $1}')
+		if [[ "$first_int_ip" != "" && "$first_int_ip" != "$MIP_ENV_PUBLIC_MIP_HOST" ]]; then
+			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$first_int_ip>"
+			DEFAULT_MIP_ENV_KEYCLOAK_URL=$first_int_ip
+		else
+			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$MIP_ENV_PUBLIC_MIP_HOST>"
+			DEFAULT_MIP_ENV_KEYCLOAK_URL=$MIP_ENV_PUBLIC_MIP_HOST
+		fi
 	fi
 
 	if [[ -n $ARG_NODE_TYPE ]]; then
@@ -1358,22 +1364,22 @@ load_mip_env(){
 	fi
 
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) ]]; then
-		__debug --level 6 "Setting global var: DATACATALOGUE_API_PROTOCOL=<$DEFAULT_DATACATALOGUE_API_PROTOCOL"
+		__debug --level 6 "Setting global var: DATACATALOGUE_API_PROTOCOL=<$DEFAULT_DATACATALOGUE_API_PROTOCOL>"
 		DATACATALOGUE_API_PROTOCOL=$DEFAULT_DATACATALOGUE_API_PROTOCOL
-		__debug --level 6 "Setting global var: DATACATALOGUE_API_PORT=<$DEFAULT_DATACATALOGUE_API_PORT"
+		__debug --level 6 "Setting global var: DATACATALOGUE_API_PORT=<$DEFAULT_DATACATALOGUE_API_PORT>"
 		DATACATALOGUE_API_PORT=$DEFAULT_DATACATALOGUE_API_PORT
-		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$DEFAULT_MIP_ENV_DATACATALOGUE_PROTOCOL"
+		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$DEFAULT_MIP_ENV_DATACATALOGUE_PROTOCOL>"
 		export MIP_ENV_DATACATALOGUE_PROTOCOL=$DEFAULT_MIP_ENV_DATACATALOGUE_PROTOCOL
-		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$DEFAULT_MIP_ENV_DATACATALOGUE_HOST"
+		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$DEFAULT_MIP_ENV_DATACATALOGUE_HOST>"
 		export MIP_ENV_DATACATALOGUE_HOST=$DEFAULT_MIP_ENV_DATACATALOGUE_HOST
 		if [[ -n $ARG_DATACATALOGUE_PROTOCOL ]]; then
 			__debug --level 5 "ARG_DATACATALOGUE_PROTOCOL=<$ARG_DATACATALOGUE_PROTOCOL>"
-			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$ARG_DATACATALOGUE_PROTOCOL"
+			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$ARG_DATACATALOGUE_PROTOCOL>"
 			export MIP_ENV_DATACATALOGUE_PROTOCOL=$ARG_DATACATALOGUE_PROTOCOL
 		fi
 		if [[ -n $ARG_DATACATALOGUE_HOST ]]; then
 			__debug --level 5 "ARG_DATACATALOGUE_HOST=<$ARG_DATACATALOGUE_HOST>"
-			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$ARG_DATACATALOGUE_HOST"
+			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$ARG_DATACATALOGUE_HOST>"
 			export MIP_ENV_DATACATALOGUE_HOST=$ARG_DATACATALOGUE_HOST
 		fi
 	fi
@@ -1474,19 +1480,6 @@ load_mip_env(){
 		EXAREME_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
 		__debug --level 6 "Setting global var: MIPENVFILE=<$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME>"
 		MIPENVFILE=$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME
-		__debug --level 6 "Setting global var: ANSIBLE_PATH=<$EXAREME_PATH/Federated-Deployment/Docker-Ansible>"
-		ANSIBLE_PATH=$EXAREME_PATH/Federated-Deployment/Docker-Ansible
-		__debug --level 6 "Setting global var: ANSIBLE_HOSTS_FILE=<$ANSIBLE_PATH/hosts.ini>"
-		ANSIBLE_HOSTS_FILE=$ANSIBLE_PATH/hosts.ini
-		__debug --level 6 "Setting global var: ANSIBLE_VAULT_FILE=<$ANSIBLE_PATH/vault.yaml>"
-		ANSIBLE_VAULT_FILE=$ANSIBLE_PATH/vault.yaml
-		__debug --level 6 "Setting global var: ANSIBLE_VAULT_PASS_FILE=<$ANSIBLE_PATH/.vault_pass>"
-		ANSIBLE_VAULT_PASS_FILE=$ANSIBLE_PATH/.vault_pass
-		GLOBAL_ANSIBLE_VAULT_PASSWORD=""
-		__debug --level 6 "Setting global var: ANSIBLE_CMD=<ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
-		ANSIBLE_CMD="ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
-		__debug --level 6 "Setting global var: ANSIBLE_ADHOC_CMD=<ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
-		ANSIBLE_ADHOC_CMD="ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
 		__debug --level 6 "Setting global var: CONFLICTING_PACKAGES=<>"
 		CONFLICTING_PACKAGES=""
 		__debug --level 6 "Setting global var: CONFLICTING_SNAP_PACKAGES=<>"
@@ -1504,8 +1497,8 @@ load_mip_env(){
 		SSH_PATH=$EXAREME_PATH
 		__debug --level 6 "Setting global var: SSH_OPTIONS=<-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no>"
 		SSH_OPTIONS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$EXAREME_PATH/Federated-Deployment/Compose-Files>"
-		DOCKER_COMPOSE_PATH=$EXAREME_PATH/Federated-Deployment/Compose-Files
+
+		_load_exareme_federated_env
 	elif [[ $ARG_PUSHER -eq 1 && ! -n $ARG_FEDERATION ]]; then
 		__red "Federation name required!"
 		exit 1
@@ -1597,6 +1590,39 @@ _write_mip_env(){
 
 	__debug --level 5 "result=<$result>"
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return -n $result; fi
+}
+
+_load_exareme_federated_env(){
+	if [[ $ARG_PUSHER -eq 1 && "$EXAREME_PATH" != "" && -d $EXAREME_PATH ]]; then
+		local exareme_federated_deployment_path=Federated-Deployment
+		if [[ -d $EXAREME_PATH/$exareme_federated_deployment_path ]]; then
+			if [[ -d $EXAREME_PATH/$exareme_federated_deployment_path/docker-swarm ]]; then
+				exareme_federated_deployment_path+=/docker-swarm
+			fi
+		fi
+
+		__debug --level 6 "Setting global var: EXAREME_FEDERATED_DEPLOYMENT_PATH=<$exareme_federated_deployment_path>"
+		EXAREME_FEDERATED_DEPLOYMENT_PATH=$exareme_federated_deployment_path
+
+		__debug --level 6 "Setting global var: ANSIBLE_PATH=<$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible>"
+		ANSIBLE_PATH=$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible
+		__debug --level 6 "Setting global var: ANSIBLE_PATH=<$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible>"
+		ANSIBLE_PATH=$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible
+		__debug --level 6 "Setting global var: ANSIBLE_HOSTS_FILE=<$ANSIBLE_PATH/hosts.ini>"
+		ANSIBLE_HOSTS_FILE=$ANSIBLE_PATH/hosts.ini
+		__debug --level 6 "Setting global var: ANSIBLE_VAULT_FILE=<$ANSIBLE_PATH/vault.yaml>"
+		ANSIBLE_VAULT_FILE=$ANSIBLE_PATH/vault.yaml
+		__debug --level 6 "Setting global var: ANSIBLE_VAULT_PASS_FILE=<$ANSIBLE_PATH/.vault_pass>"
+		ANSIBLE_VAULT_PASS_FILE=$ANSIBLE_PATH/.vault_pass
+		GLOBAL_ANSIBLE_VAULT_PASSWORD=""
+		__debug --level 6 "Setting global var: ANSIBLE_CMD=<ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
+		ANSIBLE_CMD="ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
+		__debug --level 6 "Setting global var: ANSIBLE_ADHOC_CMD=<ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
+		ANSIBLE_ADHOC_CMD="ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
+
+		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files>"
+		DOCKER_COMPOSE_PATH=$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files
+	fi
 }
 
 _get_docker_main_ip(){
@@ -4115,7 +4141,11 @@ _check_installed_mip(){
 				fi
 				result=1
 			fi
-			for cmdcheck in "mip" "keycloak_roles_sync.py"; do
+			local scripts_list="mip"
+			if [[ $ARG_PUSHER -eq 1 ]]; then
+				scripts_list="mip keycloak_roles_sync.py"
+			fi
+			for cmdcheck in $scripts_list; do
 				if [[ "$(command -v $cmdcheck)" = "" ]]; then
 					if [[ "$1" != "-q" ]]; then
 						if [[ "$1" = "-v" ]]; then
@@ -5579,7 +5609,7 @@ wg_is_keys_off="#[fg=\$color_light,bg=\$color_window_off_indicator]#([ \$(tmux s
 set -g status-left "\$wg_session"
 set -g status-right "\$wg_is_keys_off \$wg_is_zoomed | \$wg_user_host | \$wg_date"
 
-new -s $ARG_FEDERATION -n bash -c $MIP_PATH/Federated-Deployment bash
+new -s $ARG_FEDERATION -n bash -c $MIP_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH bash
 set remain-on-exit on
 respawn-window -k
 
@@ -5717,7 +5747,7 @@ EOF
 selectp -t 0
 setw synchronize-panes on
 
-neww -n deploy -c $MIP_PATH/Federated-Deployment/Docker-Ansible/scripts echo "\nTHIS SCRIPT IS NOW DEPRECATED! PLEASE RUN THE COMMANDS BELOW IN A PUSHER TERMINAL (TMUX WINDOW 0)\n\nChoose one of the below:\n1: Deploy the exareme swarm and start services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service deploy\n		Also, try:\n			mip --pusher --federation [FEDERATION] node list\n			mip --pusher --federation [FEDERATION] node status\n			mip --pusher --federation [FEDERATION] service status\n\n2: (Re)Start all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service start\n\n3: (Re)Start one service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service start\n"'		NODE can be the node "short name" (ms|ui|wk1|wk2...), the node "name" (real hostname), the node "id" (1=master, 2=ui, 3..n for workers) or the node "IP".'"\n		Also, try:\n			mip --pusher --federation [FEDERATION] --node [NODE] node status\n			mip --pusher --federation [FEDERATION] --node [NODE] service status\n\n4: Stop all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service stop\n\n5: Stop a Worker service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service stop\n\n6: Create or modify the exareme docker image version (exareme.yaml).\n	From now on, this will also be done by the install function.\n\n7: (Re)Initialize the exareme swarm target machines' information (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n8: Add a new worker to the exareme swarm information files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n9: Remove a worker from the exareme swarm inforation files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher"
+neww -n deploy -c $MIP_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/scripts echo "\nTHIS SCRIPT IS NOW DEPRECATED! PLEASE RUN THE COMMANDS BELOW IN A PUSHER TERMINAL (TMUX WINDOW 0)\n\nChoose one of the below:\n1: Deploy the exareme swarm and start services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service deploy\n		Also, try:\n			mip --pusher --federation [FEDERATION] node list\n			mip --pusher --federation [FEDERATION] node status\n			mip --pusher --federation [FEDERATION] service status\n\n2: (Re)Start all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service start\n\n3: (Re)Start one service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service start\n"'		NODE can be the node "short name" (ms|ui|wk1|wk2...), the node "name" (real hostname), the node "id" (1=master, 2=ui, 3..n for workers) or the node "IP".'"\n		Also, try:\n			mip --pusher --federation [FEDERATION] --node [NODE] node status\n			mip --pusher --federation [FEDERATION] --node [NODE] service status\n\n4: Stop all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service stop\n\n5: Stop a Worker service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service stop\n\n6: Create or modify the exareme docker image version (exareme.yaml).\n	From now on, this will also be done by the install function.\n\n7: (Re)Initialize the exareme swarm target machines' information (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n8: Add a new worker to the exareme swarm information files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n9: Remove a worker from the exareme swarm inforation files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher"
 set remain-on-exit on
 respawn-window -k
 EOF
@@ -6283,11 +6313,6 @@ _prepare_keycloak(){
 
 	if [[ $keycloakok -eq 1 ]]; then
 		return 0
-	fi
-
-	local first_int_ip=$(hostname -I|awk '{print $1}')
-	if [[ "$first_int_ip" != "" && "$first_int_ip" != "$DEFAULT_MIP_ENV_KEYCLOAK_URL" ]]; then
-		DEFAULT_MIP_ENV_KEYCLOAK_URL=$first_int_ip
 	fi
 
 	local envvar_changes=0
@@ -7784,7 +7809,7 @@ _get_mip(){
 						elif [[ "$arg_part" = "exareme" ]]; then
 							owner="$EXAREME_GITHUB_OWNER"
 							repo="$EXAREME_GITHUB_PROJECT"
-							path="Federated-Deployment/Compose-Files"
+							path="$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files"
 							filename="docker-compose-master.yml"
 						fi
 
@@ -8064,7 +8089,7 @@ _get_mip_component_version(){
 		exareme)
 			owner="$EXAREME_GITHUB_OWNER"
 			repo="$EXAREME_GITHUB_PROJECT"
-			path="Federated-Deployment/Compose-Files"
+			path="$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files"
 			filename="docker-compose-master.yml"
 
 			if [[ "$component" = "exareme_master" ]]; then
@@ -8099,7 +8124,7 @@ _get_mip_component_version(){
 				fi
 				;;
 			exareme)
-				path="Federated-Deployment/Docker-Ansible/group_vars"
+				path="$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars"
 				filename="exareme.yaml"
 
 				if [[ -f $MIP_PATH/$path/$filename ]]; then
@@ -8404,7 +8429,7 @@ _version_show(){
 	__debug --level 4 "_version_show($*)"
 
 	if [[ $ARG_PUSHER -eq 1 ]]; then
-		local exareme_version=$(cat $MIP_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml 2>/dev/null)
+		local exareme_version=$(cat $MIP_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars/exareme.yaml 2>/dev/null)
 		if [[ "$exareme_version" != "" ]]; then
 			local exareme_image=$(echo "$exareme_version" | grep "^EXAREME_IMAGE" | awk '{print $2}' | cut -c2- | rev | cut -c2- | rev)
 			local exareme_tag=$(echo "$exareme_version" | grep "^EXAREME_TAG" | awk '{print $2}' | cut -c2- | rev | cut -c2- | rev)
@@ -8955,7 +8980,7 @@ _backup(){
 		if [[ $ARG_PUSHER -eq 1 ]]; then
 			part="exareme"
 			backupfilename+="_pusher"
-			paths="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/Federated-Deployment/Compose-Files $EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml $EXAREME_PATH/Federated-Deployment/Docker-Ansible/hosts.ini $EXAREME_PATH/Federated-Deployment/Docker-Ansible/vault.yaml"
+			paths="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars/exareme.yaml $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/hosts.ini $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/vault.yaml"
 		elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 			backupfilename+="_local"
 			paths="$MIP_PATH/.mipenv $MIP_PATH/.versions_env $MIP_PATH/config/pathologies.json $MIP_PATH/config/keycloak/keycloak.json $MIP_PATH/data $MIP_PATH/.stored_data $MIP_PATH/logs"
@@ -9129,9 +9154,9 @@ _restore(){
 		if [[ $ARG_PUSHER -eq 1 ]]; then
 			if [[ "$node_type" = "pusher" ]]; then
 				if [[ "$partial_restore_path" = "" ]]; then
-					partial_restore_path="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/Federated-Deployment/Compose-Files $EXAREME_PATH/Federated-Deployment/Docker-Ansible/hosts.ini $EXAREME_PATH/Federated-Deployment/Docker-Ansible/vault.yaml"
+					partial_restore_path="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/hosts.ini $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/vault.yaml"
 					if [[ $noversion -ne 1 ]]; then
-						partial_restore_path+=" $EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml"
+						partial_restore_path+=" $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars/exareme.yaml"
 					fi
 				fi
 			else
@@ -10779,7 +10804,7 @@ _install_mip(){
 
 							if [[ $ret -eq 0 ]]; then
 								if [[ "$ARG_COMPONENT" = "" || "$ARG_COMPONENT" = "exareme-master" ]]; then
-									path="$EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars"
+									path="$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars"
 									filename="exareme.yaml"
 									if [[ -d $path && "$install_component_image_owner" != "" && "$install_component_image" != "" && "$install_component_version" != "" ]]; then
 										cat << EOF > $path/$filename
