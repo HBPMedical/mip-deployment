@@ -20,7 +20,7 @@ CONFLICTING_PACKAGES="docker docker-engine docker.io docker-compose containerd r
 CONFLICTING_SNAP_PACKAGES="docker"
 PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates ssl-cert curl gnupg-agent software-properties-common neofetch net-tools mtr-tiny inetutils-traceroute haveged whois lsof expect python3-pip"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli docker-ce-rootless-extras containerd.io"
-REQUIRED_PIP3_PACKAGES="chardet bpytop"
+REQUIRED_PIP3_PACKAGES="chardet requests==2.25.1 urllib3==1.26.5 python-keycloak==0.25.0 bpytop"
 REQUIRED_CUSTOM_PACKAGES="docker-compose:latest"
 DEFAULT_MIP_GITHUB_OWNER="HBPMedical"
 DEFAULT_MIP_GITHUB_PROJECT="mip-deployment"
@@ -35,13 +35,13 @@ DOCKERHUB_APP_TOKEN="p5BLk2iEmpkJoJINBl2lIL2DmpnKmChGBlLkk22CAHLNKJ2Kpl2lK3ApmHn
 
 DOCKER_PROJECT_NAME="mip"
 DOCKER_FEDERATION_PROJECT_NAME="mipfederation"
-MIP_COMPONENTS="frontend portalbackend portalbackend_db galaxy keycloak keycloak_db create_dbs exareme_master exareme_keystore"
-MIP_COMPONENT_LABELS="Portal Frontend,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,KeyCloak,KeyCloak DB,Create DBs,Exareme Master,Exareme Keystore"
-MIP_COMPONENT_IMAGES=("portainer/portainer" "bitnami/consul" "hbpmip/exareme" "hbpmip/galaxy" "postgres" "hbpmip/create-databases" "hbpmip/portal-backend" "hbpmip/portal-frontend" "jboss/keycloak")
+MIP_COMPONENTS="frontend gateway portalbackend portalbackend_db galaxy keycloak keycloak_db create_dbs exareme_master exareme_keystore"
+MIP_COMPONENT_LABELS="Portal Frontend,Gateway,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,KeyCloak,KeyCloak DB,Create DBs,Exareme Master,Exareme Keystore"
+MIP_COMPONENT_IMAGES=("portainer/portainer" "bitnami/consul" "hbpmip/exareme" "hbpmip/galaxy" "postgres" "hbpmip/create-databases" "hbpmip/portal-backend" "hbpmip/gateway" "hbpmip/portal-frontend" "jboss/keycloak")
 MIP_FEDERATION_MS_COMPONENTS="exareme-master exareme-keystore"
 MIP_FEDERATION_MS_COMPONENT_LABELS="Exareme Master,Exareme Keystore"
-MIP_FEDERATION_UI_COMPONENTS="frontend portalbackend portalbackend_db galaxy create_dbs"
-MIP_FEDERATION_UI_COMPONENT_LABELS="Portal Frontend,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,Create DBs"
+MIP_FEDERATION_UI_COMPONENTS="frontend gateway portalbackend portalbackend_db galaxy create_dbs"
+MIP_FEDERATION_UI_COMPONENT_LABELS="Portal Frontend,Gateway,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,Create DBs"
 MIP_FEDERATION_WK_COMPONENTS="exareme"
 MIP_FEDERATION_WK_COMPONENT_LABELS="Exareme"
 CONFIGURE_PARTS="docker-mtu user ssh pusher pathologies link protocol host exareme-ip logs data keycloak dataset-compilation all"
@@ -230,6 +230,10 @@ args_parser(){
 				else
 					shift
 				fi
+				;;
+			--export-data-structure)
+				ARG_EXPORT_DATA_STRUCTURE=1
+				shift
 				;;
 			--gen-test-env-file)
 				ARG_GEN_TEST_ENV_FILE=1
@@ -915,9 +919,9 @@ __check_return(){
 		shift
 	fi
 	if [[ $1 -eq 0 ]]; then
-		__green $arg "ok"
+		__debug --level 0 --color "green" $arg "ok"
 	else
-		__red $arg "ko"
+		__debug --level 0 --color "red" $arg "ko"
 	fi
 }
 
@@ -1064,9 +1068,9 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen. For "local" installation and "ui" federation node.
 		--component [MIP_COMPONENT]					Specific MIP component which can be targetted (in logs, install, version, pull, start, stop, restart action).
 			Typical MIP_COMPONENT for "local" MIP:
-				[frontend|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
+				[frontend|gateway|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
 			Typical MIP_COMPONENT for "ui" federation node:
-				[frontend|portalbackend|portalbackend_db|galaxy|create_dbs]
+				[frontend|gateway|portalbackend|portalbackend_db|galaxy|create_dbs]
 		--pathology [DATASET_PATHOLOGY(IES)]				In case of data compile, specify the pathology or pathologies (comma-separated) to compile.
 
 		--with-keycloak-authentication					Use Keycloak authentication. Complementary keycloak parameters may be set, or they may be asked at
@@ -1080,6 +1084,8 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--online-cdes							Get the CDE metadata files from Data Catalogue.
 		--datacatalogue-protocol [http|https]				Set the Data Catalogue protocol
 		--datacatalogue-host [DATACATALOGUE_HOST]			Set the Data Catalogue host (<HOSTNAME> or <HOSTNAME>:<PORT>)
+		--export-data-structure						Exports data (pathologies, nodes, datasets) structure to ./data-structure.json (only to use with data consolidate. It also won't
+											consolidate nor redistribute CDEs and pathologies.json files)
 		--review-dataset-labels						Force the user review of pathologies and datasets labels before generating and deploying
 											files to federation nodes.
 		--gen-test-env-file						Generates a .env.test file in the folder where docker-compose.yml file is located. For dev purpose.
@@ -1176,8 +1182,14 @@ load_mip_env(){
 
 	if [[ -n $MIP_ENV_PUBLIC_MIP_HOST && "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 		__debug --level 5 "MIP_ENV_MIP_TYPE=<local>"
-		__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$MIP_ENV_PUBLIC_MIP_HOST>"
-		DEFAULT_MIP_ENV_KEYCLOAK_URL=$MIP_ENV_PUBLIC_MIP_HOST
+		local first_int_ip=$(hostname -I|awk '{print $1}')
+		if [[ "$first_int_ip" != "" && "$first_int_ip" != "$MIP_ENV_PUBLIC_MIP_HOST" ]]; then
+			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$first_int_ip>"
+			DEFAULT_MIP_ENV_KEYCLOAK_URL=$first_int_ip
+		else
+			__debug --level 6 "Setting global var: DEFAULT_MIP_ENV_KEYCLOAK_URL=<$MIP_ENV_PUBLIC_MIP_HOST>"
+			DEFAULT_MIP_ENV_KEYCLOAK_URL=$MIP_ENV_PUBLIC_MIP_HOST
+		fi
 	fi
 
 	if [[ -n $ARG_NODE_TYPE ]]; then
@@ -1352,22 +1364,22 @@ load_mip_env(){
 	fi
 
 	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) ]]; then
-		__debug --level 6 "Setting global var: DATACATALOGUE_API_PROTOCOL=<$DEFAULT_DATACATALOGUE_API_PROTOCOL"
+		__debug --level 6 "Setting global var: DATACATALOGUE_API_PROTOCOL=<$DEFAULT_DATACATALOGUE_API_PROTOCOL>"
 		DATACATALOGUE_API_PROTOCOL=$DEFAULT_DATACATALOGUE_API_PROTOCOL
-		__debug --level 6 "Setting global var: DATACATALOGUE_API_PORT=<$DEFAULT_DATACATALOGUE_API_PORT"
+		__debug --level 6 "Setting global var: DATACATALOGUE_API_PORT=<$DEFAULT_DATACATALOGUE_API_PORT>"
 		DATACATALOGUE_API_PORT=$DEFAULT_DATACATALOGUE_API_PORT
-		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$DEFAULT_MIP_ENV_DATACATALOGUE_PROTOCOL"
+		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$DEFAULT_MIP_ENV_DATACATALOGUE_PROTOCOL>"
 		export MIP_ENV_DATACATALOGUE_PROTOCOL=$DEFAULT_MIP_ENV_DATACATALOGUE_PROTOCOL
-		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$DEFAULT_MIP_ENV_DATACATALOGUE_HOST"
+		__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$DEFAULT_MIP_ENV_DATACATALOGUE_HOST>"
 		export MIP_ENV_DATACATALOGUE_HOST=$DEFAULT_MIP_ENV_DATACATALOGUE_HOST
 		if [[ -n $ARG_DATACATALOGUE_PROTOCOL ]]; then
 			__debug --level 5 "ARG_DATACATALOGUE_PROTOCOL=<$ARG_DATACATALOGUE_PROTOCOL>"
-			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$ARG_DATACATALOGUE_PROTOCOL"
+			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_PROTOCOL=<$ARG_DATACATALOGUE_PROTOCOL>"
 			export MIP_ENV_DATACATALOGUE_PROTOCOL=$ARG_DATACATALOGUE_PROTOCOL
 		fi
 		if [[ -n $ARG_DATACATALOGUE_HOST ]]; then
 			__debug --level 5 "ARG_DATACATALOGUE_HOST=<$ARG_DATACATALOGUE_HOST>"
-			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$ARG_DATACATALOGUE_HOST"
+			__debug --level 6 "Setting env var: MIP_ENV_DATACATALOGUE_HOST=<$ARG_DATACATALOGUE_HOST>"
 			export MIP_ENV_DATACATALOGUE_HOST=$ARG_DATACATALOGUE_HOST
 		fi
 	fi
@@ -1468,19 +1480,6 @@ load_mip_env(){
 		EXAREME_PATH=$INSTALL_PATH/$ARG_FEDERATION/exareme
 		__debug --level 6 "Setting global var: MIPENVFILE=<$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME>"
 		MIPENVFILE=$INSTALL_PATH/$ARG_FEDERATION/exareme/$MIPENVFILENAME
-		__debug --level 6 "Setting global var: ANSIBLE_PATH=<$EXAREME_PATH/Federated-Deployment/Docker-Ansible>"
-		ANSIBLE_PATH=$EXAREME_PATH/Federated-Deployment/Docker-Ansible
-		__debug --level 6 "Setting global var: ANSIBLE_HOSTS_FILE=<$ANSIBLE_PATH/hosts.ini>"
-		ANSIBLE_HOSTS_FILE=$ANSIBLE_PATH/hosts.ini
-		__debug --level 6 "Setting global var: ANSIBLE_VAULT_FILE=<$ANSIBLE_PATH/vault.yaml>"
-		ANSIBLE_VAULT_FILE=$ANSIBLE_PATH/vault.yaml
-		__debug --level 6 "Setting global var: ANSIBLE_VAULT_PASS_FILE=<$ANSIBLE_PATH/.vault_pass>"
-		ANSIBLE_VAULT_PASS_FILE=$ANSIBLE_PATH/.vault_pass
-		GLOBAL_ANSIBLE_VAULT_PASSWORD=""
-		__debug --level 6 "Setting global var: ANSIBLE_CMD=<ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
-		ANSIBLE_CMD="ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
-		__debug --level 6 "Setting global var: ANSIBLE_ADHOC_CMD=<ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
-		ANSIBLE_ADHOC_CMD="ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
 		__debug --level 6 "Setting global var: CONFLICTING_PACKAGES=<>"
 		CONFLICTING_PACKAGES=""
 		__debug --level 6 "Setting global var: CONFLICTING_SNAP_PACKAGES=<>"
@@ -1489,14 +1488,17 @@ load_mip_env(){
 		PREREQUIRED_PACKAGES=$PREREQUIRED_PACKAGES" ansible"
 		__debug --level 6 "Setting global var: REQUIRED_PACKAGES=<>"
 		REQUIRED_PACKAGES=""
-		__debug --level 6 "Setting global var: REQUIRED_PIP3_PACKAGES=<chardet paramiko>"
-		REQUIRED_PIP3_PACKAGES="chardet bpytop paramiko"
+		__debug --level 6 "Setting global var: REQUIRED_PIP3_PACKAGES=<$REQUIRED_PIP3_PACKAGES paramiko>"
+		if [[ "$REQUIRED_PIP3_PACKAGES" != "" ]]; then
+			REQUIRED_PIP3_PACKAGES+=" "
+		fi
+		REQUIRED_PIP3_PACKAGES+="paramiko"
 		__debug --level 6 "Setting global var: SSH_PATH=<$EXAREME_PATH>"
 		SSH_PATH=$EXAREME_PATH
 		__debug --level 6 "Setting global var: SSH_OPTIONS=<-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no>"
 		SSH_OPTIONS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$EXAREME_PATH/Federated-Deployment/Compose-Files>"
-		DOCKER_COMPOSE_PATH=$EXAREME_PATH/Federated-Deployment/Compose-Files
+
+		_load_exareme_federated_env
 	elif [[ $ARG_PUSHER -eq 1 && ! -n $ARG_FEDERATION ]]; then
 		__red "Federation name required!"
 		exit 1
@@ -1588,6 +1590,39 @@ _write_mip_env(){
 
 	__debug --level 5 "result=<$result>"
 	if [[ $DEBUG_LEVEL -eq 1 ]]; then __check_return -n $result; fi
+}
+
+_load_exareme_federated_env(){
+	if [[ $ARG_PUSHER -eq 1 && "$EXAREME_PATH" != "" && -d $EXAREME_PATH ]]; then
+		local exareme_federated_deployment_path=Federated-Deployment
+		if [[ -d $EXAREME_PATH/$exareme_federated_deployment_path ]]; then
+			if [[ -d $EXAREME_PATH/$exareme_federated_deployment_path/docker-swarm ]]; then
+				exareme_federated_deployment_path+=/docker-swarm
+			fi
+		fi
+
+		__debug --level 6 "Setting global var: EXAREME_FEDERATED_DEPLOYMENT_PATH=<$exareme_federated_deployment_path>"
+		EXAREME_FEDERATED_DEPLOYMENT_PATH=$exareme_federated_deployment_path
+
+		__debug --level 6 "Setting global var: ANSIBLE_PATH=<$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible>"
+		ANSIBLE_PATH=$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible
+		__debug --level 6 "Setting global var: ANSIBLE_PATH=<$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible>"
+		ANSIBLE_PATH=$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible
+		__debug --level 6 "Setting global var: ANSIBLE_HOSTS_FILE=<$ANSIBLE_PATH/hosts.ini>"
+		ANSIBLE_HOSTS_FILE=$ANSIBLE_PATH/hosts.ini
+		__debug --level 6 "Setting global var: ANSIBLE_VAULT_FILE=<$ANSIBLE_PATH/vault.yaml>"
+		ANSIBLE_VAULT_FILE=$ANSIBLE_PATH/vault.yaml
+		__debug --level 6 "Setting global var: ANSIBLE_VAULT_PASS_FILE=<$ANSIBLE_PATH/.vault_pass>"
+		ANSIBLE_VAULT_PASS_FILE=$ANSIBLE_PATH/.vault_pass
+		GLOBAL_ANSIBLE_VAULT_PASSWORD=""
+		__debug --level 6 "Setting global var: ANSIBLE_CMD=<ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
+		ANSIBLE_CMD="ansible-playbook -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
+		__debug --level 6 "Setting global var: ANSIBLE_ADHOC_CMD=<ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE >"
+		ANSIBLE_ADHOC_CMD="ansible -i $ANSIBLE_HOSTS_FILE -c paramiko -e@$ANSIBLE_VAULT_FILE --vault-password-file $ANSIBLE_VAULT_PASS_FILE "
+
+		__debug --level 6 "Setting global var: DOCKER_COMPOSE_PATH=<$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files>"
+		DOCKER_COMPOSE_PATH=$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files
+	fi
 }
 
 _get_docker_main_ip(){
@@ -3102,7 +3137,21 @@ _check_required_packages(){
 		for package in $required_packages; do
 			local match=""
 			if [[ "$1" = "pip3" ]]; then
-				match=$(pip3 list --format=columns|grep "^$package "|awk '{print $1}')
+				if [[ "$(echo $package | grep '=')" != "" ]]; then
+					match=$(pip3 list --format=columns|grep "^$(echo $package|awk -F '==' '{print $1}') "|awk '{print $1}')
+					if [[ "$match" != "" ]]; then
+						local installed_version=$(pip3 list --format=columns|grep "^$(echo $package|cut -d'=' -f1) "|awk '{print $NF}')
+						local required_version=$(echo $package|awk -F '==' '{print $2}')
+						__debug --level 6 "_compare_versions $installed_version $required_version"
+						_compare_versions "$installed_version" "$required_version"
+						local ret=$?
+						if [[ $ret -gt 1 ]]; then
+							match=""
+						fi
+					fi
+				else
+					match=$(pip3 list --format=columns|grep "^$package "|awk '{print $1}')
+				fi
 			else
 				match=$(dpkg --list|grep "^ii\s*$package ")
 			fi
@@ -3714,13 +3763,56 @@ _list_to_array(){
 _contains(){
 	__debug --level 4 "_contains($*)"
 	local result=1
-	content=$1
-	item=$2
+
+	content=""
+	while [[ $# -gt 1 ]]; do
+		if [[ "$content" != "" ]]; then
+			content+=" "
+		fi
+		content+="$1"
+		shift
+	done
+	item=$1
+
 	__debug --level 5 "content=<$content>, item=<$item>"
 	[[ $content =~ (^|[[:space:]])"$item"($|[[:space:]]) ]] && result=0
 
 	__debug --level 5 "result=<$result>"
 	return $result
+}
+
+_array_to_json(){
+	local result=''
+	local result_array=()
+
+	local json_value=0
+	if [[ "$1" = "-json" ]]; then
+		json_value=1
+		shift
+	fi
+	local key="$1"
+	shift
+
+	while IFS='\n' read -r arg; do
+		if [[ "$arg" != "" ]]; then
+			if [[ $json_value -eq 1 ]]; then
+				result_array+=("$(jq -c --arg key "$key" --argjson val "$arg" ". | .[\$key]=\$val" <<< '{}')")
+			else
+				result_array+=("$(jq -c --arg key "$key" --arg val "$arg" ". | .[\$key]=\$val" <<< '{}')")
+			fi
+		fi
+	done <<< "$(echo "$1" | tr '§' '\n')"
+	set -- "${result_array[@]}"
+	while [[ $# -gt 0 ]]; do
+		if [[ "$result" != "" ]]; then
+			result+=','
+		fi
+		result+="$1"
+		shift
+	done
+	result="[$result]"
+
+	echo "$result" | jq -c .
 }
 
 _get_list_element_by_id(){
@@ -4019,24 +4111,53 @@ _check_installed_mip(){
 	__debug --level 1 --levelcompare "eq" -n "Checking if the MIP is installed..."
 	__debug --level 4 "_check_installed_mip($*)"
 	local result=0
-	if [[ (( $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) )) && ! -d $MIP_PATH ]]; then
-		__debug --level 5 "MIP folder $MIP_PATH does not exist"
-		if [[ "$1" != "-q" ]]; then
-			if [[ $ARG_PUSHER -eq 1 ]]; then
-				if [[ "$1" = "-v" ]]; then
-					__echo "${red}Federation $ARG_FEDERATION exareme not found!${reset}"
+	if [[ $ARG_PUSHER -eq 1 || (( "$MIP_ENV_NODE_TYPE" != "ms" && "$MIP_ENV_NODE_TYPE" != "wk" )) ]]; then
+		if [[ ! -d $MIP_PATH ]]; then
+			__debug --level 5 "MIP folder $MIP_PATH does not exist"
+			if [[ "$1" != "-q" ]]; then
+				if [[ $ARG_PUSHER -eq 1 ]]; then
+					if [[ "$1" = "-v" ]]; then
+						__echo "${red}Federation $ARG_FEDERATION exareme not found!${reset}"
+					else
+						__red -n "Federation $ARG_FEDERATION exareme not found! "
+					fi
 				else
-					__red -n "Federation $ARG_FEDERATION exareme not found! "
-				fi
-			else
-				if [[ "$1" = "-v" ]]; then
-					__echo "${red}MIP not found!${reset}"
-				else
-					__red -n "MIP not found! "
+					if [[ "$1" = "-v" ]]; then
+						__echo "${red}MIP not found!${reset}"
+					else
+						__red -n "MIP not found! "
+					fi
 				fi
 			fi
+			result=1
+		else
+			if [[ $ARG_PUSHER -eq 1 && "$(command -v pathologies_generator.py)" = "" ]]; then
+				if [[ "$1" != "-q" ]]; then
+					if [[ "$1" = "-v" ]]; then
+						__echo "${red}pathologies_generator.py: command not found!${reset}"
+					else
+						__red -n "pathologies_generator.py: command not found! "
+					fi
+				fi
+				result=1
+			fi
+			local scripts_list="mip"
+			if [[ $ARG_PUSHER -eq 1 ]]; then
+				scripts_list="mip keycloak_roles_sync.py"
+			fi
+			for cmdcheck in $scripts_list; do
+				if [[ "$(command -v $cmdcheck)" = "" ]]; then
+					if [[ "$1" != "-q" ]]; then
+						if [[ "$1" = "-v" ]]; then
+							__echo "${red}$cmdcheck: command not found!${reset}"
+						else
+							__red -n "$cmdcheck: command not found! "
+						fi
+					fi
+					result=1
+				fi
+			done
 		fi
-		result=1
 	fi
 
 	__debug --level 5 "result=<$result>"
@@ -5488,7 +5609,7 @@ wg_is_keys_off="#[fg=\$color_light,bg=\$color_window_off_indicator]#([ \$(tmux s
 set -g status-left "\$wg_session"
 set -g status-right "\$wg_is_keys_off \$wg_is_zoomed | \$wg_user_host | \$wg_date"
 
-new -s $ARG_FEDERATION -n bash -c $MIP_PATH/Federated-Deployment bash
+new -s $ARG_FEDERATION -n bash -c $MIP_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH bash
 set remain-on-exit on
 respawn-window -k
 
@@ -5626,7 +5747,7 @@ EOF
 selectp -t 0
 setw synchronize-panes on
 
-neww -n deploy -c $MIP_PATH/Federated-Deployment/Docker-Ansible/scripts echo "\nTHIS SCRIPT IS NOW DEPRECATED! PLEASE RUN THE COMMANDS BELOW IN A PUSHER TERMINAL (TMUX WINDOW 0)\n\nChoose one of the below:\n1: Deploy the exareme swarm and start services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service deploy\n		Also, try:\n			mip --pusher --federation [FEDERATION] node list\n			mip --pusher --federation [FEDERATION] node status\n			mip --pusher --federation [FEDERATION] service status\n\n2: (Re)Start all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service start\n\n3: (Re)Start one service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service start\n"'		NODE can be the node "short name" (ms|ui|wk1|wk2...), the node "name" (real hostname), the node "id" (1=master, 2=ui, 3..n for workers) or the node "IP".'"\n		Also, try:\n			mip --pusher --federation [FEDERATION] --node [NODE] node status\n			mip --pusher --federation [FEDERATION] --node [NODE] service status\n\n4: Stop all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service stop\n\n5: Stop a Worker service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service stop\n\n6: Create or modify the exareme docker image version (exareme.yaml).\n	From now on, this will also be done by the install function.\n\n7: (Re)Initialize the exareme swarm target machines' information (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n8: Add a new worker to the exareme swarm information files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n9: Remove a worker from the exareme swarm inforation files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher"
+neww -n deploy -c $MIP_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/scripts echo "\nTHIS SCRIPT IS NOW DEPRECATED! PLEASE RUN THE COMMANDS BELOW IN A PUSHER TERMINAL (TMUX WINDOW 0)\n\nChoose one of the below:\n1: Deploy the exareme swarm and start services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service deploy\n		Also, try:\n			mip --pusher --federation [FEDERATION] node list\n			mip --pusher --federation [FEDERATION] node status\n			mip --pusher --federation [FEDERATION] service status\n\n2: (Re)Start all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service start\n\n3: (Re)Start one service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service start\n"'		NODE can be the node "short name" (ms|ui|wk1|wk2...), the node "name" (real hostname), the node "id" (1=master, 2=ui, 3..n for workers) or the node "IP".'"\n		Also, try:\n			mip --pusher --federation [FEDERATION] --node [NODE] node status\n			mip --pusher --federation [FEDERATION] --node [NODE] service status\n\n4: Stop all services.\n	mip --pusher --federation [FEDERATION] (--without-exareme|--with-portainer|--with-secure-portainer) service stop\n\n5: Stop a Worker service.\n	mip --pusher --federation [FEDERATION] --node [NODE] service stop\n\n6: Create or modify the exareme docker image version (exareme.yaml).\n	From now on, this will also be done by the install function.\n\n7: (Re)Initialize the exareme swarm target machines' information (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n8: Add a new worker to the exareme swarm information files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher\n\n9: Remove a worker from the exareme swarm inforation files (hosts.ini, vault.yaml).\n	mip --pusher --federation [FEDERATION] (--force) configure pusher"
 set remain-on-exit on
 respawn-window -k
 EOF
@@ -6192,11 +6313,6 @@ _prepare_keycloak(){
 
 	if [[ $keycloakok -eq 1 ]]; then
 		return 0
-	fi
-
-	local first_int_ip=$(hostname -I|awk '{print $1}')
-	if [[ "$first_int_ip" != "" && "$first_int_ip" != "$DEFAULT_MIP_ENV_KEYCLOAK_URL" ]]; then
-		DEFAULT_MIP_ENV_KEYCLOAK_URL=$first_int_ip
 	fi
 
 	local envvar_changes=0
@@ -7693,7 +7809,7 @@ _get_mip(){
 						elif [[ "$arg_part" = "exareme" ]]; then
 							owner="$EXAREME_GITHUB_OWNER"
 							repo="$EXAREME_GITHUB_PROJECT"
-							path="Federated-Deployment/Compose-Files"
+							path="$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files"
 							filename="docker-compose-master.yml"
 						fi
 
@@ -7973,7 +8089,7 @@ _get_mip_component_version(){
 		exareme)
 			owner="$EXAREME_GITHUB_OWNER"
 			repo="$EXAREME_GITHUB_PROJECT"
-			path="Federated-Deployment/Compose-Files"
+			path="$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files"
 			filename="docker-compose-master.yml"
 
 			if [[ "$component" = "exareme_master" ]]; then
@@ -8008,7 +8124,7 @@ _get_mip_component_version(){
 				fi
 				;;
 			exareme)
-				path="Federated-Deployment/Docker-Ansible/group_vars"
+				path="$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars"
 				filename="exareme.yaml"
 
 				if [[ -f $MIP_PATH/$path/$filename ]]; then
@@ -8313,7 +8429,7 @@ _version_show(){
 	__debug --level 4 "_version_show($*)"
 
 	if [[ $ARG_PUSHER -eq 1 ]]; then
-		local exareme_version=$(cat $MIP_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml 2>/dev/null)
+		local exareme_version=$(cat $MIP_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars/exareme.yaml 2>/dev/null)
 		if [[ "$exareme_version" != "" ]]; then
 			local exareme_image=$(echo "$exareme_version" | grep "^EXAREME_IMAGE" | awk '{print $2}' | cut -c2- | rev | cut -c2- | rev)
 			local exareme_tag=$(echo "$exareme_version" | grep "^EXAREME_TAG" | awk '{print $2}' | cut -c2- | rev | cut -c2- | rev)
@@ -8864,7 +8980,7 @@ _backup(){
 		if [[ $ARG_PUSHER -eq 1 ]]; then
 			part="exareme"
 			backupfilename+="_pusher"
-			paths="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/Federated-Deployment/Compose-Files $EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml $EXAREME_PATH/Federated-Deployment/Docker-Ansible/hosts.ini $EXAREME_PATH/Federated-Deployment/Docker-Ansible/vault.yaml"
+			paths="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars/exareme.yaml $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/hosts.ini $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/vault.yaml"
 		elif [[ "$MIP_ENV_MIP_TYPE" = "local" ]]; then
 			backupfilename+="_local"
 			paths="$MIP_PATH/.mipenv $MIP_PATH/.versions_env $MIP_PATH/config/pathologies.json $MIP_PATH/config/keycloak/keycloak.json $MIP_PATH/data $MIP_PATH/.stored_data $MIP_PATH/logs"
@@ -9038,9 +9154,9 @@ _restore(){
 		if [[ $ARG_PUSHER -eq 1 ]]; then
 			if [[ "$node_type" = "pusher" ]]; then
 				if [[ "$partial_restore_path" = "" ]]; then
-					partial_restore_path="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/Federated-Deployment/Compose-Files $EXAREME_PATH/Federated-Deployment/Docker-Ansible/hosts.ini $EXAREME_PATH/Federated-Deployment/Docker-Ansible/vault.yaml"
+					partial_restore_path="$EXAREME_PATH/.mipenv $EXAREME_PATH/.ssh $EXAREME_PATH/.tmux.conf $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Compose-Files $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/hosts.ini $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/vault.yaml"
 					if [[ $noversion -ne 1 ]]; then
-						partial_restore_path+=" $EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars/exareme.yaml"
+						partial_restore_path+=" $EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars/exareme.yaml"
 					fi
 				fi
 			else
@@ -9297,6 +9413,146 @@ EOF
 	return $result
 }
 
+_export_data_structure(){
+	__debug --level 4 "_export_data_structure($*)"
+	__debug --level 0 --color "yellow" "Generating JSON data structure..."
+
+	if [[ $ARG_PUSHER -ne 1 && "$MIP_ENV_MIP_TYPE" != "local" ]]; then
+		return 1
+	fi
+
+	local DATA_PATH=$MIP_PATH/data
+
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		local DATA_PATH=$1
+	fi
+
+	local hosts=()
+	local host
+	local remotehostname
+
+	if [[ -d $DATA_PATH ]]; then
+		if [[ $ARG_PUSHER -eq 1 ]]; then
+			for host in $(awk '/^Host/ {print $2}' $SSH_PATH/.ssh/config); do
+				if [[ "$host" != "ms" && "$host" != "ui" ]]; then
+					hosts+=("$host")
+				fi
+			done
+		else
+			hosts+=("$(hostname)")
+		fi
+	fi
+
+	declare -A pathologies		# keys: <pathology>, content: arrays of <node_name>
+	local json_pathologies
+	local pathology
+	declare -A nodes			# keys: <pathology>_<node>, content: arrays of <dataset_name>
+	local json_nodes
+	local datasets
+	local json_datasets
+	local dataset_file
+	local dataset_lineno
+	local dataset
+	local data_path
+	local ret
+
+	for host in ${hosts[@]}; do
+		__debug --level 5 "node: <$host>"
+		remotehostname=""
+		data_path=$DATA_PATH
+		if [[ $ARG_PUSHER -eq 1 ]]; then
+			data_path+="/$host"
+			if [[ -d $data_path ]]; then
+				remotehostname=$(ls $data_path/*.tar.gz)
+				if [[ "$remotehostname" != "" ]]; then
+					remotehostname=$(basename $remotehostname | rev | cut -c8- | rev)
+				fi
+			fi
+		else
+			remotehostname=$host
+		fi
+
+		if [[ "$remotehostname" != "" && -d $data_path ]]; then
+			__debug --level 5 "pathologies for host <$host/$remotehostname>:"
+			for pathology in $(ls -l $data_path/ | grep '^d' | awk '{print $NF}'); do
+				__debug --level 5 "    pathology <$pathology>:"
+				datasets=()
+				for dataset_file in $(ls $data_path/$pathology/*.csv); do
+					dataset=""
+					dataset_lineno=$(cat $dataset_file | head -1 | tr ',' '\n' | grep -n '^dataset$' | cut -d: -f1)
+					if [[ "$dataset_lineno" != "" ]]; then
+						dataset=$(cat $dataset_file | head -2 | tail -1 | awk -v lineno=$dataset_lineno -F ',' '{print $lineno}')
+						if [[ "$dataset" != "" ]]; then
+							datasets+=("$dataset")
+						fi
+					fi
+				done
+
+				if [[ ${#datasets} -gt 0 ]]; then
+					_contains "${!pathologies[@]}" "$pathology"
+					ret=$?
+					if [[ $ret -ne 0 ]]; then
+						pathologies[$pathology]=""
+					fi
+					_contains "${pathologies[$pathology]}" "$remotehostname"
+					ret=$?
+					if [[ $ret -ne 0 ]]; then
+						if [[ "${pathologies[$pathology]}" != "" ]]; then
+							pathologies[$pathology]+=" "
+						fi
+						pathologies[$pathology]+="$remotehostname"
+					fi
+
+					_contains "${!nodes[@]}" "${pathology}_${remotehostname}"
+					ret=$?
+					if [[ $ret -ne 0 ]]; then
+						nodes["${pathology}_${remotehostname}"]=${datasets[@]}
+					fi
+				fi
+			done
+		fi
+	done
+
+	__debug --level 5 ""
+	json_pathologies=""
+	for pathology in ${!pathologies[@]}; do
+		__debug --level 5 "<$pathology>:"
+		json_nodes=""
+		for node in ${pathologies[$pathology]}; do
+			__debug --level 5 ";    node <${node}>:"
+			datasets=""
+			json_datasets=""
+			if [[ "${nodes[${pathology}_${node}]}" != "" ]]; then
+				__debug --level 5 ";        datasets: <${nodes[${pathology}_${node}]}>"
+				printf -v datasets '%s§' ${nodes[${pathology}_${node}]}
+				json_datasets=$(_array_to_json "name" "$datasets")
+			fi
+
+			if [[ "$json_datasets" != "" ]]; then
+				if [[ "$json_nodes" != "" ]]; then
+					json_nodes+=','
+				fi
+				json_nodes+="$(jq -c --arg key0 "name" --arg val0 "$node" --arg key1 "datasets" --argjson val1 "$json_datasets" '. | . [$key0]=$val0 | .[$key1]=$val1' <<< '{}')"
+			fi
+		done
+		if [[ "$json_nodes" != "" ]]; then
+			json_nodes=$(echo "[$json_nodes]" | jq -c .)
+		fi
+
+		if [[ "$json_nodes" != "" ]]; then
+			if [[ "$json_pathologies" != "" ]]; then
+				json_pathologies+=','
+			fi
+			json_pathologies+="$(jq -c --arg key0 "name" --arg val0 "$pathology" --arg key1 "nodes" --argjson val1 "$json_nodes" '. | . [$key0]=$val0 | .[$key1]=$val1' <<< '{}')"
+		fi
+	done
+	if [[ "$json_pathologies" != "" ]]; then
+		json_pathologies=$(echo "[$json_pathologies]" | jq -c .)
+	fi
+
+	echo "$json_pathologies" | jq .
+}
+
 _data(){
 	__debug --level 4 "_data($*)"
 	local result=0
@@ -9344,20 +9600,22 @@ _data(){
 				return 0
 			fi
 			if [[ $quiet -ne 1 ]]; then
-				__echo "Consolidating data..."
+				__debug --level 0 "Consolidating data..."
 			fi
 
 			if [[ $ARG_PUSHER -eq 1 ]]; then
 				if [[ ! -f $SSH_PATH/.ssh/config ]]; then
-					__red "Can't find any SSH configuration file to connect to the federation nodes!"
+					__debug --level 0 --color "red" "Can't find any SSH configuration file to connect to the federation nodes!"
 					result=1
 				fi
 
 				if [[ -d /tmp/miptmpfeddata ]]; then
 					rm -rf /tmp/miptmpfeddata
 				fi
-				mkdir -p /tmp/miptmpfeddata/data
-				mkdir -p /tmp/miptmpfeddata/config
+				if [[ $ARG_EXPORT_DATA_STRUCTURE -ne 1 ]]; then
+					mkdir -p /tmp/miptmpfeddata/data
+					mkdir -p /tmp/miptmpfeddata/config
+				fi
 
 				local nodetype=""
 				local customhostname=""
@@ -9381,14 +9639,14 @@ _data(){
 					__debug --level 5 "localhostname=<$localhostname>"
 					remotehostname=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "hostname" 2>/dev/null)
 					__debug --level 5 "remotehostname=<$remotehostname>"
-					if [[ "$host" != "ms" && "$host" != "ui" ]]; then __echo; fi
-					__echo -n "Checking if remote <$host/$remotehostname> ($localhostname) hostname matches SSH config file's content..."
+					if [[ "$host" != "ms" && "$host" != "ui" ]]; then __debug; fi
+					__debug --level 0 -n "Checking if remote <$host/$remotehostname> ($localhostname) hostname matches SSH config file's content..."
 					_contains "$host $customhostname" "$remotehostname"
 					local ret=$?
 					if [[ $ret -ne 0 ]]; then
-						__red "SSH (and Ansible) defined host have to be the same than the corresponding 'machine hostname'!"
-						__red "SSH defined host: <$customhostname> ($localhostname), remote machine hostname: <$remotehostname>"
-						__red "Please fix it!"
+						__debug --level 0 --color "red" "SSH (and Ansible) defined host have to be the same than the corresponding 'machine hostname'!"
+						__debug --level 0 --color "red" "SSH defined host: <$customhostname> ($localhostname), remote machine hostname: <$remotehostname>"
+						__debug --level 0 --color "red" "Please fix it!"
 						exit 1
 					fi
 					__debug --level 0 --color "green" "ok"
@@ -9407,7 +9665,7 @@ _data(){
 
 					if [[ "$nodetype" = "wk" ]]; then
 						if [[ $quiet -ne 1 ]]; then
-							__echo "\${cyan}Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list\${reset}"
+							__debug --level 0 "\${cyan}Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list\${reset}"
 						fi
 						datafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "$MIP_COMMAND --node-type wk --federation $ARG_FEDERATION fedtask datasamples 2>/dev/null" 2>/dev/null)
 						if [[ "$datafile" != "" ]]; then
@@ -9421,63 +9679,65 @@ _data(){
 									mkdir -p /tmp/miptmpfeddata/$host
 								fi
 								if [[ $quiet -ne 1 ]]; then
-									__echo -e "\${cyan}Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)\${reset}\n"
+									__debug --level 0 -e "\${cyan}Downloading dataset list from worker <$host/$remotehostname> node ($localhostname)\${reset}\n"
 								fi
 								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host:$datafile /tmp/miptmpfeddata/$host >/dev/null 2>&1
 								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $host "rm $datafile" 2>/dev/null
 								tar xzf /tmp/miptmpfeddata/$host/$remotehostname.tar.gz --directory /tmp/miptmpfeddata/$host
-								for pathology in $(ls -l /tmp/miptmpfeddata/$host|awk '/^d/ {print $NF}'); do
-									pathologyvar="pathology_"$pathology
-									if [[ ! -d /tmp/miptmpfeddata/data/$pathology ]]; then
-										mkdir -p /tmp/miptmpfeddata/data/$pathology
-										masterdatapath=$(_get_remote_var ms DATA_PATH)
-										metadatafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ -f /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME ]]; then echo /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME; else echo ""; fi" 2>/dev/null)
-										if [[ "$metadatafile" != "" ]]; then
-											if [[ $quiet -ne 1 ]]; then
-												__echo "\${magenta}Downloading CDE for pathology <$pathology> from Master <ms/$remotemshostname> node ($localmshostname)\${reset}"
+								if [[ $ARG_EXPORT_DATA_STRUCTURE -ne 1 ]]; then
+									for pathology in $(ls -l /tmp/miptmpfeddata/$host|awk '/^d/ {print $NF}'); do
+										pathologyvar="pathology_"$pathology
+										if [[ ! -d /tmp/miptmpfeddata/data/$pathology ]]; then
+											mkdir -p /tmp/miptmpfeddata/data/$pathology
+											masterdatapath=$(_get_remote_var ms DATA_PATH)
+											if [[ "$masterdatapath" != "" ]]; then
+												metadatafile=$(ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ -f /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME ]]; then echo /$masterdatapath/$ARG_FEDERATION/$pathology/$DEFAULT_METADATA_FILENAME; else echo ""; fi" 2>/dev/null)
+												if [[ "$metadatafile" != "" ]]; then
+													if [[ $quiet -ne 1 ]]; then
+														__debug --level 0 "\${magenta}Downloading CDE for pathology <$pathology> from Master <ms/$remotemshostname> node ($localmshostname)\${reset}"
+													fi
+													__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1"
+													scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1
+												else
+													__debug --level 0 --color "red" "Can't find CDE file for pathology '$pathology' in master <ms/$remotemshostname> node ($localmshostname)!"
+												fi
+											else
+												__debug --level 0 --color "red" "Can't get DATA_PATH variable from master <ms/$remotemshostname> node ($localmshostname)!"
 											fi
-											__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1"
-											scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms:$metadatafile /tmp/miptmpfeddata/data/$pathology/ >/dev/null 2>&1
-										else
-											__red "Can't find CDE file for pathology '$pathology' in master <$remotehostname> ($localhostname) node!"
 										fi
-									fi
-									__debug --level 6 "_contains $pathologies $pathology"
-									_contains "$pathologies" "$pathology"
-									if [[ $? -eq 1 ]]; then
-										__debug --level 6 "Does not contain"
-										if [[ "$pathologies" != "" ]]; then
-											__debug --level 5 "Not empty pathologies=<$pathologies>"
-											pathologies=$pathologies" "
-										fi
-										pathologies=${pathologies}${pathology}
-										__debug --level 5 "pathologies=<$pathologies>"
-									fi
-									if [[ ! -n ${!pathologyvar} ]]; then
-										__debug --level 5 "Empty $pathologyvar=<${!pathologyvar}>"
-										export $pathologyvar="$host"
-									else
-										__debug --level 6 "_contains ${!pathologyvar} $host"
-										_contains "${!pathologyvar}" "$host"
+										__debug --level 6 "_contains $pathologies $pathology"
+										_contains "$pathologies" "$pathology"
 										if [[ $? -eq 1 ]]; then
 											__debug --level 6 "Does not contain"
-											if [[ "${!pathologyvar}" != "" ]]; then
-												__debug --level 5 "Not empty $pathologyvar=<${!pathologyvar}>"
-												export $pathologyvar="${!pathologyvar} "
+											if [[ "$pathologies" != "" ]]; then
+												__debug --level 5 "Not empty pathologies=<$pathologies>"
+												pathologies=$pathologies" "
 											fi
-											export $pathologyvar="${!pathologyvar}${host}"
-											__debug --level 5 "$pathologyvar=<${!pathologyvar}>"
+											pathologies=${pathologies}${pathology}
+											__debug --level 5 "pathologies=<$pathologies>"
 										fi
-									fi
-									__debug --level 5 "$pathologyvar=<${!pathologyvar}>"
-									for datasetfile in $(ls /tmp/miptmpfeddata/$host/$pathology/*.csv); do
-										cp $datasetfile /tmp/miptmpfeddata/data/$pathology/
+										if [[ ! -n ${!pathologyvar} ]]; then
+											__debug --level 5 "Empty $pathologyvar=<${!pathologyvar}>"
+											export $pathologyvar="$host"
+										else
+											__debug --level 6 "_contains ${!pathologyvar} $host"
+											_contains "${!pathologyvar}" "$host"
+											if [[ $? -eq 1 ]]; then
+												__debug --level 6 "Does not contain"
+												if [[ "${!pathologyvar}" != "" ]]; then
+													__debug --level 5 "Not empty $pathologyvar=<${!pathologyvar}>"
+													export $pathologyvar="${!pathologyvar} "
+												fi
+												export $pathologyvar="${!pathologyvar}${host}"
+												__debug --level 5 "$pathologyvar=<${!pathologyvar}>"
+											fi
+										fi
+										__debug --level 5 "$pathologyvar=<${!pathologyvar}>"
+										for datasetfile in $(ls /tmp/miptmpfeddata/$host/$pathology/*.csv); do
+											cp $datasetfile /tmp/miptmpfeddata/data/$pathology/
+										done
 									done
-								done
-								__debug --level 5 "pathologies=<$pathologies>"
-								__debug --level 5 "pathology_dementia=<$pathology_dementia>"
-								__debug --level 5 "pathology_mentalhealth=<$pathology_mentalhealth>"
-								__debug --level 5 "pathology_tbi=<$pathology_tbi>"
+								fi
 							else
 								__debug --level 2 "Error on worker <$host/$remotehostname> ($localhostname): datasets not ready!"
 							fi
@@ -9485,97 +9745,105 @@ _data(){
 					fi
 				done
 
-				__debug --level 2 "Aligning CDEs and generating pathologies.json"
-				local pathologies_generator_args="--data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --pathologies-preserve-dataset-var"
-				if [[ $ARG_ONLINE_CDES -eq 1 ]]; then
-					if [[ $quiet -ne 1 ]]; then
-						__echo -e "\n\${yellow}Have been asked to download CDEs from datacatalogue. I'll try to take latest versions there and overwrite local CDEs\${reset}"
+				if [[ $ARG_EXPORT_DATA_STRUCTURE -ne 1 ]]; then
+					__debug --level 2 "Aligning CDEs and generating pathologies.json"
+					local pathologies_generator_args="--data-path /tmp/miptmpfeddata/data --pathologies-path /tmp/miptmpfeddata/config --pathologies-preserve-dataset-var"
+					if [[ $ARG_ONLINE_CDES -eq 1 ]]; then
+						if [[ $quiet -ne 1 ]]; then
+							__debug --level 0 -e "\n\${yellow}Have been asked to download CDEs from datacatalogue. I'll try to take latest versions there and overwrite local CDEs\${reset}"
+						fi
+						pathologies_generator_args="$pathologies_generator_args --metadata-online-sync"
+						local datacatalogue_host=$(echo $MIP_ENV_DATACATALOGUE_HOST|awk -F ':' '{print $1}')
+						if [[ $quiet -ne 1 ]]; then
+							__debug --level 0 "\${yellow}Setting datacatalogue API URL: <$DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT>\${reset}"
+						fi
+						pathologies_generator_args="$pathologies_generator_args --metadata-datacatalogue-api-url $DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT"
 					fi
-					pathologies_generator_args="$pathologies_generator_args --metadata-online-sync"
-					local datacatalogue_host=$(echo $MIP_ENV_DATACATALOGUE_HOST|awk -F ':' '{print $1}')
-					if [[ $quiet -ne 1 ]]; then
-						__echo "\${yellow}Setting datacatalogue API URL: <$DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT>\${reset}"
+
+					if [[ $ARG_REVIEW_DATASET_LABELS -eq 1 ]]; then
+						pathologies_generator_args="$pathologies_generator_args --force-relabel"
 					fi
-					pathologies_generator_args="$pathologies_generator_args --metadata-datacatalogue-api-url $DATACATALOGUE_API_PROTOCOL://$datacatalogue_host:$DATACATALOGUE_API_PORT"
-				fi
 
-				if [[ $ARG_REVIEW_DATASET_LABELS -eq 1 ]]; then
-					pathologies_generator_args="$pathologies_generator_args --force-relabel"
-				fi
-
-				if [[ $quiet -ne 1 ]]; then
-					__echo -en "\n\${yellow}Gathering datasets list, aligning CDEs enumerations and preparing generation of pathologies file...\${reset} "
-				fi
-				__debug --level 6 "pathologies_generator.py $pathologies_generator_args"
-				pathologies_generator.py $pathologies_generator_args
-				if [[ $quiet -ne 1 ]]; then
-					__green "done"
-				fi
-				__debug --level 5 "Parsing pathologies..."
-				for pathology in $pathologies; do
-					__debug --level 5 "pathology=<$pathology>"
-					pathologyvar="pathology_"$pathology
-					if [[ "${!pathologyvar}" != "" ]]; then
-						__debug --level 5 "Parsing hosts in $pathology..."
-						metadatafile=/tmp/miptmpfeddata/data/$pathology/$DEFAULT_METADATA_FILENAME
-						if [[ -f $metadatafile ]]; then
-							if [[ "${!pathologyvar}" != "" ]]; then
-								customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bms\b"|awk '{print $NF}')
-								masterdatapath=$(_get_remote_var ms DATA_PATH)
-								if [[ $quiet -ne 1 ]]; then
-									__echo -e "\n\${magenta}Deploying aligned CDE in Master <ms/$customhostname> node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/\${reset}"
-								fi
-								__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms 'if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi' 2>/dev/null"
-								ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi" 2>/dev/null
-								__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1"
-								scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1
-
-								for host in ${!pathologyvar}; do
-									__debug --level 5 "host=<$host>"
-									customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \b$host\b"|awk '{print $NF}')
-									hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
-									__debug --level 5 "hostdatapath=<${!hostdatapath}>"
-									localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host \b$host\b"|awk '/Hostname / {print $2}')
+					if [[ $quiet -ne 1 ]]; then
+						__debug --level 0 -en "\n\${yellow}Gathering datasets list, aligning CDEs enumerations and preparing generation of pathologies file...\${reset} "
+					fi
+					__debug --level 6 "pathologies_generator.py $pathologies_generator_args"
+					pathologies_generator.py $pathologies_generator_args
+					if [[ $quiet -ne 1 ]]; then
+						__debug --level 0 --color "green" "done"
+					fi
+					__debug --level 5 "Parsing pathologies..."
+					for pathology in $pathologies; do
+						__debug --level 5 "pathology=<$pathology>"
+						pathologyvar="pathology_"$pathology
+						if [[ "${!pathologyvar}" != "" ]]; then
+							__debug --level 5 "Parsing hosts in $pathology..."
+							metadatafile=/tmp/miptmpfeddata/data/$pathology/$DEFAULT_METADATA_FILENAME
+							if [[ -f $metadatafile ]]; then
+								if [[ "${!pathologyvar}" != "" ]]; then
+									customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bms\b"|awk '{print $NF}')
+									masterdatapath=$(_get_remote_var ms DATA_PATH)
 									if [[ $quiet -ne 1 ]]; then
-										__echo "\${cyan}Deploying aligned CDE in worker node <$host/$customhostname> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/\${reset}"
+										__debug --level 0 -e "\n\${magenta}Deploying aligned CDE in Master <ms/$customhostname> node ($localmshostname) for pathology <$pathology>, in $masterdatapath/$ARG_FEDERATION/$pathology/\${reset}"
 									fi
-									__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1"
-									scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1
-								done
+									__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms 'if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi' 2>/dev/null"
+									ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ms "if [[ ! -d $masterdatapath/$ARG_FEDERATION/$pathology ]]; then mkdir -p $masterdatapath/$ARG_FEDERATION/$pathology; fi" 2>/dev/null
+									__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1"
+									scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile ms:$masterdatapath/$ARG_FEDERATION/$pathology/ >/dev/null 2>&1
+
+									for host in ${!pathologyvar}; do
+										__debug --level 5 "host=<$host>"
+										customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \b$host\b"|awk '{print $NF}')
+										hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
+										__debug --level 5 "hostdatapath=<${!hostdatapath}>"
+										localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host \b$host\b"|awk '/Hostname / {print $2}')
+										if [[ $quiet -ne 1 ]]; then
+											__debug --level 0 "\${cyan}Deploying aligned CDE in worker node <$host/$customhostname> ($localhostname) for pathology <$pathology>, in ${!hostdatapath}/$pathology/\${reset}"
+										fi
+										__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1"
+										scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS $metadatafile $host:${!hostdatapath}/$pathology/ >/dev/null 2>&1
+									done
+								fi
 							fi
 						fi
-					fi
-				done
-				for host in ${!pathologyvar}; do
-					hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
-					unset $hostdatapath
-				done
-				unset $pathologyvar
+					done
+					for host in ${!pathologyvar}; do
+						hostdatapath="host_datapath_"$(echo $host|sed 's/-/_/g')
+						unset $hostdatapath
+					done
+					unset $pathologyvar
 
-				local uimippath=$(_get_remote_var ui MIP_PATH)
-				local remoteuidir=$uimippath/Federation
-				if [[ -f /tmp/miptmpfeddata/config/pathologies.json ]]; then
-					customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bui\b"|awk '{print $NF}')
-					if [[ $quiet -ne 1 ]]; then
-						__echo -e "\n\${magenta}Deploying pathologies file in Frontend <ui/$customhostname> node ($localuihostname), in $remoteuidir/config/\${reset}"
+					local uimippath=$(_get_remote_var ui MIP_PATH)
+					local remoteuidir=$uimippath/Federation
+					if [[ -f /tmp/miptmpfeddata/config/pathologies.json ]]; then
+						customhostname=$(cat $SSH_PATH/.ssh/config|grep "^Host \bui\b"|awk '{print $NF}')
+						if [[ $quiet -ne 1 ]]; then
+							__debug --level 0 -e "\n\${magenta}Deploying pathologies file in Frontend <ui/$customhostname> node ($localuihostname), in $remoteuidir/config/\${reset}"
+						fi
+						__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi' 2>/dev/null"
+						ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi" 2>/dev/null
+						__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json ui:$remoteuidir/config/ >/dev/null 2>&1"
+						scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json ui:$remoteuidir/config/ >/dev/null 2>&1
+					else
+						__debug --level 0 --color "red" "Can't find pathologies file </tmp/miptmpfeddata/config/pathologies.json>!"
 					fi
-					__debug --level 6 "ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui 'if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi' 2>/dev/null"
-					ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS ui "if [[ ! -d $remoteuidir/config ]]; then mkdir -p $remoteuidir/config; fi" 2>/dev/null
-					__debug --level 6 "scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json ui:$remoteuidir/config/ >/dev/null 2>&1"
-					scp -F $SSH_PATH/.ssh/config $SSH_OPTIONS /tmp/miptmpfeddata/config/pathologies.json ui:$remoteuidir/config/ >/dev/null 2>&1
 				else
-					__red "Can't find pathologies file </tmp/miptmpfeddata/config/pathologies.json>!"
+					_export_data_structure /tmp/miptmpfeddata
 				fi
 
 				if [[ -d /tmp/miptmpfeddata ]]; then
 					rm -rf /tmp/miptmpfeddata
 				fi
 				if [[ $quiet -ne 1 ]]; then
-					__green "done"
+					__debug --level 0 --color "green" "done"
 				fi
 			else
-				_configure_pathologies -f
-				_prepare_data -f
+				if [[ $ARG_EXPORT_DATA_STRUCTURE -ne 1 ]]; then
+					_configure_pathologies -f
+					_prepare_data -f
+				else
+					_export_data_structure
+				fi
 			fi
 			;;
 		compile)
@@ -10495,43 +10763,48 @@ _install_mip(){
 								ret=1
 							fi
 
-							if [[ $ret -eq 0 ]]; then
-								local path="config"
-								local filename="pathologies_generator.py"
-								local targetpath="/usr/local/bin/$filename"
-								local httpcode
-								if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 && (( "$ARG_MIP_VERSION" != "" || "$ARG_MIP_BRANCH" != "" || "$ARG_MIP_COMMIT" != "" )) ]]; then
-									install_commit=""
-									install_branch=""
-									ret_wanted_mip_version=""
-
-									if [[ "$ARG_MIP_COMMIT" != "" ]]; then
-										install_commit="$ARG_MIP_COMMIT"
-									fi
-									if [[ "$ARG_MIP_BRANCH" != "" ]]; then
-										install_branch="$ARG_MIP_BRANCH"
-										install_commit=""
-									fi
-									if [[ "$ARG_MIP_VERSION" != "" ]]; then
-										ret_wanted_mip_version="$ARG_MIP_VERSION"
-										install_branch=""
-										install_commit=""
-									fi
-								fi
-								__debug --level 6 _get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
-								_get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
-								ret=$?
+							local filename
+							for filename in "pathologies_generator.py" "keycloak_roles_sync.py"; do
 								if [[ $ret -eq 0 ]]; then
-									__debug --level 5 "chmod +x $targetpath"
-									chmod +x $targetpath
-								else
-									__red "Something went wrong during the attempt to download $filename (HTTP code <$httpcode>). Therefore, it can't be installed!"
+									local path="config"
+									if [[ "$filename" = "keycloak_roles_sync.py" ]]; then
+										path+="/keycloak"
+									fi
+									local targetpath="/usr/local/bin/$filename"
+									local httpcode
+									if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 && (( "$ARG_MIP_VERSION" != "" || "$ARG_MIP_BRANCH" != "" || "$ARG_MIP_COMMIT" != "" )) ]]; then
+										install_commit=""
+										install_branch=""
+										ret_wanted_mip_version=""
+
+										if [[ "$ARG_MIP_COMMIT" != "" ]]; then
+											install_commit="$ARG_MIP_COMMIT"
+										fi
+										if [[ "$ARG_MIP_BRANCH" != "" ]]; then
+											install_branch="$ARG_MIP_BRANCH"
+											install_commit=""
+										fi
+										if [[ "$ARG_MIP_VERSION" != "" ]]; then
+											ret_wanted_mip_version="$ARG_MIP_VERSION"
+											install_branch=""
+											install_commit=""
+										fi
+									fi
+									__debug --level 6 _get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
+									_get_github_file --httpcodevar 'httpcode' --onthefly-tagging --owner "$DEFAULT_MIP_GITHUB_OWNER" --repo "$DEFAULT_MIP_GITHUB_PROJECT" --mode "file" --tag "$ret_wanted_mip_version" --branch "$install_branch" --commit "$install_commit" --path "$path" --filename "$filename" --targetpath "$targetpath"
+									ret=$?
+									if [[ $ret -eq 0 ]]; then
+										__debug --level 5 "chmod +x $targetpath"
+										chmod +x $targetpath
+									else
+										__red "Something went wrong during the attempt to download $filename (HTTP code <$httpcode>). Therefore, it can't be installed!"
+									fi
 								fi
-							fi
+							done
 
 							if [[ $ret -eq 0 ]]; then
 								if [[ "$ARG_COMPONENT" = "" || "$ARG_COMPONENT" = "exareme-master" ]]; then
-									path="$EXAREME_PATH/Federated-Deployment/Docker-Ansible/group_vars"
+									path="$EXAREME_PATH/$EXAREME_FEDERATED_DEPLOYMENT_PATH/Docker-Ansible/group_vars"
 									filename="exareme.yaml"
 									if [[ -d $path && "$install_component_image_owner" != "" && "$install_component_image" != "" && "$install_component_version" != "" ]]; then
 										cat << EOF > $path/$filename
@@ -11356,10 +11629,13 @@ delete_mip(){
 		fi
 
 		if [[ $ARG_PUSHER -eq 1 ]]; then
-			if [[ -e /usr/local/bin/pathologies_generator.py ]]; then
-				__debug --level 6 "rm /usr/local/bin/pathologies_generator.py"
-				rm /usr/local/bin/pathologies_generator.py
-			fi
+			local filename
+			for filename in "pathologies_generator.py" "keycloak_roles_sync.py"; do
+				if [[ -e /usr/local/bin/$filename ]]; then
+					__debug --level 6 "rm /usr/local/bin/$filename"
+					rm /usr/local/bin/$filename
+				fi
+			done
 			local tmuxsessions=$(su - $DOCKER_USER -c 'tmux ls 2>/dev/null'|awk '{print $1}'|rev|cut -c2-|rev)
 			for tmuxsession in $tmuxsessions; do
 				if [[ "$tmuxsession" = "$ARG_FEDERATION" ]]; then
