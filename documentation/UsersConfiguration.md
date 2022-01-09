@@ -1,3 +1,5 @@
+![MIP Deployment](../README.md) -> `Users Configuration`
+
 ## Users Configuration
 
 By default MIP has 2 users, one is an administrator and one is a mip user.
@@ -12,8 +14,8 @@ password: Pa55w0rd
 
 ### Create a New User
 
-Follow this <a href="./CreateLocalUser.md">guide</a>.
+Follow this ![guide](CreateLocalUser.md).
 
 ### User Authorizations
 
-Follow this <a href="./UserAuthorizations.md">guide</a>.
+Follow this ![guide](UserAuthorizations.md).
