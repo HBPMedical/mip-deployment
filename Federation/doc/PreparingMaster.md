@@ -1,23 +1,23 @@
-![Federated MIP Deployment](../README.md) -> `Preparing the master node`
+<a href="Readme.md">Federated MIP Deployment</a> -> `Preparing the master node`
 
 # Preparing the **master** node
 1. Install the **master**
 
    As a "sudoer" user:
-   * Set the hostname, with a meaningful name, i.e.
-     ```
-     sudo hostnamectl set-hostname <FEDERATION_NAME>-ms
-     ```
-   * Configure the networking, including the DNS client
-   * Install the MIP
-     ```
-     git clone https://github.com/HBPMedical/mip-deployment
-     ```
-     ```
-     sudo mip-deployment/mip --node-type ms --yes install
-     ```
-     Here, the *--node-type* parameter is very important, because it tells the script that this node will be a **master** (ms).  
-     Following the same process than for the workers, you can also put the specific parameters (*--version*, *--branch* or *--commit*, used with the flag *--force-install-unstable*) if you want to install a specific version.
+   1. Set the hostname, with a meaningful name, i.e.
+      ```
+      sudo hostnamectl set-hostname <FEDERATION_NAME>-ms
+      ```
+   1. Configure the networking, including the DNS client
+   1. Install the MIP
+      ```
+      git clone https://github.com/HBPMedical/mip-deployment
+      ```
+      ```
+      sudo mip-deployment/mip --node-type ms --yes install
+      ```
+      Here, the *--node-type* parameter is very important, because it tells the script that this node will be a **master** (ms).  
+      Following the same process than for the workers, you can also put the specific parameters (*--version*, *--branch* or *--commit*, used with the flag *--force-install-unstable*) if you want to install a specific version.
 
 1. Configure the **master**
 

@@ -1,25 +1,25 @@
-![Federated MIP Deployment](../README.md) -> `Preparing the worker nodes`
+<a href="Readme.md">Federated MIP Deployment</a> -> `Preparing the worker nodes`
 
 # Preparing the **worker** nodes
 1. Install the **workers**
 
    On each worker node, as a "sudoer" user:
+   1. Set the hostname, with a meaningful name, i.e.
+      ```
+      sudo hostnamectl set-hostname <FEDERATION_NAME>-wk<WORKER_NUMBER>
+      ```
+   1. Configure the networking, including the DNS client
+   1. Install the MIP
+      ```
+      git clone https://github.com/HBPMedical/mip-deployment
+      ```
+      ```
+      sudo mip-deployment/mip --node-type wk --yes install
+      ```
+      Here, the *--node-type* parameter is very important, because it tells the script that this node will be a **worker** (wk).  
+      If you want to install a specific version of the MIP, you can precise the tag (*--version \<TAG>*), the branch (*--branch \<BRANCH>*) or even the commit ID (*--commit \<COMMIT>*), each of these parameters having precedence over the next one(s). If you specify a non-default version, you also have to force this installation with the flag *--force-install-unstable*.
 
-   * Set the hostname, with a meaningful name, i.e.
-     ```
-     sudo hostnamectl set-hostname <FEDERATION_NAME>-wk<WORKER_NUMBER>
-     ```
-   * Configure the networking, including the DNS client
-   * Install the MIP
-     ```
-     git clone https://github.com/HBPMedical/mip-deployment
-     ```
-     ```
-     sudo mip-deployment/mip --node-type wk --yes install
-     ```
-     Here, the *--node-type* parameter is very important, because it tells the script that this node will be a **worker** (wk).  
-     If you want to install a specific version of the MIP, you can precise the tag (*--version \<TAG>*), the branch (*--branch \<BRANCH>*) or even the commit ID (*--commit \<COMMIT>*), each of these parameters having precedence over the next one(s). If you specify a non-default version, you also have to force this installation with the flag *--force-install-unstable*.  
-     Don't hesitate to use *mip --help*.
+      Don't hesitate to use *mip --help*.
 
 1. Configure the **workers**
 

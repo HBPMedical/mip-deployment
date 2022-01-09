@@ -1,8 +1,8 @@
-![MIP Deployment](../README.md) -> `Local MIP Deployment`
+<a href="../README.md">MIP Deployment</a> -> `Local MIP Deployment`
 
 # Local MIP Deployment
 ## Structure
-![MIP Local Deployment](MIP_Local_Deployment.png)
+![MIP Local Deployment Scheme](MIP_Local_Deployment.png)
 
 In this repository, we have both local and federated (in *Federation* subfolder) MIP structures.  
 
@@ -76,7 +76,7 @@ http://192.168.0.100:8888
    Note that if you don't provide anything for KeyCloak, it will use the default configuration to connect to the "embedded" local KeyCloak, with the *MIP* client.
 
    In order to better understand the different configuration parameters, check the following picture:
-   ![MIP Local Configuration](MIP_Local_Configuration.png)
+   ![MIP Local Configuration Scheme](MIP_Local_Configuration.png)
 
    You can see that there are two different setups:
 

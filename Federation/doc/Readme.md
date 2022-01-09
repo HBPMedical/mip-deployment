@@ -1,8 +1,8 @@
-![Home](../README.md) -> `Federated MIP Deployment`
+<a href="../README.md">MIP Deployment</a> -> `Federated MIP Deployment`
 
 # Federated MIP Deployment
 ## Structure
-![MIP Federated Deployment](MIP_Federated_Deployment_II.png)
+![MIP Federated Deployment Scheme](MIP_Federated_Deployment_II.png)
 
 The federated MIP is meant to run on different VM/Physical servers (nodes):
 
@@ -63,24 +63,25 @@ In the **ui** node, the installer will **re**-clone the *mip-deployment* reposit
 If you want to keep the installer folder, you'll have to explicitely use the flag *--keep-installer*.
 
 ### Preparing the **worker** nodes
-Follow this ![guide](PreparingWorkers.md).
+Follow this <a href="PreparingWorkers.md">guide</a>.
 
 ### Preparing the **master** node
-Follow this ![guide](PreparingMaster.md).
+Follow this <a href="PreparingMaster.md">guide</a>.
 
 ### Preparing the **ui** node
-Follow this ![guide](PreparingUI.md).
+Follow this <a href="PreparingUI.md">guide</a>.
 
 ### Preparing the **pusher** node
-Follow this ![guide](PreparingPusher.md).
+Follow this <a href="PreparingPusher.md">guide</a>.
 
 ## Operating the MIP Federation
 The first time, after the setup, just remember to follow these steps in the right order:
 
-1. Generate the *tmux* session and connect to it
-1. Consolidate the data
-1. Compile the data
-1. Deploy the backend services (Docker Swarm)
-1. Synchronize the KeyCloak roles
+1. <a href="OperatingMIPFederation.md#GeneratingTmuxSession">Generate the *tmux* session</a> and connect to it
+1. <a href="OperatingMIPFederation.md#ConsolidatingData">Consolidate the data</a>
+1. <a href="OperatingMIPFederation.md#CompilingData">Compile the data</a>
+1. <a href="OperatingMIPFederation.md#DeployingServices">Deploy the backend services</a> (Docker Swarm)
+1. <a href="OperatingMIPFederation.md#SynchronizingKeycloakRoles">Synchronize the KeyCloak roles</a>
+1. <a href="OperatingMIPFederation.md#RunningWebInterface">Run the MIP Web Interface</a>
 
-You will find detailed explanations in this ![guide](OperatingMIPFederation.md).
+You will find detailed explanations in this <a href="OperatingMIPFederation.md">guide</a>.

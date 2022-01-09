@@ -1,5 +1,4 @@
-![MIP Deployment](../../README.md) -> `Federated MIP Deployment`
+<a href="../../README.md">MIP Deployment</a> -> `Federated MIP Deployment`
 
 # Federated MIP Deployment
-
-![here](Federation/doc/Readme.md), you can find details about deploying and operating the *federated* MIP.
+<a href="doc/Readme.md">Here</a>, you can find details about deploying and operating the *federated* MIP.

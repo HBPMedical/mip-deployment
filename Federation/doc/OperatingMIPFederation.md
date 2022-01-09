@@ -1,7 +1,7 @@
-![Federated MIP Deployment](../README.md) -> `Operating the MIP Federation`
+<a href="Readme.md">Federated MIP Deployment</a> -> `Operating the MIP Federation`
 
 # Operating the MIP Federation
-## Using the *tmux* session
+## <a id="GeneratingTmuxSession">Using the *tmux* session</a>
 *tmux* is a virtual console, which will continue to live on the **pusher**, even if you disconnect your current session. Anytime you may need to operate the federation, you will have to open an SSH session on the **pusher**, and **re**-attach to the *tmux* session. Then, when you're done and you want to disconnect, first detach the *tmux* session, then close your SSH connection.  
 
 ### Short *tmux* usage notice
@@ -60,7 +60,7 @@ We won't detail the *tmux* usage here, but as a short notice:
   ```
   q or ESC
   ```
-If you want to know more about *tmux*, go on the ![tmux Cheat Sheet](https://tmuxcheatsheet.com).
+If you want to know more about *tmux*, go on the <a href="https://tmuxcheatsheet.com" target="_blank">tmux Cheat Sheet</a>.
 
 ### Creating the *tmux* session
 Now that you know a bit more about *tmux*, we will generate the MIP special *tmux* session (or connect to it, if it already exists).  
@@ -83,7 +83,7 @@ Now that you're inside the session, you will notice that several windows are pre
 |4|<FEDERATION_NAME>-ui|Console on the **ui** node|
 |5-n|<FEDERATION_NAME>-wk-<HOSPITAL_SHORT_NAME>|Console on the **worker** nodes|
 
-## Consolidating data
+## <a id="ConsolidatingData">Consolidating data</a>
 In the *tmux* session (opened as **mipadmin** user), in the **pusher** window (#0):
 ```
 mip --pusher --federation <FEDERATION_NAME> data consolidate
@@ -110,7 +110,7 @@ If you want to use an non-default data catalogue, you can use the following para
 
 Don't hesitate to use *mip --help*.
 
-## Compiling data
+## <a id="CompilingData">Compiling data</a>
 In the *tmux* session (opened as **mipadmin** user), in the **pusher** window (#0)
 ```
 mip --pusher --federation <FEDERATION_NAME> data compile
@@ -121,7 +121,7 @@ If you want to limitate the compilation to a certain node, you can use the *--no
 
 As usual, *mip --help* can give you more details.
 
-## Deploying services
+## <a id="DeployingServices">Deploying services</a>
 In the *tmux* session (opened as **mipadmin** user), in the **pusher** window (#0)
 ```
 mip --pusher --federation <FEDERATION_NAME> service deploy
@@ -154,6 +154,14 @@ For all these commands (including the *deploy* one), you can use the *--node <NO
 
 As usual, *mip --help* can give you more details.
 
-## Synchronizing the KeyCloak roles
+## <a id="SynchronizingKeycloakRoles">Synchronizing the KeyCloak roles</a>
+Follow this <a href="SynchronizingKeycloakRoles.md">guide</a>.
 
-Follow this ![guide](SynchronizingKeycloakRoles.md)
+## <a id="RunningWebInterface">Run the MIP Web Interface</a>
+In the *tmux* session (opened as **mipadmin** user), in the **ui** window (#4)
+```
+mip start
+```
+
+After launching, you should be able to browse the MIP on the URL which will be displayed.  
+Note that once the command ends, it may still take up to one minute until the MIP's Web interface is really operational.

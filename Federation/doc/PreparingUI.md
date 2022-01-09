@@ -1,25 +1,25 @@
-![Federated MIP Deployment](../README.md) -> `Preparing the ui node`
+<a href="Readme.md">Federated MIP Deployment</a> -> `Preparing the ui node`
 
 # Preparing the **ui** node
 1. Install the **ui**
 
    As a "sudoer" user:
-   * Set the hostname, with a meaningful name, i.e.
-     ```
-     sudo hostnamectl set-hostname <FEDERATION_NAME>-ui
-     ```
-   * Configure the networking, including the DNS client
-   * Install the MIP
-     ```
-     git clone https://github.com/HBPMedical/mip-deployment
-     ```
-     ```
-     sudo mip-deployment/mip --node-type ui --yes --no-run install
-     ```
-     Here, the *--node-type* parameter is very important, because it tells the script that this node will be a **ui**.  
-     Following the same process than for the workers and the master, you can also put the specific parameters (*--version*, *--branch* or *--commit*, used with the flag *--force-install-unstable*) if you want to install a specific version.  
-     As a reminder, the MIP will be installed by default in */opt/mip-deployment*.  
-     Still by default, the *mip-deployment* folder you just created when cloning the repository will be deleted after the installation. If you want to keep it, just use the *--keep-installer* flag.
+   1. Set the hostname, with a meaningful name, i.e.
+      ```
+      sudo hostnamectl set-hostname <FEDERATION_NAME>-ui
+      ```
+   1. Configure the networking, including the DNS client
+   1. Install the MIP
+      ```
+      git clone https://github.com/HBPMedical/mip-deployment
+      ```
+      ```
+      sudo mip-deployment/mip --node-type ui --yes --no-run install
+      ```
+      Here, the *--node-type* parameter is very important, because it tells the script that this node will be a **ui**.  
+      Following the same process than for the workers and the master, you can also put the specific parameters (*--version*, *--branch* or *--commit*, used with the flag *--force-install-unstable*) if you want to install a specific version.  
+      As a reminder, the MIP will be installed by default in */opt/mip-deployment*.  
+      Still by default, the *mip-deployment* folder you just created when cloning the repository will be deleted after the installation. If you want to keep it, just use the *--keep-installer* flag.
 
 1. Configure the **ui**
 
@@ -55,10 +55,9 @@
    For the data catalogue, the default *EBRAINS* DC hostname will be used as well, if no replacement value is provided.
 
    In order to better understand the different configuration parameters, check the following picture:
-   ![MIP Federated Configuration](MIP_Federated_Configuration.png)
+   ![MIP Federated Configuration Scheme](MIP_Federated_Configuration.png)
 
    You can see that there are two different setups:
-
    * **direct**
 
      The **ui** node's Web interface is directly reachable from the browser.
@@ -79,21 +78,3 @@
      ```
 
      Again, don't hesitate to use *mip --help*.
-
-1. Become **mipadmin**
-
-   After the first time that you run *mip configure*, the **mipadmin** user will be created. Then, anytime you need to operate the **ui** node, you should use this user.  
-   If you don't know the *mipadmin* password, you can use the "sudoer" user to become *mipadmin*
-   ```
-   sudo su - mipadmin
-   ```
-
-1. Run the **ui** Web interface
-
-   Still as **mipadmin** user, you can then launch the MIP's **ui** containers with:
-   ```
-   mip start
-   ```
-
-   After launching, you should be able to browse the MIP on the URL which will be displayed. Note that once the command ends, it may still take up to one minute until the MIP's Web interface is really operational.  
-   That said, the federation is still way not ready at this point. We still have to prepare the pusher and then, from there, deploy the backend, for the MIP's Web interface to be able to run experiments on data and display any result.

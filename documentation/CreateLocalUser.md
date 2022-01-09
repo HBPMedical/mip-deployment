@@ -1,4 +1,4 @@
-![Users Configuration](UsersConfiguration.md) -> `Create a New User`
+<a href="UsersConfiguration.md">Users Configuration</a> -> `Create a New User`
 
 ### Create a User
 
