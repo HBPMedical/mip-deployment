@@ -163,10 +163,10 @@ As usual, to get more details, use:
 mip --help
 ```
 
-## <a id="SynchronizingKeycloakRoles">Synchronizing the KeyCloak roles</a>
-Follow this <a href="SynchronizingKeycloakRoles.md">guide</a>.
+## Synchronizing the KeyCloak roles
+Follow this <a id="SynchronizingKeycloakRoles" href="SynchronizingKeycloakRoles.md">guide</a>.
 
-## <a id="RunningWebInterface">Run the MIP Web Interface</a>
+## Run the MIP Web Interface
 In the *tmux* session (opened as **mipadmin** user), in the **ui** window (#4)
 ```
 mip start

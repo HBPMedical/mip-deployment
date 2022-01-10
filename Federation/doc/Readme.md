@@ -62,22 +62,22 @@ On every node **but** the pusher, we'll use the *mip-deployment* repository as a
 In the **ui** node, the installer will **re**-clone the *mip-deployment* repository, but in /opt. Therefore, after the installation has been done, it can also remove the *mip-deployment* folder that was used as the installer.  
 If you want to keep the installer folder, you'll have to explicitely use the flag *--keep-installer*.
 
-### <a id="PreparingWorkers">Preparing the **worker** nodes</a>
-Follow this <a href="PreparingWorkers.md">guide</a>.
+### Preparing the **worker** nodes
+Follow this <a id="PreparingWorkers" href="PreparingWorkers.md">guide</a>.
 
-### <a id="PreparingMaster">Preparing the **master** node</a>
-Follow this <a href="PreparingMaster.md">guide</a>.
+### Preparing the **master** node
+Follow this <a id="PreparingMaster" href="PreparingMaster.md">guide</a>.
 
-### <a id="PreparingUI">Preparing the **ui** node</a>
-Follow this <a href="PreparingUI.md">guide</a>.
+### Preparing the **ui** node
+Follow this <a id="PreparingUI" href="PreparingUI.md">guide</a>.
 
-### <a id="PreparingPusher">Preparing the **pusher** node</a>
-Follow this <a href="PreparingPusher.md">guide</a>.
+### Preparing the **pusher** node
+Follow this <a id="PreparingPusher" href="PreparingPusher.md">guide</a>.
 
-## <a id="OperatingMIPFederation">Operating the MIP Federation</a>
+## Operating the MIP Federation
 The first time, after the setup, just remember to follow these steps in the right order:
 
-1. <a href="OperatingMIPFederation.md#GeneratingTmuxSession">Generate the *tmux* session</a> and connect to it
+1. <a id="OperatingMIPFederation" href="OperatingMIPFederation.md#GeneratingTmuxSession">Generate the *tmux* session</a> and connect to it
 1. <a href="OperatingMIPFederation.md#ConsolidatingData">Consolidate the data</a>
 1. <a href="OperatingMIPFederation.md#CompilingData">Compile the data</a>
 1. <a href="OperatingMIPFederation.md#DeployingServices">Deploy the backend services</a> (Docker Swarm)

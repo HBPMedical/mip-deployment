@@ -1,4 +1,4 @@
-<a href="UsersConfiguration.md">Users Configuration</a> -> `User Authorizations`
+<a href="UsersConfiguration.md#UserAuthorizations">Users Configuration</a> -> `User Authorizations`
 
 ## User Authorizations
 

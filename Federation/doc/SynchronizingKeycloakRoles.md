@@ -10,11 +10,11 @@ The KeyCloak's interface is excruciatingly slow and clearly not ergonomic at all
 In an attempt to drastically reduce the required time to do this, and also eliminate the risk of human errors, a roles synchronization script has been written, and is introduced into the *mip-deployment* starting with the MIP 6.5 release.  
 This script should be automatically installed in the **pusher** node, as it **has** to be executed from there!
 
-### <a id="PreparingKeycloak">Preparing</a> the *realm-management* client and the *realmadmin* realm user in KeyCloak
+### Preparing the *realm-management* client and the *realmadmin* realm user in KeyCloak
 Prior to run anything here, you need to make sure that the KeyCloak server's *realm* is ready to be used by the script. In other words, the *keycloak_roles_sync.py* script needs a realm client (with certain configurations and roles) and a realm user (using this realm client).  
 For that purpose, you will need to use a KeyCloak Administrator who has all the required privileges to fully manage the realm.
 
-In order to do this, follow this <a href="PreparingKeycloakRealmClient.md">guide</a>.
+In order to do this, follow this <a id="PreparingKeycloak" href="PreparingKeycloakRealmClient.md">guide</a>.
 
 ### Exporting the MIP Federation data structure
 As the synchronization script will use a JSON file representing the federation structure (nodes, pathologies, datasets), we have to generate this file with the *mip* script, prior to using the *keycloak_roles_sync.py* script.  

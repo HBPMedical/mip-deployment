@@ -27,7 +27,7 @@ It means that if the MIP installation runs inside a VM which is connected via a 
 ## Setup
 1. Prepare a VM/Physical machine with the minimal **Ubuntu Server 20.04** operating system installation.
 
-   You'll have to know on which URL (like http://<HOSTNAME>, http://<HOSTNAME>:<PORT> or http://<IP>:<PORT>) you want to expose your MIP. If you're operating it inside a VM on your computer, you may use the IP of your computer, and the port on which your VM's port 80 is mapped to, like:
+   You'll have to know on which URL (like http://\<HOSTNAME>, http://\<HOSTNAME>:\<PORT> or http://\<IP>:\<PORT>) you want to expose your MIP. If you're operating it inside a VM on your computer, you may use the IP of your computer, and the port on which your VM's port 80 is mapped to, like:
 http://192.168.0.100:8888
 
 1. Install the MIP
@@ -132,7 +132,8 @@ http://192.168.0.100:8888
    mip data compile
    ```
    At any time, you can **re**-compile by using the *--force* flag.  
-   You can also specify the pathology(ies) to compile, with the *--pathology* flag.  
+   You can also specify the pathology(ies) to compile, with the *--pathology* flag.
+
    As usual, to get more details, use:
    ```
    mip --help
