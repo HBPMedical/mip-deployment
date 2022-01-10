@@ -1,4 +1,4 @@
-<a href="../README.md">MIP Deployment</a> -> `Federated MIP Deployment`
+<a href="../README.md#FederatedDeployment">MIP Deployment</a> -> `Federated MIP Deployment`
 
 # Federated MIP Deployment
 ## Structure
@@ -62,19 +62,19 @@ On every node **but** the pusher, we'll use the *mip-deployment* repository as a
 In the **ui** node, the installer will **re**-clone the *mip-deployment* repository, but in /opt. Therefore, after the installation has been done, it can also remove the *mip-deployment* folder that was used as the installer.  
 If you want to keep the installer folder, you'll have to explicitely use the flag *--keep-installer*.
 
-### Preparing the **worker** nodes
+### <a id="PreparingWorkers">Preparing the **worker** nodes</a>
 Follow this <a href="PreparingWorkers.md">guide</a>.
 
-### Preparing the **master** node
+### <a id="PreparingMaster">Preparing the **master** node</a>
 Follow this <a href="PreparingMaster.md">guide</a>.
 
-### Preparing the **ui** node
+### <a id="PreparingUI">Preparing the **ui** node</a>
 Follow this <a href="PreparingUI.md">guide</a>.
 
-### Preparing the **pusher** node
+### <a id="PreparingPusher">Preparing the **pusher** node</a>
 Follow this <a href="PreparingPusher.md">guide</a>.
 
-## Operating the MIP Federation
+## <a id="OperatingMIPFederation">Operating the MIP Federation</a>
 The first time, after the setup, just remember to follow these steps in the right order:
 
 1. <a href="OperatingMIPFederation.md#GeneratingTmuxSession">Generate the *tmux* session</a> and connect to it
@@ -83,5 +83,3 @@ The first time, after the setup, just remember to follow these steps in the righ
 1. <a href="OperatingMIPFederation.md#DeployingServices">Deploy the backend services</a> (Docker Swarm)
 1. <a href="OperatingMIPFederation.md#SynchronizingKeycloakRoles">Synchronize the KeyCloak roles</a>
 1. <a href="OperatingMIPFederation.md#RunningWebInterface">Run the MIP Web Interface</a>
-
-You will find detailed explanations in this <a href="OperatingMIPFederation.md">guide</a>.

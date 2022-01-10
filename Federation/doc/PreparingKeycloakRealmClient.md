@@ -1,4 +1,4 @@
-<a href="OperatingMIPFederation.md">Operating MIP Federation</a> -> `Preparing KeyCloak Realm's Client`
+<a href="OperatingMIPFederation.md#PreparingKeycloak">Operating MIP Federation</a> -> `Preparing KeyCloak Realm's Client`
 
 # Preparing KeyCloak Realm's Client
 1. Preparing KeyCloak realm's client

@@ -1,4 +1,4 @@
-<a href="Readme.md">Federated MIP Deployment</a> -> `Operating the MIP Federation`
+<a href="Readme.md#OperatingMIPFederation">Federated MIP Deployment</a> -> `Operating the MIP Federation`
 
 # Operating the MIP Federation
 ## <a id="GeneratingTmuxSession">Using the *tmux* session</a>
@@ -108,7 +108,10 @@ If you want to use an non-default data catalogue, you can use the following para
 * *--datacatalogue-protocol* (*http* | *https*)
 * *--datacatalogue-host <DATACATALOGUE_URL>*
 
-Don't hesitate to use *mip --help*.
+Don't hesitate to use:
+```
+mip --help
+```
 
 ## <a id="CompilingData">Compiling data</a>
 In the *tmux* session (opened as **mipadmin** user), in the **pusher** window (#0)
@@ -119,7 +122,10 @@ At any time, you can **re**-compile by using the *--force* flag.
 You can also specify the pathology(ies) to compile, with the *--pathology \<PATHOLOGIES>* parameter (comma-separated pathologies list).  
 If you want to limitate the compilation to a certain node, you can use the *--node \<NODE_NAME>* parameter, but in this case, you'll also have to pass the *--pathology* argument.  
 
-As usual, *mip --help* can give you more details.
+As usual, to get more details, use:
+```
+mip --help
+```
 
 ## <a id="DeployingServices">Deploying services</a>
 In the *tmux* session (opened as **mipadmin** user), in the **pusher** window (#0)
@@ -148,11 +154,14 @@ Alternatively, there are different things that you can run in the same way (stil
   ```
   mip --pusher --federation <FEDERATION_NAME> service restart
   ```
-  Note that a *restart* is actually different from a *stop*, *start*. See the Docker documentation.
+  Note that a *restart* is actually different from a "*stop* *start*" cycle. See the Docker documentation.
 
 For all these commands (including the *deploy* one), you can use the *--node <NODE_NAME>* parameter to limitate the scope to a certain node.
 
-As usual, *mip --help* can give you more details.
+As usual, to get more details, use:
+```
+mip --help
+```
 
 ## <a id="SynchronizingKeycloakRoles">Synchronizing the KeyCloak roles</a>
 Follow this <a href="SynchronizingKeycloakRoles.md">guide</a>.
@@ -162,6 +171,22 @@ In the *tmux* session (opened as **mipadmin** user), in the **ui** window (#4)
 ```
 mip start
 ```
+Note that here, we don't necessarily need to use the *--node-type ui* parameter, as we already did the configuration, and this node type has been stored for this machine.
 
 After launching, you should be able to browse the MIP on the URL which will be displayed.  
-Note that once the command ends, it may still take up to one minute until the MIP's Web interface is really operational.
+Note that once the command ends, it may still take up to one minute until the MIP's Web interface is really operational.  
+Of course, you can also do other actions here:
+* Stopping the MIP Web interface
+  ```
+  mip stop
+  ```
+* Restarting the MIP Web interface
+  ```
+  mip restart
+  ```
+  Note that a *restart* is actually different from a "*stop* *start*" cycle. See the Docker documentation.
+
+At anytime, you can learn more about the *mip* commands with:
+```
+mip --help
+```

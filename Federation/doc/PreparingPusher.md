@@ -1,4 +1,4 @@
-<a href="Readme.md">Federated MIP Deployment</a> -> `Preparing the pusher node`
+<a href="Readme.md#PreparingPusher">Federated MIP Deployment</a> -> `Preparing the pusher node`
 
 # Preparing the **pusher** node
 As the **pusher** can virtually be any type of node (as it doesn't conflict with any MIP component), the pusher is not a type of node, but a flag in the *mip* script.  
@@ -35,7 +35,10 @@ Also, as the **pusher** will operate the federation, remotely controlling the **
 
       Again, by default, without specifying anything, the *exareme* version installed will match the one which is written in the *mip-deployment/.versions_env* file of the *mip-deployment* latest stable release, so if you don't understand these complexities, no worries.
 
-      As usual, *mip --help* can be useful.
+      As usual, to get more details, use:
+      ```
+      mip --help
+      ```
 
 1. Configure the **pusher**
 

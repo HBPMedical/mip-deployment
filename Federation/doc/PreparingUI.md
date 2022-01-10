@@ -1,4 +1,4 @@
-<a href="Readme.md">Federated MIP Deployment</a> -> `Preparing the ui node`
+<a href="Readme.md#PreparingUI">Federated MIP Deployment</a> -> `Preparing the ui node`
 
 # Preparing the **ui** node
 1. Install the **ui**
@@ -77,4 +77,7 @@
      </Location>
      ```
 
-     Again, don't hesitate to use *mip --help*.
+     Again, don't hesitate to use:
+     ```
+     mip --help
+     ```

@@ -1,4 +1,4 @@
-<a href="../README.md">MIP Deployment</a> -> `Local MIP Deployment`
+<a href="../README.md#LocalDeployment">MIP Deployment</a> -> `Local MIP Deployment`
 
 # Local MIP Deployment
 ## Structure
@@ -42,7 +42,11 @@ http://192.168.0.100:8888
    Alternatively, you can also install a specific version of the MIP. For that purpose, you can precise the tag (*--version \<TAG>*), the branch (*--branch \<BRANCH>*) or even the commit ID (*--commit \<COMMIT>*), each of these parameters having precedence over the next one(s). If you specify a non-default version, you also have to force this installation with the flag *--force-install-unstable*.  
    The MIP will be installed by default in */opt/mip-deployment*.  
    Still by default, the *mip-deployment* folder you just created when cloning the repository will be deleted after the installation. If you want to keep it, just use the *--keep-installer* flag.  
-   Don't hesitate to use *mip --help*.
+
+   Don't hesitate to use:
+   ```
+   mip --help
+   ```
 
 1. Configure the MIP
 
@@ -99,7 +103,10 @@ http://192.168.0.100:8888
      </Location>
      ```
 
-     Again, don't hesitate to use *mip --help*.
+     Again, don't hesitate to use:
+     ```
+     mip --help
+     ```
 
 1. Become **mipadmin**
 
@@ -126,7 +133,10 @@ http://192.168.0.100:8888
    ```
    At any time, you can **re**-compile by using the *--force* flag.  
    You can also specify the pathology(ies) to compile, with the *--pathology* flag.  
-   As usual, *mip --help* can give you more details.
+   As usual, to get more details, use:
+   ```
+   mip --help
+   ```
 
 ## Run
 Still as **mipadmin** user, you can then launch the MIP with:
@@ -134,7 +144,17 @@ Still as **mipadmin** user, you can then launch the MIP with:
 mip start
 ```
 
-After launching, you should be able to browse the MIP on the URL which will be displayed. Note that once the command ends, it may still take up to one minute until the MIP is really operational.
+After launching, you should be able to browse the MIP on the URL which will be displayed. Note that once the command ends, it may still take up to one minute until the MIP is really operational.  
+Of course, you can also do other actions here:
+* Stopping the MIP
+  ```
+  mip stop
+  ```
+* Restarting the MIP
+  ```
+  mip restart
+  ```
+  Note that a *restart* is actually different from a "*stop* *start*" cycle. See the Docker documentation.
 
 At anytime, you can learn more about the *mip* commands with:
 ```
