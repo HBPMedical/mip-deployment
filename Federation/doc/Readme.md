@@ -1,4 +1,4 @@
-<a href="../README.md#FederatedDeployment">MIP Deployment</a> -> `Federated MIP Deployment`
+<a href="../../README.md#FederatedDeployment">MIP Deployment</a> -> `Federated MIP Deployment`
 
 # Federated MIP Deployment
 ## Structure
