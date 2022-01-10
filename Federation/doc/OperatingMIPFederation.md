@@ -4,65 +4,69 @@
 ## <a id="GeneratingTmuxSession">Using the *tmux* session</a>
 *tmux* is a virtual console, which will continue to live on the **pusher**, even if you disconnect your current session. Anytime you may need to operate the federation, you will have to open an SSH session on the **pusher**, and **re**-attach to the *tmux* session. Then, when you're done and you want to disconnect, first detach the *tmux* session, then close your SSH connection.  
 
-### Short *tmux* usage notice
+### <a id="ShortTmuxUsageNotice">Short *tmux* usage notice</a>
 We won't detail the *tmux* usage here, but as a short notice:
 
 * When you're outside (not attached to) a *tmux* session
   * List all the available *tmux* sessions (before you attach a session)
-  ```
-  tmux ls
-  ```
+    ```
+    tmux ls
+    ```
   You will see the different sessions name or id.
   * Attach to a *tmux* session
-  ```
-  tmux a -t <SESSION_ID>
-  ```
+    ```
+    tmux a -t <SESSION_ID>
+    ```
 * When you're inside (attached to) a *tmux* session
   * Any operation will have to begin with *CTRL + j* (usually *CTRL + b*, but to avoid issues when having *tmux* inside *tmux* inside *tmux*, all the generated MIP-related *tmux* sessions have been redefined with *CTRL + j*)
   * Detach the *tmux* session
-  ```
-  "CTRL + j" d
-  ```
+    ```
+    "CTRL + j" d
+    ```
   * Navigate to the *next* window inside the session
-  ```
-  "CTRL + j" n
-  ```
+    ```
+    "CTRL + j" n
+    ```
   * Navigate to the *previous* window inside the session
-  ```
-  "CTRL + j" p
-  ```
+    ```
+    "CTRL + j" p
+    ```
   * Directly jump to a certain window number (0-9 only)
-  ```
-  "CTRL + j" <WINDOW_NUMBER>
-  ```
+    ```
+    "CTRL + j" <WINDOW_NUMBER>
+    ```
   * Navigate to the *next* pane inside a multi-panes window (like the logs window (1))
-  ```
-  "CTRL + j" o
-  ```
-  On the MIP-related generated *tmux* session, on any OS **but** Mac (currently), you can also use the *ALT + ARROW_KEYS* shortcut
+    ```
+    "CTRL + j" o
+    ```
+    On the MIP-related generated *tmux* session, on any OS **but** Mac (currently), you can also use the *ALT + ARROW_KEYS* shortcut
   * Quickly show the pane numbers
-  ```
-  "CTRL + j" q
-  ```
+    ```
+    "CTRL + j" q
+    ```
   * Directly jump to a certain pane number (0-9 only)
-  ```
-  "CTRL + j" q <PANE_NUMBER> (the number must be entered really quickly after the q)
-  ```
+    ```
+    "CTRL + j" q <PANE_NUMBER> (the number must be entered really quickly after the q)
+    ```
   * Zoom (in or out) the currently selected pane
-  ```
-  "CTRL + j" z
-  ```
+    ```
+    "CTRL + j" z
+    ```
   * Enter copy mode (to stop the live logs and go back in the pane's history)
-  ```
-  "CTRL + j" [
-  ```
+    ```
+    "CTRL + j" [
+    ```
   * Quit copy mode
-  ```
-  q or ESC
-  ```
+    ```
+    q or ESC
+    ```
+  * Respawn a "dead" pane or window
+    ```
+    "CTRL + j" r
+    ```
 If you want to know more about *tmux*, go on the <a href="https://tmuxcheatsheet.com" target="_blank">tmux Cheat Sheet</a>.
 
-### Creating the *tmux* session
+### <a id="CreatingTmuxSession">Creating the *tmux* session</a>
 Now that you know a bit more about *tmux*, we will generate the MIP special *tmux* session (or connect to it, if it already exists).  
 
 On the **pusher** node, with the **mipadmin** user, you have to run
@@ -171,7 +175,7 @@ In the *tmux* session (opened as **mipadmin** user), in the **ui** window (#4)
 ```
 mip start
 ```
-Note that here, we don't necessarily need to use the *--node-type ui* parameter, as we already did the configuration, and this node type has been stored for this machine.
+Note that here, we don't necessarily need to use the *--node-type ui* parameter, as we already did the **ui** node configuration, and this node type has been stored for this machine.
 
 After launching, you should be able to browse the MIP on the URL which will be displayed.  
 Note that once the command ends, it may still take up to one minute until the MIP's Web interface is really operational.  

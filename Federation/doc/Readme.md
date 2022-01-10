@@ -83,3 +83,8 @@ The first time, after the setup, just remember to follow these steps in the righ
 1. <a href="OperatingMIPFederation.md#DeployingServices">Deploy the backend services</a> (Docker Swarm)
 1. <a href="OperatingMIPFederation.md#SynchronizingKeycloakRoles">Synchronize the KeyCloak roles</a>
 1. <a href="OperatingMIPFederation.md#RunningWebInterface">Run the MIP Web Interface</a>
+
+## Monitoring the MIP Federation
+1. <a id="MonitoringMIPFederation" href="MonitoringMIPFederation.md#RealTimeLogs">Real-time federation-wide logs</a>
+1. <a href="MonitoringMIPFederation.md#ExtendedMIPFederationBackendStatus">Extended MIP Federation Backend status</a>
+1. <a href="MonitoringMIPFederation.md#SpecificMIPFederationComponentLogs">Specific MIP Federation Component logs</a>

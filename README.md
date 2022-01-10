@@ -15,7 +15,7 @@ Then, if you cloned this repository in your home for the installation purpose, y
 ### Software
 * Ubuntu Server 20.04 (minimal installation, without GUI)
 
-## MIP Components
+## <a id="Components">MIP Components</a>
 The "short names" listed here represent the different MIP components, as well as recognized component names by the *mip* script.
 * <a href="https://github.com/HBPMedical/portal-frontend" target="_blank">frontend</a>: The "Web App"
 * <a href="https://github.com/HBPMedical/gateway" target="_blank">gateway</a>: "Middleware" layer between the MIP Frontend and a federated analytic engine
