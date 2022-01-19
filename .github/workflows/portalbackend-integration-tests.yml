@@ -22,16 +22,44 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.1.5
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r tests/portal_backend_integration_tests/setup/requirements.txt
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        working-directory: ./tests/portal_backend_integration_tests/setup/
+        run: poetry install --no-interaction
 
       - name: Configure the deployment env file
         run: cat .versions_env >> tests/portal_backend_integration_tests/setup/.env
 
       - name: Deploy portalbackend, exareme and mip-engine
-        run: docker-compose -f tests/portal_backend_integration_tests/setup/docker-compose.yml  --env-file tests/portal_backend_integration_tests/setup/.env up -d
+        working-directory: ./tests/portal_backend_integration_tests/setup/
+        run: docker-compose --env-file .env up -d
+
+      - name: Initialize MONETDBs with mipdb initial metadata tables
+        working-directory: ./tests/portal_backend_integration_tests/setup/
+        run: |
+          poetry run mipdb init --ip 172.17.0.1 --port 50000
+          poetry run mipdb init --ip 172.17.0.1 --port 50001
+          poetry run mipdb init --ip 172.17.0.1 --port 50002
+
+      - name: Load data into MONETDB containers
+        working-directory: ./tests/portal_backend_integration_tests/setup/
+        run: |
+          poetry run mipdb load-folder tests/portal_backend_integration_tests/setup/demo_data/  --ip 172.17.0.1 --port 50001
+          poetry run mipdb load-folder tests/portal_backend_integration_tests/setup/demo_data/  --ip 172.17.0.1 --port 50002
 
       - name: Wait for services to be up
         uses: jakejarvis/wait-action@master
