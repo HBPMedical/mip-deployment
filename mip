@@ -5917,6 +5917,11 @@ _configure_protocol(){
 	ext=0
 	if [[ "$1" = "-ext" ]]; then
 		ext=1
+		if [[ "$MIP_ENV_MIP_LINK" = "direct" ]]; then
+			export MIP_ENV_EXTERNAL_MIP_PROTOCOL=https
+			_write_mip_env
+			return 0
+		fi
 	fi
 
 	if [[ $ARG_FORCE -ne 1 ]]; then
@@ -8713,7 +8718,11 @@ _version(){
 		upgrade)
 			;;
 		*)
-			__red "Usage: $0 (--pusher --federation <FEDERATION>) version [list|list-avail]"
+			if [[ $ARG_PUSHER -eq 1 ]]; then
+				__red "Usage: $0 --pusher --federation <FEDERATION> version [list|list-avail]"
+			else
+				__red "Usage: $0 version [list|list-avail]"
+			fi
 			exit 1
 	esac
 }

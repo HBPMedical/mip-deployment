@@ -34,10 +34,10 @@ The *local* MIP is designed to run on a single machine.
 In this context, all the MIP components (understand: containers) run on the same hypervisor.  
 For the security (AuthN/AuthZ), Keycloak comes as a MIP component.
 
-<a id="LocalDeployment" href="doc/Readme.md">here</a>, you can find details about deploying and operating the *local* MIP.
+<a id="LocalDeployment" href="doc/Readme.md">Here</a>, you can find details about deploying and operating the *local* MIP.
 
 ### Federated
 The *federated* MIP is designed to run on multiple machines.  
 In this context, and as we usually use an external KeyCloak service, the components which run on the same machine are less than for the *local* deployment.
 
-<a id="FederatedDeployment" href="Federation/doc/Readme.md">here</a>, you can find details about deploying and operating the *federated* MIP.
+<a id="FederatedDeployment" href="Federation/doc/Readme.md">Here</a>, you can find details about deploying and operating the *federated* MIP.
