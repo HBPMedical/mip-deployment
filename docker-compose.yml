@@ -20,7 +20,7 @@ services:
       - NODE_COMMUNICATION_TIMEOUT=30000        # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
       - ENVIRONMENT_TYPE=PROD                   # TEST / DEV / PROD
       - LOG_LEVEL=INFO                          # INFO / DEBUG
-      - CONVERT_CSVS=TRUE                       # TRUE / FALSE
+      - CONVERT_CSVS=FALSE                      # TRUE / FALSE
     depends_on:
       - exareme_keystore
     ports:
@@ -95,7 +95,7 @@ services:
       GALAXY_USERNAME: admin
       GALAXY_PASSWORD: password
       ### Keycloak ###
-      KEYCLOAK_AUTH_URL: ${EXTERNAL_MIP_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
@@ -137,7 +137,7 @@ services:
       TRACKER_ID: UA-80660232-5
       GALAXY_HOST: http://galaxy
       GALAXY_PATH: /nativeGalaxy
-      KEYCLOAK_HOST: ${KEYCLOAK_PROTOCOL}://keycloak:8095
+      KEYCLOAK_HOST: http://keycloak:8095
       KEYCLOAK_AUTH_PATH: /auth
       PUBLIC_MIP_HOST: ${PUBLIC_MIP_HOST}
       PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}

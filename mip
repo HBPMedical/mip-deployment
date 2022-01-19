@@ -983,6 +983,16 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 			dataset-compilation [FLAG]				(PUSHER action) Configure the dataset auto-compilation from nodes (master and workers).
 											FLAG must be true/1/on or false/0/off.
 			all							Go through all configuration steps applicable to the current node type or MIP setup.
+		data [DATA_ACTION]
+			consolidate						Consolidate datasets, metadatas and pathologies.json. If used in a federation, asks workers to prepare
+											fake "empty" datasets in an archive, download it from each workers, extract it locally,
+											maintains a list of workers per pathology, download new metadata CDEs from data catalogue,
+											aligns these with all available datasets for each pathology, then deploys CDEs on each
+											implied workers per pathology and also on the master, and deploys the pathologies.json
+											on the UI node.
+											For a local MIP, it consolidates the CDEs and generates the pathologies.json file.
+			compile							Compile datasets (if used in a federation, it does it on workers and master nodes). It can be used with the --pathology option.
+											In a federation, it can also be used with the --node option.
 		start								Start the MIP components. Used in "local" MIP or "ui" federation node.
 		stop								Stop the MIP components. Used in "local" MIP or "ui" federation node.
 		restart								Restart the MIP components. Used in "local" MIP or "ui" federation node.
@@ -1013,14 +1023,6 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 
 		FEDERATION SPECIFIC ACTION
 		==========================
-		data [DATA_ACTION]
-			consolidate						(PUSHER action) Consolidate datasets, metadatas and pathologies.json. Asks workers to prepare
-											fake "empty" datasets in an archive, download it from each workers, extract it locally,
-											maintains a list of workers per pathology, download new metadata CDEs from data catalogue,
-											aligns these with all available datasets for each pathology, then deploys CDEs on each
-											implied workers per pathology and also on the master, and deploys the pathologies.json
-											on the UI node.
-			compile							(PUSHER action) Compile datasets on workers and master nodes. Can be used with --node and --pathology options.
 		tmux								(PUSHER action) Create+launch/join a tmux session to manage all the configured nodes.
 											Requires "configure pusher" to be done to have a ssh config file ready to reach all
 											federation nodes.
@@ -5915,6 +5917,11 @@ _configure_protocol(){
 	ext=0
 	if [[ "$1" = "-ext" ]]; then
 		ext=1
+		if [[ "$MIP_ENV_MIP_LINK" = "direct" ]]; then
+			export MIP_ENV_EXTERNAL_MIP_PROTOCOL=https
+			_write_mip_env
+			return 0
+		fi
 	fi
 
 	if [[ $ARG_FORCE -ne 1 ]]; then
@@ -8711,7 +8718,11 @@ _version(){
 		upgrade)
 			;;
 		*)
-			__red "Usage: $0 (--pusher --federation <FEDERATION>) version [list|list-avail]"
+			if [[ $ARG_PUSHER -eq 1 ]]; then
+				__red "Usage: $0 --pusher --federation <FEDERATION> version [list|list-avail]"
+			else
+				__red "Usage: $0 version [list|list-avail]"
+			fi
 			exit 1
 	esac
 }

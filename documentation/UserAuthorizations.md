@@ -1,3 +1,5 @@
+<a href="UsersConfiguration.md#UserAuthorizations">Users Configuration</a> -> `User Authorizations`
+
 ## User Authorizations
 
 A user can be authorized on two different aspects:

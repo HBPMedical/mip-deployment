@@ -1,3 +1,5 @@
+<a href="UsersConfiguration.md#CreateLocalUser">Users Configuration</a> -> `Create a New User`
+
 ### Create a User
 
 Login to the keycloak console on http://{MIP_IP}/auth/admin/ with the administrator credentials.
