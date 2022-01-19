@@ -5,11 +5,11 @@ description = ""
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "~3.8"
-mipdb = "0.1.0"
+python = "^3.8"
 pytest = "6.2.4"
 requests = "2.25.1"
 flake8 = "3.9.2"
+pymonetdb = "~1.4.1"
+mipdb = "0.1.0"
 
 [tool.poetry.dev-dependencies]
-
