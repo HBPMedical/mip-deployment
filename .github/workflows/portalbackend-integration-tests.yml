@@ -71,9 +71,9 @@ jobs:
 
       - name: Run the success tests
         working-directory: ./tests/portal_backend_integration_tests/setup/
-        run: poetry runpytest tests/portal_backend_integration_tests/success
+        run: poetry run pytest ../success
 
       - name: Run the failure tests
         working-directory: ./tests/portal_backend_integration_tests/setup/
-        run: poetry runpytest tests/portal_backend_integration_tests/fail
+        run: poetry run pytest ../fail
 
