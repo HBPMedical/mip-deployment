@@ -29,11 +29,6 @@ services:
       - ../../../data:/root/exareme/data/
     restart: unless-stopped
 
-  mipengine_node_registry:
-    image: consul
-    ports:
-      - "8500:8500"
-
   rabbitmq_globalnode:
     image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
     ports:
@@ -80,17 +75,17 @@ services:
       retries: 3
 
   monetdb_globalnode:
-    image: madgik/mipenginedb_with_data:${MIP_ENGINE}
+    image: madgik/mipenginedb:${MIP_ENGINE}
     ports:
       - "50000:50000"
 
   monetdb_localnode1:
-    image: madgik/mipenginedb_with_data:${MIP_ENGINE}
+    image: madgik/mipenginedb:${MIP_ENGINE}
     ports:
       - "50001:50000"
 
   monetdb_localnode2:
-    image: madgik/mipenginedb_with_data:${MIP_ENGINE}
+    image: madgik/mipenginedb:${MIP_ENGINE}
     ports:
       - "50002:50000"
 
@@ -100,15 +95,13 @@ services:
       - NODE_IDENTIFIER=globalnode
       - NODE_ROLE=GLOBALNODE
       - LOG_LEVEL=INFO
-      - NODE_REGISTRY_IP=172.17.0.1
-      - NODE_REGISTRY_PORT=8500
+      - FRAMEWORK_LOG_LEVEL=INFO
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5670
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50000
     depends_on:
       - rabbitmq_globalnode
-      - mipengine_node_registry
       - monetdb_globalnode
     restart: unless-stopped
 
@@ -118,15 +111,13 @@ services:
       - NODE_IDENTIFIER=localnode1
       - NODE_ROLE=LOCALNODE
       - LOG_LEVEL=INFO
-      - NODE_REGISTRY_IP=172.17.0.1
-      - NODE_REGISTRY_PORT=8500
+      - FRAMEWORK_LOG_LEVEL=INFO
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5671
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50001
     depends_on:
       - rabbitmq_localnode1
-      - mipengine_node_registry
       - monetdb_localnode1
     restart: unless-stopped
 
@@ -136,15 +127,13 @@ services:
       - NODE_IDENTIFIER=localnode2
       - NODE_ROLE=LOCALNODE
       - LOG_LEVEL=INFO
-      - NODE_REGISTRY_IP=172.17.0.1
-      - NODE_REGISTRY_PORT=8500
+      - FRAMEWORK_LOG_LEVEL=INFO
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5672
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50002
     depends_on:
       - rabbitmq_localnode2
-      - mipengine_node_registry
       - monetdb_localnode2
     restart: unless-stopped
 
@@ -153,12 +142,15 @@ services:
     ports:
       - '5000:5000'
     environment:
-      - NODE_REGISTRY_IP=172.17.0.1
-      - NODE_REGISTRY_PORT=8500
+      - LOG_LEVEL=DEBUG
+      - FRAMEWORK_LOG_LEVEL=INFO
+      - CDES_METADATA_PATH=/opt/data
+      - DEPLOYMENT_TYPE=LOCAL
+      - NODE_REGISTRY_UPDATE_INTERVAL=30
+      - LOCALNODES_CONFIG_FILE=/opt/config/localnodes_config.json
     volumes:
-      - ../../../data:/opt/data/
-    depends_on:
-      - mipengine_node_registry
+      - ./config/:/opt/config/
+      - ./demo_data/:/opt/data/
     restart: unless-stopped
 
   portalbackend_db:
@@ -188,7 +180,7 @@ services:
     restart: on-failure
 
   portalbackend:
-    image: hbpmip/portal-backend:${PORTALBACKEND}
+    image: kfilippopolitis/portal-backend:latest
     ports:
       - '8080:8080'
       - '8089:8089'

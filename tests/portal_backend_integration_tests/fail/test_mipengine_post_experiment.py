@@ -132,7 +132,7 @@ all_error_cases = [
             "type": "mipengine"
         },
         "name": "MIP-Engine Invalid parameter value"
-    }, "text/plain+user_error"),
+    }, "text/plain+error"),
 ]
 
 

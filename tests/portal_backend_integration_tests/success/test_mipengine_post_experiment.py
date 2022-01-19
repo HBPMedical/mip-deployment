@@ -51,7 +51,7 @@ all_success_cases = [
             ],
             "type": "mipengine"
         },
-        "name": "Small one"
+        "name": "Logistic small"
     },
     {
         "algorithm": {
@@ -91,8 +91,38 @@ all_success_cases = [
             ],
             "type": "mipengine"
         },
-        "name": "Big One"
-    }
+        "name": "Logistic big"
+    },
+    {
+        "algorithm": {
+            "name": "PCA",
+            "label": "Principal component algorithm",
+            "parameters": [
+                {
+                    "name": "x",
+                    "label": "x",
+                    "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala"
+                },
+                {
+                    "name": "pathology",
+                    "label": "pathology",
+                    "value": "dementia"
+                },
+                {
+                    "name": "dataset",
+                    "label": "dataset",
+                    "value": "edsd"
+                },
+                {
+                    "name": "filter",
+                    "label": "filter",
+                    "value": ""
+                }
+            ],
+            "type": "mipengine"
+        },
+        "name": "Pca"
+    },
 ]
 
 
@@ -110,20 +140,19 @@ def test_post_request_mip_engine(test_input):
     response = requests.post(url, data=request_json, headers=headers)
 
     print(f"POST MIP-ENGINE result-> {response.text}")
-    logistic = json.loads(response.text)
-    assert logistic["algorithm"]["name"] == "LOGISTIC_REGRESSION"
-    assert not logistic["shared"]
-    assert logistic["status"] == "pending"
-    assert test_input["algorithm"]["name"] == logistic["algorithm"]["name"]
-    assert test_input["algorithm"]["label"] == logistic["algorithm"]["label"]
-    assert test_input["algorithm"]["type"] == logistic["algorithm"]["type"]
+    algorithm = json.loads(response.text)
+    assert not algorithm["shared"]
+    assert algorithm["status"] == "pending"
+    assert test_input["algorithm"]["name"] == algorithm["algorithm"]["name"]
+    assert test_input["algorithm"]["label"] == algorithm["algorithm"]["label"]
+    assert test_input["algorithm"]["type"] == algorithm["algorithm"]["type"]
     while True:
-        logistic_curent_state_response = do_get_experiment_request(logistic["uuid"])
-        logistic_curent_state = json.loads(logistic_curent_state_response.text)
-        status = logistic_curent_state["status"]
+        algorithm_curent_state_response = do_get_experiment_request(algorithm["uuid"])
+        algorithm_curent_state = json.loads(algorithm_curent_state_response.text)
+        status = algorithm_curent_state["status"]
         print(status)
         if status != "pending":
             assert status == "success"
-            assert logistic_curent_state["result"] is not None
+            assert algorithm_curent_state["result"] is not None
             break
         time.sleep(2)
