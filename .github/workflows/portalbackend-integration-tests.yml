@@ -70,8 +70,10 @@ jobs:
         run: docker ps
 
       - name: Run the success tests
-        run: pytest tests/portal_backend_integration_tests/success
+        working-directory: ./tests/portal_backend_integration_tests/setup/
+        run: poetry runpytest tests/portal_backend_integration_tests/success
 
       - name: Run the failure tests
-        run: pytest tests/portal_backend_integration_tests/fail
+        working-directory: ./tests/portal_backend_integration_tests/setup/
+        run: poetry runpytest tests/portal_backend_integration_tests/fail
 
