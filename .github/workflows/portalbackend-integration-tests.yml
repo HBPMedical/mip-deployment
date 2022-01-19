@@ -58,8 +58,8 @@ jobs:
       - name: Load data into MONETDB containers
         working-directory: ./tests/portal_backend_integration_tests/setup/
         run: |
-          poetry run mipdb load-folder tests/portal_backend_integration_tests/setup/demo_data/  --ip 172.17.0.1 --port 50001
-          poetry run mipdb load-folder tests/portal_backend_integration_tests/setup/demo_data/  --ip 172.17.0.1 --port 50002
+          poetry run mipdb load-folder demo_data/  --ip 172.17.0.1 --port 50001
+          poetry run mipdb load-folder demo_data/  --ip 172.17.0.1 --port 50002
 
       - name: Wait for services to be up
         uses: jakejarvis/wait-action@master
