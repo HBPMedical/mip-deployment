@@ -8,4 +8,6 @@ Federation/logs
 Federation/.combined_env
 federated
 local
+venv/
+__pycache__
 **/.fuse*
