@@ -188,6 +188,10 @@ args_parser(){
 				ARG_KEEP_INSTALLER=1
 				shift
 				;;
+			--self)
+				ARG_SELF=1
+				shift
+				;;
 			--no-run)
 				ARG_NORUN=1
 				shift
@@ -1048,6 +1052,7 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		OPTION
 		======
 		--keep-installer						Don't erase the installer after install.
+		--self								Used in the case of install, to only target the mip script itself.
 		--no-run							Don't automatically start the MIP after install.
 		--limit [NUM]							Output the last NUM lines
 	-f,	--follow							Used with logs, exactly the same way than in "tail".
@@ -10248,8 +10253,93 @@ _early_depends_install(){
 	fi
 }
 
+_install_mip_script(){
+	__debug --level 4 "_install_mip_script($*)"
+
+	local ret=1
+
+	local httpcode=""
+	local mode="wanted"
+	local filename="mip"
+	local part=$filename
+	local targetpath="/usr/local/bin/$filename"
+
+	cmd="_get_mip"
+	cmdargs=()
+	cmdargs+=("--mode $mode")
+	cmdargs+=("--part $part")
+	cmdargs+=("--release")
+	if [[ "$ARG_COMMIT" != "" || "$ARG_BRANCH" != "" || "$ARG_VERSION" != "" ]]; then
+		if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
+			if [[ "$ARG_COMMIT" != "" ]]; then
+				cmdargs+=("--commit $ARG_COMMIT")
+			elif [[ "$ARG_BRANCH" != "" ]]; then
+				cmdargs+=("--branch $ARG_BRANCH")
+			elif [[ "$ARG_VERSION" != "" ]]; then
+				cmdargs+=("--tag $ARG_VERSION")
+			fi
+		else
+			__red "For any specific installation, consider using '--force-install-unstable'!"
+			exit $ret
+		fi
+	fi
+
+	local ret_part_vars="git_owner git_repo tag branch commit"
+	local ret_vars="part $ret_part_vars"
+	local ret_wanted_mip_version
+
+	for varname in $(echo "$ret_vars"); do
+		varname=$(echo $varname | sed 's/_/-/g')
+		retvarname="${mode}_$(echo $varname | sed 's/-/_/g')"
+		cmdargs+=("--${varname}-return-var ${retvarname}")
+	done
+
+	__debug --level 6 ${cmd}${cmdargs[@]}
+	$cmd ${cmdargs[@]}
+	ret=$?
+
+	if [[ "$wanted_part" != "" && "$wanted_git_owner" != "" && "$wanted_git_repo" != "" && ( "$wanted_tag" != "" || "$wanted_branch" != "" || "$wanted_commit" != "" ) ]]; then
+		local cmd="_get_github_file"
+		local cmdargs=()
+		cmdargs+=("--httpcodevar httpcode")
+		cmdargs+=("--onthefly-tagging")
+		cmdargs+=("--owner $wanted_git_owner")
+		cmdargs+=("--repo $wanted_git_repo")
+		cmdargs+=("--mode file")
+		if [[ "$wanted_commit" != "" ]]; then
+			cmdargs+=("--commit $wanted_commit")
+		elif [[ "$wanted_branch" != "" ]]; then
+			cmdargs+=("--branch $wanted_branch")
+		elif [[ "$wanted_tag" != "" ]]; then
+			cmdargs+=("--tag $wanted_tag")
+		fi
+		cmdargs+=("--filename $filename")
+		cmdargs+=("--targetpath $targetpath")
+
+		__debug --level 6 ${cmd}${cmdargs[@]}
+		$cmd ${cmdargs[@]}
+		ret=$?
+	fi
+
+	if [[ $ret -eq 0 && "$httpcode" = "200" && -f $targetpath ]]; then
+		__debug --level 5 "chmod +x $targetpath"
+		chmod +x $targetpath
+	else
+		__red "Something went wrong during the attempt to download $filename (HTTP code <$httpcode>). Therefore, it can't be installed!"
+	fi
+
+	return $ret
+}
+
 _install_mip(){
 	__debug --level 4 "_install_mip($*)"
+
+	if [[ $ARG_SELF -eq 1 ]]; then
+		_install_mip_script
+		local ret=$?
+		exit $ret
+	fi
+
 	__yellow -n "Checking dependencies..."
 
 	_check_os -v
