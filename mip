@@ -10299,6 +10299,11 @@ _install_mip_script(){
 	ret=$?
 
 	if [[ "$wanted_part" != "" && "$wanted_git_owner" != "" && "$wanted_git_repo" != "" && ( "$wanted_tag" != "" || "$wanted_branch" != "" || "$wanted_commit" != "" ) ]]; then
+		if [[ -f $targetpath && $ARG_FORCE -ne 1 ]]; then
+			__red "The targetted file <$targetpath> already exists! If you want to replace it, consider using --force"
+			exit 1
+		fi
+
 		local cmd="_get_github_file"
 		local cmdargs=()
 		cmdargs+=("--httpcodevar httpcode")
