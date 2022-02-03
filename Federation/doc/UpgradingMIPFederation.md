@@ -17,14 +17,18 @@ git clone https://github.com/HBPMedical/mip-deployment
 ```
 sudo mip-deployment/mip --pusher --federation <FEDERATION_NAME> --self --force install
 ```
+As it was already explained in the [**pusher** preparation](PreparingPusher.md), there are other parameters you can use here to install another specific version of the *MIP* (and they can be used in the case of the *mip script* install as well).
+
+#### Cleanup
 ```
 rm -rf mip-deployment
 ```
 
-### Installing the new *MIP* version.
+### Installing the new *MIP* version
 ```
 sudo mip --pusher --federation <FEDERATION_NAME> install
 ```
+Again, as explained in the [**pusher** preparation](PreparingPusher.md), if you have to install a specific version, use the documented parameters, and don't hesitate to call *mip --help*.
 
 When upgrading a **pusher** or **ui** node, a backup of the current installation is made. Then, the current installation folder is deleted, the new one is cloned from github, and finally, the backup is automatically restored.
 
@@ -65,14 +69,19 @@ git clone https://github.com/HBPMedical/mip-deployment
 ```
 sudo mip-deployment/mip --self --force install
 ```
+As it was already explained in the [**master** preparation](PreparingMaster.md), there are other parameters you can use here to install another specific version of the *MIP* (and they can be used in the case of the *mip script* install as well).
+
+#### Cleanup
+
 ```
 rm -rf mip-deployment
 ```
 
-### Installing the new *MIP* version.
+### Installing the new *MIP* version
 ```
 sudo mip --node-type ms install
 ```
+Again, as explained in the [**master** preparation](PreparingMaster.md), if you have to install a specific version, use the documented parameters, and don't hesitate to call *mip --help*.
 
 ## <a id="UpgradingUI">Upgrading the **ui** node</a>
 ### Check-list
@@ -89,21 +98,42 @@ git clone https://github.com/HBPMedical/mip-deployment
 ```
 sudo mip-deployment/mip --self --force install
 ```
+As it was already explained in the [**ui** preparation](PreparingUI.md), there are other parameters you can use here to install another specific version of the *MIP* (and they can be used in the case of the *mip script* install as well).
+
+#### Cleanup
+
 ```
 rm -rf mip-deployment
 ```
 
-### Installing the new *MIP* version.
+### Installing the new *MIP* version
 ```
 sudo mip --node-type ui install
 ```
+Again, as explained in the [**ui** preparation](PreparingUI.md), if you have to install a specific version, use the documented parameters, and don't hesitate to call *mip --help*.
 
 ## <a id="UpgradingWorkers">Upgrading the **wk** nodes</a>
 In the *tmux* session (opened as **mipadmin** user), do this in each worker windows (#5-#n)
 
+### Installing the new version of the *mip* script
+```
+git clone https://github.com/HBPMedical/mip-deployment
+```
+```
+sudo mip-deployment/mip --pusher --federation <FEDERATION_NAME> --self --force install
+```
+As it was already explained in the [**workers** preparation](PreparingWorkers.md), there are other parameters you can use here to install another specific version of the *MIP* (and they can be used in the case of the *mip script* install as well).
+
+#### Cleanup
+```
+rm -rf mip-deployment
+```
+
+### Installing the new *MIP* version
 ```
 sudo mip --node-type wk install
 ```
+Again, as explained in the [**workers** preparation](PreparingWorkers.md), if you have to install a specific version, use the documented parameters, and don't hesitate to call *mip --help*.
 
 ## <a id="Redeploying">Redeploying</a>
 ### Detach the *tmux* session
