@@ -1,4 +1,4 @@
-<a href="Readme.md#PreparingWorkers">Federated MIP Deployment</a> -> `Preparing the worker nodes`
+[Federated MIP Deployment](Readme.md#PreparingWorkers) -> `Preparing the worker nodes`
 
 # Preparing the **worker** nodes
 1. Install the **workers**

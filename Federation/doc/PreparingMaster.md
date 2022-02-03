@@ -1,4 +1,4 @@
-<a href="Readme.md#PreparingMaster">Federated MIP Deployment</a> -> `Preparing the master node`
+[Federated MIP Deployment](Readme.md#PreparingMaster) -> `Preparing the master node`
 
 # Preparing the **master** node
 1. Install the **master**

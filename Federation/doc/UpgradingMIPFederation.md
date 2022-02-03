@@ -1,4 +1,4 @@
-<a href="Readme.md#UpgradingMIPFederation">Federated MIP Deployment</a> -> `Upgrading the MIP Federation`
+[Federated MIP Deployment](Readme.md#UpgradingMIPFederation) -> `Upgrading the MIP Federation`
 
 # Upgrading the MIP Federation
 ## <a id="UpgradingPusher">Upgrading the **pusher** node</a>

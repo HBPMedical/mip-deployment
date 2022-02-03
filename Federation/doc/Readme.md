@@ -1,4 +1,4 @@
-<a href="../../README.md#FederatedDeployment">MIP Deployment</a> -> `Federated MIP Deployment`
+[MIP Deployment](../../README.md#FederatedDeployment) -> `Federated MIP Deployment`
 
 # Federated MIP Deployment
 ## Structure
@@ -62,29 +62,29 @@ On every node **but** the pusher, we'll use the *mip-deployment* repository as a
 In the **ui** node, the installer will **re**-clone the *mip-deployment* repository, but in /opt. Therefore, after the installation has been done, it can also remove the *mip-deployment* folder that was used as the installer.  
 If you want to keep the installer folder, you'll have to explicitely use the flag *--keep-installer*.
 
-1. <a id="PreparingWorkers" href="PreparingWorkers.md">Preparing the **worker** nodes</a>
-1. <a id="PreparingMaster" href="PreparingMaster.md">Preparing the **master** node</a>
-1. <a id="PreparingUI" href="PreparingUI.md">Preparing the **ui** node</a>
-1. <a id="PreparingPusher" href="PreparingPusher.md">Preparing the **pusher** node</a>
+1. <a id="PreparingWorkers"></a>[Preparing the **worker** nodes](PreparingWorkers.md">)
+1. <a id="PreparingMaster"></a>[Preparing the **master** node](PreparingMaster.md)
+1. <a id="PreparingUI"></a>[Preparing the **ui** node](PreparingUI.md)
+1. <a id="PreparingPusher"></a>[Preparing the **pusher** node](PreparingPusher.md)
 
-## Operating the MIP Federation
+## <a id="OperatingMIPFederation">Operating the MIP Federation</a>
 The first time, after the setup, just remember to follow these steps in the right order:
 
-1. <a id="OperatingMIPFederation" href="OperatingMIPFederation.md#GeneratingTmuxSession">Generate the *tmux* session</a> and connect to it
-1. <a href="OperatingMIPFederation.md#ConsolidatingData">Consolidate the data</a>
-1. <a href="OperatingMIPFederation.md#CompilingData">Compile the data</a>
-1. <a href="OperatingMIPFederation.md#DeployingServices">Deploy the backend services</a> (Docker Swarm)
-1. <a href="OperatingMIPFederation.md#SynchronizingKeycloakRoles">Synchronize the KeyCloak roles</a>
-1. <a href="OperatingMIPFederation.md#RunningWebInterface">Run the MIP Web Interface</a>
+1. [Generate the *tmux* session](OperatingMIPFederation.md#GeneratingTmuxSession) and connect to it
+1. [Consolidate the data](OperatingMIPFederation.md#ConsolidatingData)
+1. [Compile the data](OperatingMIPFederation.md#CompilingData)
+1. [Deploy the backend services](OperatingMIPFederation.md#DeployingServices) (Docker Swarm)
+1. [Synchronize the KeyCloak roles](OperatingMIPFederation.md#SynchronizingKeycloakRoles)
+1. [Run the MIP Web Interface](OperatingMIPFederation.md#RunningWebInterface)
 
-## Monitoring the MIP Federation
-1. <a id="MonitoringMIPFederation" href="MonitoringMIPFederation.md#RealTimeLogs">Real-time federation-wide logs</a>
-1. <a href="MonitoringMIPFederation.md#ExtendedMIPFederationBackendStatus">Extended MIP Federation Backend status</a>
-1. <a href="MonitoringMIPFederation.md#SpecificMIPFederationComponentLogs">Specific MIP Federation Component logs</a>
+## <a id="MonitoringMIPFederation">Monitoring the MIP Federation</a>
+1. [Real-time federation-wide logs](MonitoringMIPFederation.md#RealTimeLogs)
+1. [Extended MIP Federation Backend status](MonitoringMIPFederation.md#ExtendedMIPFederationBackendStatus)
+1. [Specific MIP Federation Component logs](MonitoringMIPFederation.md#SpecificMIPFederationComponentLogs)
 
-## Upgrading the MIP Federation
-1. <a id="UpgradingMIPFederation" href="UpgradingMIPFederation.md#UpgradingPusher">Upgrading the **pusher** node</a>
-1. <a href="UpgradingMIPFederation.md#UpgradingMaster">Upgrading the **master** node</a>
-1. <a href="UpgradingMIPFederation.md#UpgradingUI">Upgrading the **ui** node</a>
-1. <a href="UpgradingMIPFederation.md#UpgradingWorkers">Upgrading the **worker** nodes</a>
-1. <a href="UpgradingMIPFederation.md#Redeploying">Redeploying</a>
+## <a id="UpgradingMIPFederation">Upgrading the MIP Federation</a>
+1. [Upgrading the **pusher** node](UpgradingMIPFederation.md#UpgradingPusher)
+1. [Upgrading the **master** node](UpgradingMIPFederation.md#UpgradingMaster)
+1. [Upgrading the **ui** node](UpgradingMIPFederation.md#UpgradingUI)
+1. [Upgrading the **worker** nodes](UpgradingMIPFederation.md#UpgradingWorkers)
+1. [Redeploying](UpgradingMIPFederation.md#Redeploying)

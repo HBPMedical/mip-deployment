@@ -1,4 +1,4 @@
-<a href="../README.md#LocalDeployment">MIP Deployment</a> -> `Local MIP Deployment`
+[MIP Deployment](../README.md#LocalDeployment) -> `Local MIP Deployment`
 
 # Local MIP Deployment
 ## Structure

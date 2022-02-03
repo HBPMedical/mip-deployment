@@ -22,22 +22,22 @@ The "short names" listed here represent the different MIP components, as well as
 * [portalbackend](https://github.com/HBPMedical/portal-backend): The "Backend API" supports the Web App
 * [portalbackend_db](https://github.com/docker-library/postgres): The portal backend's database
 * [galaxy](https://github.com/madgik/galaxy): The "Workflow Engine" provides the ability to unite separate algorithms into one larger one
-* [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some details, which you can find <a id="UsersConfiguration" href="documentation/UsersConfiguration.md">here</a>
+* [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some <a id="UsersConfiguration">details</a>, which you can find [here](documentation/UsersConfiguration.md)
 * [keycloak_db](https://github.com/docker-library/postgres): The KeyCloak's database, required only if the *keycloak* component needs to be used
 * [create_dbs](https://github.com/HBPMedical/docker-create-databases): The *one shot* container which creates and populates the DBs when required
 * [exareme_master](https://github.com/madgik/exareme): The "Analysis Engine" offers the federated (also used by the *local* MIP) analysis capabilities
 * [exareme_keystore](https://github.com/bitnami/bitnami-docker-consul): A "Key-Value" storage service used by the different nodes (the workers and the master in a *federated* MIP, or the same machine in a *local* MIP) to store/exchange variables
 
 ## Deployment
-### Local
+### <a id="LocalDeployment">Local</a>
 The *local* MIP is designed to run on a single machine.  
 In this context, all the MIP components (understand: containers) run on the same hypervisor.  
 For the security (AuthN/AuthZ), Keycloak comes as a MIP component.
 
-<a id="LocalDeployment" href="doc/Readme.md">Here</a>, you can find details about deploying and operating the *local* MIP.
+[Here](doc/Readme.md), you can find details about deploying and operating the *local* MIP.
 
-### Federated
+### <a id="FederatedDeployment">Federated</a>
 The *federated* MIP is designed to run on multiple machines.  
 In this context, and as we usually use an external KeyCloak service, the components which run on the same machine are less than for the *local* deployment.
 
-<a id="FederatedDeployment" href="Federation/doc/Readme.md">Here</a>, you can find details about deploying and operating the *federated* MIP.
+[Here](Federation/doc/Readme.md), you can find details about deploying and operating the *federated* MIP.

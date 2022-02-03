@@ -1,4 +1,4 @@
-<a href="Readme.md#PreparingPusher">Federated MIP Deployment</a> -> `Preparing the pusher node`
+[Federated MIP Deployment](Readme.md#PreparingPusher) -> `Preparing the pusher node`
 
 # Preparing the **pusher** node
 As the **pusher** can virtually be any type of node (as it doesn't conflict with any MIP component), the pusher is not a type of node, but a flag in the *mip* script.  

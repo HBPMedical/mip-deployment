@@ -1,4 +1,4 @@
-<a href="UsersConfiguration.md#CreateLocalUser">Users Configuration</a> -> `Create a New User`
+[Users Configuration](UsersConfiguration.md#CreateLocalUser) -> `Create a New User`
 
 ### Create a User
 
