@@ -4,7 +4,7 @@
 
 Login to the keycloak console on http://{MIP_IP}/auth/admin/ with the administrator credentials.
 
-1) Select `MIP` -> `Users` -> `Add User` : 
+1) Select `MIP` -> `Users` -> `Add User` :
 ![img1](images/addUser.png)
 
 2) Provide the user information and then `Save`.

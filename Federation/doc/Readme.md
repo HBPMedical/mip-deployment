@@ -62,17 +62,10 @@ On every node **but** the pusher, we'll use the *mip-deployment* repository as a
 In the **ui** node, the installer will **re**-clone the *mip-deployment* repository, but in /opt. Therefore, after the installation has been done, it can also remove the *mip-deployment* folder that was used as the installer.  
 If you want to keep the installer folder, you'll have to explicitely use the flag *--keep-installer*.
 
-### Preparing the **worker** nodes
-Follow this <a id="PreparingWorkers" href="PreparingWorkers.md">guide</a>.
-
-### Preparing the **master** node
-Follow this <a id="PreparingMaster" href="PreparingMaster.md">guide</a>.
-
-### Preparing the **ui** node
-Follow this <a id="PreparingUI" href="PreparingUI.md">guide</a>.
-
-### Preparing the **pusher** node
-Follow this <a id="PreparingPusher" href="PreparingPusher.md">guide</a>.
+1. <a id="PreparingWorkers" href="PreparingWorkers.md">Preparing the **worker** nodes</a>
+1. <a id="PreparingMaster" href="PreparingMaster.md">Preparing the **master** node</a>
+1. <a id="PreparingUI" href="PreparingUI.md">Preparing the **ui** node</a>
+1. <a id="PreparingPusher" href="PreparingPusher.md">Preparing the **pusher** node</a>
 
 ## Operating the MIP Federation
 The first time, after the setup, just remember to follow these steps in the right order:
@@ -88,3 +81,10 @@ The first time, after the setup, just remember to follow these steps in the righ
 1. <a id="MonitoringMIPFederation" href="MonitoringMIPFederation.md#RealTimeLogs">Real-time federation-wide logs</a>
 1. <a href="MonitoringMIPFederation.md#ExtendedMIPFederationBackendStatus">Extended MIP Federation Backend status</a>
 1. <a href="MonitoringMIPFederation.md#SpecificMIPFederationComponentLogs">Specific MIP Federation Component logs</a>
+
+## Upgrading the MIP Federation
+1. <a id="UpgradingMIPFederation" href="UpgradingMIPFederation.md#UpgradingPusher">Upgrading the **pusher** node</a>
+1. <a href="UpgradingMIPFederation.md#UpgradingMaster">Upgrading the **master** node</a>
+1. <a href="UpgradingMIPFederation.md#UpgradingUI">Upgrading the **ui** node</a>
+1. <a href="UpgradingMIPFederation.md#UpgradingWorkers">Upgrading the **worker** nodes</a>
+1. <a href="UpgradingMIPFederation.md#Redeploying">Redeploying</a>

@@ -9103,6 +9103,7 @@ _restore(){
 	local node_type
 	local hostname
 	local datetime
+	local forced_partial_restore_path=0
 	local partial_restore_path
 	local exclude_path
 	local noversion=0
@@ -9154,6 +9155,7 @@ _restore(){
 			--partial-restore-path)
 				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
 					partial_restore_path=$2
+					forced_partial_restore_path=1
 					shift
 					shift
 				else
@@ -9244,8 +9246,10 @@ _restore(){
 					fi
 					final_paths+="$partial_path"
 				else
-					__red "$partial_path: Path not found in archive!"
-					cmd=""
+					if [[ $forced_partial_restore_path -eq 1 ]]; then
+						__red "$partial_path: Path not found in archive!"
+						cmd=""
+					fi
 				fi
 			done
 

@@ -64,7 +64,7 @@ We won't detail the *tmux* usage here, but as a short notice:
     ```
     "CTRL + j" r
     ```
-If you want to know more about *tmux*, go on the <a href="https://tmuxcheatsheet.com" target="_blank">tmux Cheat Sheet</a>.
+If you want to know more about *tmux*, go on the [tmux Cheat Sheet](https://tmuxcheatsheet.com).
 
 ### <a id="CreatingTmuxSession">Creating the *tmux* session</a>
 Now that you know a bit more about *tmux*, we will generate the MIP special *tmux* session (or connect to it, if it already exists).  
