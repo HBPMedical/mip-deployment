@@ -7140,7 +7140,8 @@ _services(){
 	case $SERVICE_ACTION in
 		status|deploy|start|stop|restart)
 			if [[ (( "$SERVICE_ACTION" = "deploy" || "$SERVICE_ACTION" = "start" || "$SERVICE_ACTION" = "restart" )) && ! -f $ANSIBLE_PATH/group_vars/exareme.yaml ]]; then
-				__red "Exareme version is not set yet! You have to do it prior to call this command."
+				__yellow "Exareme version is not set yet! Normally, it should be set prior to calling this command."
+				__yellow "Trying to automatically determine the correct exareme version for this MIP installation..."
 				local uihomepath=$(_get_remote_var ui MIP_PATH)
 				local uicmd="awk -F '=' '/^EXAREME/ {print \$2}' $uihomepath/.versions_env"
 				local exareme_image="hbpmip/exareme"
