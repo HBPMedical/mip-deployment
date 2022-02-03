@@ -1,4 +1,4 @@
-<a href="Readme.md#OperatingMIPFederation">Federated MIP Deployment</a> -> `Operating the MIP Federation`
+[Federated MIP Deployment](Readme.md#OperatingMIPFederation) -> `Operating the MIP Federation`
 
 # Operating the MIP Federation
 ## <a id="GeneratingTmuxSession">Using the *tmux* session</a>
@@ -64,7 +64,7 @@ We won't detail the *tmux* usage here, but as a short notice:
     ```
     "CTRL + j" r
     ```
-If you want to know more about *tmux*, go on the <a href="https://tmuxcheatsheet.com" target="_blank">tmux Cheat Sheet</a>.
+If you want to know more about *tmux*, go on the [tmux Cheat Sheet](https://tmuxcheatsheet.com).
 
 ### <a id="CreatingTmuxSession">Creating the *tmux* session</a>
 Now that you know a bit more about *tmux*, we will generate the MIP special *tmux* session (or connect to it, if it already exists).  
@@ -167,8 +167,7 @@ As usual, to get more details, use:
 mip --help
 ```
 
-## Synchronizing the KeyCloak roles
-Follow this <a id="SynchronizingKeycloakRoles" href="SynchronizingKeycloakRoles.md">guide</a>.
+## <a id="SynchronizingKeycloakRoles"></a>[Synchronizing the KeyCloak roles](SynchronizingKeycloakRoles.md).
 
 ## Run the MIP Web Interface
 In the *tmux* session (opened as **mipadmin** user), in the **ui** window (#4)

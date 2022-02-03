@@ -188,6 +188,10 @@ args_parser(){
 				ARG_KEEP_INSTALLER=1
 				shift
 				;;
+			--self)
+				ARG_SELF=1
+				shift
+				;;
 			--no-run)
 				ARG_NORUN=1
 				shift
@@ -1048,6 +1052,7 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		OPTION
 		======
 		--keep-installer						Don't erase the installer after install.
+		--self								Used in the case of install, to only target the mip script itself.
 		--no-run							Don't automatically start the MIP after install.
 		--limit [NUM]							Output the last NUM lines
 	-f,	--follow							Used with logs, exactly the same way than in "tail".
@@ -7135,7 +7140,8 @@ _services(){
 	case $SERVICE_ACTION in
 		status|deploy|start|stop|restart)
 			if [[ (( "$SERVICE_ACTION" = "deploy" || "$SERVICE_ACTION" = "start" || "$SERVICE_ACTION" = "restart" )) && ! -f $ANSIBLE_PATH/group_vars/exareme.yaml ]]; then
-				__red "Exareme version is not set yet! You have to do it prior to call this command."
+				__yellow "Exareme version is not set yet! Normally, it should be set prior to calling this command."
+				__yellow "Trying to automatically determine the correct exareme version for this MIP installation..."
 				local uihomepath=$(_get_remote_var ui MIP_PATH)
 				local uicmd="awk -F '=' '/^EXAREME/ {print \$2}' $uihomepath/.versions_env"
 				local exareme_image="hbpmip/exareme"
@@ -9098,6 +9104,7 @@ _restore(){
 	local node_type
 	local hostname
 	local datetime
+	local forced_partial_restore_path=0
 	local partial_restore_path
 	local exclude_path
 	local noversion=0
@@ -9118,6 +9125,10 @@ _restore(){
 						filename=$(basename $filename)
 						fileext="${filename##*.}"
 						filename="${filename%.*}"
+						if [[ "${filename##*.}" != "" ]]; then
+							fileext="${filename##*.}.${fileext}"
+							filename="${filename%.*}"
+						fi
 
 						if [[ "$(echo $filename | grep "^mip_")" != "" ]]; then
 							node_type=$(echo $filename | awk -F '_-_' '{print $1}' | cut -d'_' -f2)
@@ -9128,6 +9139,13 @@ _restore(){
 							filename=""
 							fileext=""
 						fi
+
+						__debug --level 6 "filepath=<$filepath>"
+						__debug --level 6 "filename=<$filename>"
+						__debug --level 6 "fileext=<$fileext>"
+						__debug --level 6 "node_type=<$node_type>"
+						__debug --level 6 "hostname=<$hostname>"
+						__debug --level 6 "datetime=<$datetime>"
 					fi
 					shift
 					shift
@@ -9138,6 +9156,7 @@ _restore(){
 			--partial-restore-path)
 				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
 					partial_restore_path=$2
+					forced_partial_restore_path=1
 					shift
 					shift
 				else
@@ -9161,7 +9180,7 @@ _restore(){
 	set -- "${positional[$@]}"
 
 	local cmd="tar xzfp"
-	if [[ "$filepath" != "" && "$filename" != "" && "$fileext" != "tar.gz" && "$node_type" != "" && "$hostname" != "" ]]; then
+	if [[ "$filepath" != "" && "$filename" != "" && "$fileext" = "tar.gz" && "$node_type" != "" && "$hostname" != "" ]]; then
 		if [[ $ARG_PUSHER -eq 1 ]]; then
 			if [[ "$node_type" = "pusher" ]]; then
 				if [[ "$partial_restore_path" = "" ]]; then
@@ -9222,63 +9241,75 @@ _restore(){
 				if [[ "$(echo $partial_path | grep '^/')" != "" ]]; then
 					partial_path=$(echo $partial_path | cut -c2-)
 				fi
-				if [[ "$(echo "$full_content" | grep -E "$partial_path$")" != "" || "$(echo "$full_content" | grep -E "$partial_path/$")" != "" || "$(echo "$full_content" | grep -E " $partial_path -> .*$")" != "" ]]; then
+				if [[ "$(echo "$full_content" | grep -E " $partial_path$")" != "" || "$(echo "$full_content" | grep -E " $partial_path/$")" != "" || "$(echo "$full_content" | grep -E " $partial_path -> .*$")" != "" ]]; then
 					if [[ "$final_paths" != "" ]]; then
 						final_paths+=" "
 					fi
 					final_paths+="$partial_path"
+				else
+					if [[ $forced_partial_restore_path -eq 1 ]]; then
+						__red "$partial_path: Path not found in archive!"
+						cmd=""
+					fi
 				fi
 			done
-			local final_exclude_paths=""
-			local final_exclude_path=""
-			if [[ "$exclude_path" != "" ]]; then
-				for final_exclude_path in $(echo "$exclude_path"); do
-					if [[ "$(echo $final_exclude_path | grep '^/')" != "" ]]; then
-						final_exclude_path=$(echo $final_exclude_path | cut -c2-)
-					fi
-					if [[ "$(echo "$full_content" | grep -E "$final_exclude_path$")" != "" || "$(echo "$full_content" | grep -E "$final_exclude_path/$")" != "" || "$(echo "$full_content" | grep -E " $final_exclude_path -> .*$")" != "" ]]; then
-						if [[ "$final_exclude_paths" != "" ]]; then
-							final_exclude_paths+=" "
+
+			if [[ "$cmd" != "" ]]; then
+				local final_exclude_paths=""
+				local final_exclude_path=""
+				if [[ "$exclude_path" != "" ]]; then
+					for final_exclude_path in $(echo "$exclude_path"); do
+						if [[ "$(echo $final_exclude_path | grep '^/')" != "" ]]; then
+							final_exclude_path=$(echo $final_exclude_path | cut -c2-)
 						fi
-						final_exclude_paths+="--exclude $final_exclude_path"
-					fi
-				done
+						if [[ "$(echo "$full_content" | grep -E " $final_exclude_path$")" != "" || "$(echo "$full_content" | grep -E " $final_exclude_path/$")" != "" || "$(echo "$full_content" | grep -E " $final_exclude_path -> .*$")" != "" ]]; then
+							if [[ "$final_exclude_paths" != "" ]]; then
+								final_exclude_paths+=" "
+							fi
+							final_exclude_paths+="--exclude $final_exclude_path"
+						fi
+					done
+				fi
 			fi
 
-			cmd+=" $filepath/$filename.$fileext -C /"
+			if [[ "$cmd" != "" ]]; then
+				cmd+=" $filepath/$filename.$fileext -C /"
 
-			if [[ "$final_exclude_paths" != "" ]]; then
-				cmd+=" $final_exclude_paths"
-			fi
+				if [[ "$final_exclude_paths" != "" ]]; then
+					cmd+=" $final_exclude_paths"
+				fi
 
-			if [[ "$final_paths" != "" ]]; then
-				cmd+=" $final_paths"
+				if [[ "$final_paths" != "" ]]; then
+					cmd+=" $final_paths"
+				fi
 			fi
 
 			local go_ahead=0
-			if [[ $force -eq 1 || $ARG_QUIET -eq 1 ]]; then
-				go_ahead=1
-			else
-				msg="\${yellow}The following files/dirs/patterns will be restored"
-				if [[ $noversion -ne 1 ]]; then
-					msg+=" (run with \${red}--no-version\${yellow} if you don't want to import any version-related file)"
-				fi
-				msg+=":\${reset}"
-				for partial_path in $(echo "$final_paths"); do
-					msg+="\n	\${magenta}(/)$partial_path\${reset}"
-				done
-				msg+="\n\${yellow}The following files/dirs/patterns will be excluded!\${reset}"
-				for final_exclude_path in $(echo "$final_exclude_paths"); do
-					if [[ "$(echo "$final_exclude_path" | grep -E '\-\-exclude')" = "" ]]; then
-						msg+="\n	\${red}(/)$final_exclude_path\${reset}"
-					fi
-				done
-				__echo -e "$msg"
-
-				__echo -n "Continue? [y/n] "
-				read answer
-				if [[ "$(echo $answer | awk '{print tolower($0)}')" = "y" ]]; then
+			if [[ "$cmd" != "" ]]; then
+				if [[ $force -eq 1 || $ARG_QUIET -eq 1 ]]; then
 					go_ahead=1
+				else
+					msg="\${yellow}The following files/dirs/patterns will be restored"
+					if [[ $noversion -ne 1 ]]; then
+						msg+=" (run with \${red}--no-version\${yellow} if you don't want to import any version-related file)"
+					fi
+					msg+=":\${reset}"
+					for partial_path in $(echo "$final_paths"); do
+						msg+="\n	\${magenta}(/)$partial_path\${reset}"
+					done
+					msg+="\n\${yellow}The following files/dirs/patterns will be excluded!\${reset}"
+					for final_exclude_path in $(echo "$final_exclude_paths"); do
+						if [[ "$(echo "$final_exclude_path" | grep -E '\-\-exclude')" = "" ]]; then
+							msg+="\n	\${red}(/)$final_exclude_path\${reset}"
+						fi
+					done
+					__echo -e "$msg"
+
+					__echo -n "Continue? [y/n] "
+					read answer
+					if [[ "$(echo $answer | awk '{print tolower($0)}')" = "y" ]]; then
+						go_ahead=1
+					fi
 				fi
 			fi
 
@@ -9290,41 +9321,45 @@ _restore(){
 				local pathology_name
 				local cde_file_path
 				local db_file_path
-				for symlink in "$(tar tvzf $filepath/$filename.$fileext | grep '^l')"; do
-					symlink_target=$(echo $symlink | awk '{print $NF}')
-					__debug --level 7 "symlink_target=<$symlink_target>"
-					symlink_path=$(echo $symlink | awk '{print $(NF-2)}')
-					_contains "$final_paths" "$symlink_path"
-					local ret=$?
-					symlink_path="/$symlink_path"
-					__debug --level 7 "symlink_path=<$symlink_path>"
-					if [[ $ret -eq 0 && (( -f $symlink_path || -d $symlink_path )) && (( -f $symlink_target || -d $symlink_target )) ]]; then
-						__debug --level 7 "symlink_path and symlink_target exist, and is planned to be restored"
-						if [[ -d $symlink_target && "$(basename $symlink_target)" = "data" ]]; then
-							__debug --level 7 "symlink_target is a data directory"
-							for cde_file_path in $(find $symlink_target -name CDEsMetadata.json); do
-								cde_file_path=$(realpath $cde_file_path)
-								__debug --level 7 "cde_file_path=<$cde_file_path>"
-								pathology_dir=$(dirname $cde_file_path)
-								__debug --level 7 "pathology_dir=<$pathology_dir>"
-								pathology_name=$(basename $pathology_dir)
-								__debug --level 7 "pathology_name=<$pathology_name>"
-								if [[ -f $symlink_path/$pathology_name/CDEsMetadata.json ]]; then
-									__debug --level 6 "mv $pathology_dir/CDEsMetadata.json $pathology_dir/CDEsMetadata.json.bak$(date +'%Y%m%d%H%M%S')"
-									mv $pathology_dir/CDEsMetadata.json $pathology_dir/CDEsMetadata.json.bak$(date +'%Y%m%d%H%M%S')
-									__debug --level 6 "cp $symlink_path/$pathology_name/CDEsMetadata.json $pathology_dir/"
-									cp $symlink_path/$pathology_name/CDEsMetadata.json $pathology_dir/
-									if [[ -f $pathology_dir/datasets.db ]]; then
-										__debug --level 6 "rm $pathology_dir/datasets.db"
-										rm $pathology_dir/datasets.db
+				if [[ "$(tar tvzf $filepath/$filename.$fileext | grep '^l')" != "" ]]; then
+					for symlink in "$(tar tvzf $filepath/$filename.$fileext | grep '^l')"; do
+						__debug --level 7 "symlink=<$symlink>"
+						symlink_target=$(echo $symlink | awk '{print $NF}')
+						__debug --level 7 "symlink_target=<$symlink_target>"
+						symlink_path=$(echo $symlink | awk '{print $(NF-2)}')
+						__debug --level 7 "symlink_path=<$symlink_path>"
+						_contains "$final_paths" "$symlink_path"
+						local ret=$?
+						symlink_path="/$symlink_path"
+						__debug --level 7 "symlink_path=<$symlink_path>"
+						if [[ $ret -eq 0 && (( -f $symlink_path || -d $symlink_path )) && (( -f $symlink_target || -d $symlink_target )) ]]; then
+							__debug --level 7 "symlink_path and symlink_target exist, and is planned to be restored"
+							if [[ -d $symlink_target && "$(basename $symlink_target)" = "data" ]]; then
+								__debug --level 7 "symlink_target is a data directory"
+								for cde_file_path in $(find $symlink_target -name CDEsMetadata.json); do
+									cde_file_path=$(realpath $cde_file_path)
+									__debug --level 7 "cde_file_path=<$cde_file_path>"
+									pathology_dir=$(dirname $cde_file_path)
+									__debug --level 7 "pathology_dir=<$pathology_dir>"
+									pathology_name=$(basename $pathology_dir)
+									__debug --level 7 "pathology_name=<$pathology_name>"
+									if [[ -f $symlink_path/$pathology_name/CDEsMetadata.json ]]; then
+										__debug --level 6 "mv $pathology_dir/CDEsMetadata.json $pathology_dir/CDEsMetadata.json.bak$(date +'%Y%m%d%H%M%S')"
+										mv $pathology_dir/CDEsMetadata.json $pathology_dir/CDEsMetadata.json.bak$(date +'%Y%m%d%H%M%S')
+										__debug --level 6 "cp $symlink_path/$pathology_name/CDEsMetadata.json $pathology_dir/"
+										cp $symlink_path/$pathology_name/CDEsMetadata.json $pathology_dir/
+										if [[ -f $pathology_dir/datasets.db ]]; then
+											__debug --level 6 "rm $pathology_dir/datasets.db"
+											rm $pathology_dir/datasets.db
+										fi
 									fi
-								fi
-							done
+								done
+							fi
+							__debug --level 6 "rm -rf $symlink_path 2>/dev/null"
+							rm -rf $symlink_path 2>/dev/null
 						fi
-						__debug --level 6 "rm -rf $symlink_path 2>/dev/null"
-						rm -rf $symlink_path 2>/dev/null
-					fi
-				done
+					done
+				fi
 			fi
 
 			if [[ $go_ahead -eq 1 ]]; then
@@ -10223,8 +10258,98 @@ _early_depends_install(){
 	fi
 }
 
+_install_mip_script(){
+	__debug --level 4 "_install_mip_script($*)"
+
+	local ret=1
+
+	local httpcode=""
+	local mode="wanted"
+	local filename="mip"
+	local part=$filename
+	local targetpath="/usr/local/bin/$filename"
+
+	cmd="_get_mip"
+	cmdargs=()
+	cmdargs+=("--mode $mode")
+	cmdargs+=("--part $part")
+	cmdargs+=("--release")
+	if [[ "$ARG_COMMIT" != "" || "$ARG_BRANCH" != "" || "$ARG_VERSION" != "" ]]; then
+		if [[ $ARG_FORCE_INSTALL_UNSTABLE -eq 1 ]]; then
+			if [[ "$ARG_COMMIT" != "" ]]; then
+				cmdargs+=("--commit $ARG_COMMIT")
+			elif [[ "$ARG_BRANCH" != "" ]]; then
+				cmdargs+=("--branch $ARG_BRANCH")
+			elif [[ "$ARG_VERSION" != "" ]]; then
+				cmdargs+=("--tag $ARG_VERSION")
+			fi
+		else
+			__red "For any specific installation, consider using '--force-install-unstable'!"
+			exit $ret
+		fi
+	fi
+
+	local ret_part_vars="git_owner git_repo tag branch commit"
+	local ret_vars="part $ret_part_vars"
+	local ret_wanted_mip_version
+
+	for varname in $(echo "$ret_vars"); do
+		varname=$(echo $varname | sed 's/_/-/g')
+		retvarname="${mode}_$(echo $varname | sed 's/-/_/g')"
+		cmdargs+=("--${varname}-return-var ${retvarname}")
+	done
+
+	__debug --level 6 ${cmd}${cmdargs[@]}
+	$cmd ${cmdargs[@]}
+	ret=$?
+
+	if [[ "$wanted_part" != "" && "$wanted_git_owner" != "" && "$wanted_git_repo" != "" && ( "$wanted_tag" != "" || "$wanted_branch" != "" || "$wanted_commit" != "" ) ]]; then
+		if [[ -f $targetpath && $ARG_FORCE -ne 1 ]]; then
+			__red "The targetted file <$targetpath> already exists! If you want to replace it, consider using --force"
+			exit 1
+		fi
+
+		local cmd="_get_github_file"
+		local cmdargs=()
+		cmdargs+=("--httpcodevar httpcode")
+		cmdargs+=("--onthefly-tagging")
+		cmdargs+=("--owner $wanted_git_owner")
+		cmdargs+=("--repo $wanted_git_repo")
+		cmdargs+=("--mode file")
+		if [[ "$wanted_commit" != "" ]]; then
+			cmdargs+=("--commit $wanted_commit")
+		elif [[ "$wanted_branch" != "" ]]; then
+			cmdargs+=("--branch $wanted_branch")
+		elif [[ "$wanted_tag" != "" ]]; then
+			cmdargs+=("--tag $wanted_tag")
+		fi
+		cmdargs+=("--filename $filename")
+		cmdargs+=("--targetpath $targetpath")
+
+		__debug --level 6 ${cmd}${cmdargs[@]}
+		$cmd ${cmdargs[@]}
+		ret=$?
+	fi
+
+	if [[ $ret -eq 0 && "$httpcode" = "200" && -f $targetpath ]]; then
+		__debug --level 5 "chmod +x $targetpath"
+		chmod +x $targetpath
+	else
+		__red "Something went wrong during the attempt to download $filename (HTTP code <$httpcode>). Therefore, it can't be installed!"
+	fi
+
+	return $ret
+}
+
 _install_mip(){
 	__debug --level 4 "_install_mip($*)"
+
+	if [[ $ARG_SELF -eq 1 ]]; then
+		_install_mip_script
+		local ret=$?
+		exit $ret
+	fi
+
 	__yellow -n "Checking dependencies..."
 
 	_check_os -v

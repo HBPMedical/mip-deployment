@@ -1,4 +1,4 @@
-<a href="Readme.md#PreparingUI">Federated MIP Deployment</a> -> `Preparing the ui node`
+[Federated MIP Deployment](Readme.md#PreparingUI) -> `Preparing the ui node`
 
 # Preparing the **ui** node
 1. Install the **ui**

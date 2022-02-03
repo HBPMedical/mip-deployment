@@ -1,20 +1,20 @@
-<a href="OperatingMIPFederation.md#SynchronizingKeycloakRoles">Operating the MIP Federation</a> -> `Synchronizing the KeyCloak Roles`
+[Operating the MIP Federation](OperatingMIPFederation.md#SynchronizingKeycloakRoles) -> `Synchronizing the KeyCloak Roles`
 
 # Synchronizing the KeyCloak Roles
 The Authentication (AuthN) and the authorization (AuthZ) processes of the MIP are managed by *KeyCloak*, which is usually, as the opposite of the *Local* MIP, an **external** service, which is by default in the EBRAINS infrastructure.  
 The roles are taken into account by the MIP Web interface, each role name being parsed and then checked to show (or not) certain items (features, pathologies, datasets...)  
-Then, within a federation, which may have many different pathologies and datasets, amongst many different nodes, the number of roles can rapidly increase, and also, each time you change anything related to these things, you will have to change roles accordingly into the KeyCloak interface (to have an idea of the MIP-related roles naming convention, read this <a href="../../documentation/UserAuthorizations.md">guide</a>.
+Then, within a federation, which may have many different pathologies and datasets, amongst many different nodes, the number of roles can rapidly increase, and also, each time you change anything related to these things, you will have to change roles accordingly into the KeyCloak interface (to have an idea of the MIP-related roles naming convention, read this [guide](../../documentation/UserAuthorizations.md).
 
 The KeyCloak's interface is excruciatingly slow and clearly not ergonomic at all. Additionally, it's way not MIP-comprehensive. All this will make you lose a considerable amount of time, and with the complexity and sensitivity of this process, you will probably do mistakes as well!
 
 In an attempt to drastically reduce the required time to do this, and also eliminate the risk of human errors, a roles synchronization script has been written, and is introduced into the *mip-deployment* starting with the MIP 6.5 release.  
 This script should be automatically installed in the **pusher** node, as it **has** to be executed from there!
 
-### Preparing the *realm-management* client and the *realmadmin* realm user in KeyCloak
+### <a id="PreparingKeycloak">Preparing the *realm-management* client and the *realmadmin* realm user in KeyCloak</a>
 Prior to run anything here, you need to make sure that the KeyCloak server's *realm* is ready to be used by the script. In other words, the *keycloak_roles_sync.py* script needs a realm client (with certain configurations and roles) and a realm user (using this realm client).  
 For that purpose, you will need to use a KeyCloak Administrator who has all the required privileges to fully manage the realm.
 
-In order to do this, follow this <a id="PreparingKeycloak" href="PreparingKeycloakRealmClient.md">guide</a>.
+In order to do this, follow this [guide](PreparingKeycloakRealmClient.md).
 
 ### Exporting the MIP Federation data structure
 As the synchronization script will use a JSON file representing the federation structure (nodes, pathologies, datasets), we have to generate this file with the *mip* script, prior to using the *keycloak_roles_sync.py* script.  
