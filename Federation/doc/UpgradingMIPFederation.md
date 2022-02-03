@@ -143,7 +143,7 @@ CTRL+j d
 
 ### Regenerate the *tmux* session
 ```
-tmux --pusher --federation <FEDERATION_NAME> --force tmux
+mip --pusher --federation <FEDERATION_NAME> --force tmux
 ```
 
 ### Stop the services
