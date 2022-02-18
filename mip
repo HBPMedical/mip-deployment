@@ -5164,8 +5164,8 @@ _configure_pusher(){
 				fi
 				GLOBAL_ANSIBLE_VAULT_PASSWORD=""
 			else
-				nodecount=$(cat $SSH_PATH/.ssh/config|grep '^Host'|wc -l)
-				nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+				nodecount=$(cat $SSH_PATH/.ssh/config|grep 'Host '|wc -l)
+				nodes=$(cat $SSH_PATH/.ssh/config|awk '/Host / {print $NF}')
 			fi
 		fi
 
@@ -5262,9 +5262,9 @@ _configure_pusher(){
 			if [[ $(expr $nodeid - 1) -lt $nodecount ]]; then
 				linenb=$(bc <<< "($nodeid - 1) * 5 + 1")
 				host=$(sed -n ${linenb}p $SSH_PATH/.ssh/config|awk '{print $NF}')
-				hostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$host\b$"|awk '/Hostname / {print $2}')
-				user=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$host\b$"|awk '/User / {print $2}')
-				identityfile=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$host\b$"|awk '/IdentityFile / {print $2}')
+				hostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "Host .*\b$host\b$"|awk '/Hostname / {print $2}')
+				user=$(cat $SSH_PATH/.ssh/config|grep -A3 "Host .*\b$host\b$"|awk '/User / {print $2}')
+				identityfile=$(cat $SSH_PATH/.ssh/config|grep -A3 "Host .*\b$host\b$"|awk '/IdentityFile / {print $2}')
 				if [[ -s $ANSIBLE_HOSTS_FILE ]]; then
 					nodeansiblename=$(cat $ANSIBLE_HOSTS_FILE|grep "ansible_host=$hostname"|awk '{print $1}')
 					if [[ "$nodeansiblename" != "" ]]; then
@@ -5552,8 +5552,8 @@ _generate_tmux_config(){
 				exit 1
 			fi
 			__echo "Generating new tmux session..."
-			local nodecount=$(cat $SSH_PATH/.ssh/config | grep '^Host'|wc -l)
-			local nodes=$(cat $SSH_PATH/.ssh/config | awk '/^Host/ {print $NF}')
+			local nodecount=$(cat $SSH_PATH/.ssh/config | grep 'Host '|wc -l)
+			local nodes=$(cat $SSH_PATH/.ssh/config | awk '/Host / {print $NF}')
 
 			#nodecount=5
 
@@ -6797,10 +6797,10 @@ _node_exists(){
 	local node="$1"
 
 	if [[ -f $SSH_PATH/.ssh/config ]]; then
-		local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+		local nodes=$(cat $SSH_PATH/.ssh/config|awk '/Host / {print $NF}')
 		local nodes_hostnames=$(cat $SSH_PATH/.ssh/config|awk '/Hostname / {print $NF}')
-		local nodes_shortnames=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $2}')
-		local nodecount=$(cat $SSH_PATH/.ssh/config|awk '/^Host/'|wc -l)
+		local nodes_shortnames=$(cat $SSH_PATH/.ssh/config|awk '/Host / {print $2}')
+		local nodecount=$(cat $SSH_PATH/.ssh/config|awk '/Host /'|wc -l)
 	fi
 
 	_contains "$nodes" "$node"
@@ -6829,10 +6829,12 @@ _get_node(){
 
 	local machine=""
 	local node_var=""
+	local node_enabled_var=""
 	local node_id_var=""
 	local node_shortname_var=""
 	local node_localhostname_var=""
 	local node_ip_var=""
+	local node_port_var=""
 	local node_user_var=""
 	local node_identity_var=""
 
@@ -6851,6 +6853,15 @@ _get_node(){
 			--node-return-var)
 				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
 					node_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
+				;;
+			--node-enabled-return-var)
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					node_enabled_var=$2
 					shift
 					shift
 				else
@@ -6893,6 +6904,15 @@ _get_node(){
 					shift
 				fi
 				;;
+			--node-port-return-var)
+				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
+					node_port_var=$2
+					shift
+					shift
+				else
+					shift
+				fi
+				;;
 			--node-user-return-var)
 				if [[ "$(echo $2|cut -c1)" != "-" ]]; then
 					node_user_var=$2
@@ -6921,16 +6941,22 @@ _get_node(){
 
 	if [[ "$machine" != "" ]]; then
 		if [[ -f $SSH_PATH/.ssh/config ]]; then
-			local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+			local nodes=$(cat $SSH_PATH/.ssh/config|awk '/Host / {print $NF}')
+			local res_nodeenabled=0
 			local res_nodeid=0
 			local res_nodeshortname
 			local res_nodelocalhostname
 			local res_nodeip
+			local res_nodeport
 			local res_nodeuser
 			local res_nodeidentity
 			for res_node in $nodes; do
-				res_nodeshortname=$(cat $SSH_PATH/.ssh/config|grep "^Host .*\b$res_node\b"|awk '{print $2}')
-				res_nodelocalhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$res_node\b"|awk '/Hostname / {print $2}')
+				res_nodeenabled=0
+				if [[ "$(cat $SSH_PATH/.ssh/config|grep -E "^Host .*\b$res_node\b"|awk '{print $2}')" != "" ]]; then
+					res_nodeenabled=1
+				fi
+				res_nodeshortname=$(cat $SSH_PATH/.ssh/config|grep "Host .*\b$res_node\b"|awk '{print $2}')
+				res_nodelocalhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "Host .*\b$res_node\b"|awk '/Hostname / {print $2}')
 				_valid_IPv4 $res_nodelocalhostname
 				ret=$?
 				if [[ $ret -ne 0 ]]; then
@@ -6938,8 +6964,12 @@ _get_node(){
 				else
 					res_nodeip=$res_nodelocalhostname
 				fi
-				res_nodeuser=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$res_node\b"|awk '/User / {print $2}')
-				res_nodeidentity=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$res_node\b"|awk '/IdentityFile / {print $2}')
+				res_nodeport=$(cat $SSH_PATH/.ssh/config|grep -A4 "Host .*\b$res_node\b"|awk '/Port / {print $2}')
+				if [[ "$res_nodeport" = "" ]]; then
+					res_nodeport="22"
+				fi
+				res_nodeuser=$(cat $SSH_PATH/.ssh/config|grep -A3 "Host .*\b$res_node\b"|awk '/User / {print $2}')
+				res_nodeidentity=$(cat $SSH_PATH/.ssh/config|grep -A3 "Host .*\b$res_node\b"|awk '/IdentityFile / {print $2}')
 
 				_contains "$res_nodeid $res_nodeshortname $res_node $res_nodelocalhostname $res_nodeip" "$machine"
 				ret=$?
@@ -6957,6 +6987,9 @@ _get_node(){
 				if [[ "$node_var" != "" ]]; then
 					eval "$node_var='$res_node'"
 				fi
+				if [[ "$node_enabled_var" != "" ]]; then
+					eval "$node_enabled_var='$res_nodeenabled'"
+				fi
 				if [[ "$node_id_var" != "" ]]; then
 					eval "$node_id_var='$res_nodeid'"
 				fi
@@ -6968,6 +7001,9 @@ _get_node(){
 				fi
 				if [[ "$node_ip_var" != "" ]]; then
 					eval "$node_ip_var='$res_nodeip'"
+				fi
+				if [[ "$node_port_var" != "" ]]; then
+					eval "$node_port_var='$res_nodeport'"
 				fi
 				if [[ "$node_user_var" != "" ]]; then
 					eval "$node_user_var='$res_nodeuser'"
@@ -10386,15 +10422,26 @@ _ssh(){
 		fi
 
 		local node
+		local nodeenabled=0
 		local nodehostname
 		local nodeip
+		local nodeport
 		local nodeuser
-		_get_node --node "$ARG_NODE" --node-return-var 'node' --node-localhostname-return-var 'nodehostname' --node-ip-return-var 'nodeip' --node-user-return-var 'nodeuser'
+		_get_node --node "$ARG_NODE" --node-return-var 'node' --node-enabled-return-var 'nodeenabled' --node-localhostname-return-var 'nodehostname' --node-ip-return-var 'nodeip' --node-port-return-var 'nodeport' --node-user-return-var 'nodeuser'
 		if [[ "$node" != "" || "$nodeip" != "" ]]; then
-			if [[ "$altuser" != "" && "$altuser" != "$nodeuser" ]]; then
-				ssh $SSH_OPTIONS $altuser@$nodeip 2>/dev/null
+			if [[ $nodeenabled -eq 1 ]]; then
+				if [[ "$altuser" != "" && "$altuser" != "$nodeuser" ]]; then
+					local portparam=''
+					if [[ "$nodeport" != "22" ]]; then
+						portparam="-p $nodeport "
+					fi
+					ssh ${portparam}$SSH_OPTIONS $altuser@$nodeip 2>/dev/null
+				else
+					ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null
+				fi
 			else
-				ssh -F $SSH_PATH/.ssh/config $SSH_OPTIONS $node 2>/dev/null
+				__red "This node is currently disabled!"
+				exit 1
 			fi
 		else
 			__red "Can't find node <$ARG_NODE>!"
@@ -10421,32 +10468,43 @@ _ssh_mc(){
 		fi
 
 		local node
+		local nodeenabled=0
 		local nodehostname
 		local nodeip
+		local nodeport
 		local nodeuser
 		local nodeidentity
-		_get_node --node "$ARG_NODE" --node-return-var 'node' --node-localhostname-return-var 'nodehostname' --node-ip-return-var 'nodeip' --node-user-return-var 'nodeuser' --node-identity-return-var 'nodeidentity'
+		_get_node --node "$ARG_NODE" --node-return-var 'node' --node-enabled-return-var 'nodeenabled' --node-localhostname-return-var 'nodehostname' --node-ip-return-var 'nodeip' --node-port-return-var 'nodeport' --node-user-return-var 'nodeuser' --node-identity-return-var 'nodeidentity'
 		if [[ "$node" != "" || "$nodeip" != "" ]]; then
-			if [[ "$altuser" != "" && "$altuser" != "$nodeuser" ]]; then
-				nodeuser="$altuser"
+			if [[ $nodeenabled -eq 1 ]]; then
+				if [[ "$altuser" != "" && "$altuser" != "$nodeuser" ]]; then
+					nodeuser="$altuser"
+				else
+					altuser=""
+				fi
 			else
-				altuser=""
+				__red "This node is currently disabled!"
+				exit 1
 			fi
 		else
 			__red "Can't find node <$ARG_NODE>!"
 			exit 1
 		fi
 
+		local portparam=''
+		if [[ "$nodeport" != "22" ]]; then
+			portparam=":$nodeport"
+		fi
 		if [[ "$altuser" = "" && "$nodeuser" != "" && "$nodeidentity" != "" ]]; then
 			eval $(ssh-agent) >/dev/null
 			ssh-add $nodeidentity >/dev/null 2>&1
-			mc sh://$nodeuser@$nodeip
+			mc sh://$nodeuser@${nodeip}${portparam}
 			ssh-agent -k >/dev/null
 		else
 			if [[ "$altuser" != "" ]]; then
-				mc sh://$altuser@$nodeip
+				mc sh://$altuser@${nodeip}${portparam}
 			else
-				mc sh://$nodeip
+				mc sh://${nodeip}${portparam}
 			fi
 		fi
 	else
