@@ -6737,11 +6737,15 @@ _disable_node(){
 		fi
 
 		if [[ "$1" != "" && "$(cat $SSH_PATH/.ssh/config | grep -E "Host .*\b$1\b")" != "" ]]; then
+			__debug --level 6 "Node exists in SSH config"
 			if [[ "$(cat $SSH_PATH/.ssh/config | grep -E "^Host .*\b$1\b")" != "" ]]; then
+				__debug --level 6 "Node is currently enabled"
 				if [[ $ARG_QUIET -ne 1 ]]; then
 					__debug --color "yellow" "WARNING: Disabling node <$1>!"
 				fi
-				sed --in-place "s/^Host $1$/#Host $1/" $SSH_PATH/.ssh/config
+				local full_node_line=$(cat $SSH_PATH/.ssh/config | grep -E "Host .*\b$1\b.*")
+				__debug --level 5 "sed --in-place \"s/^${full_node_line}\$/#${full_node_line}/\" $SSH_PATH/.ssh/config"
+				sed --in-place "s/^${full_node_line}$/#${full_node_line}/" $SSH_PATH/.ssh/config
 			fi
 
 			if [[ "$(cat $SSH_PATH/.ssh/config | grep -E "^Host .*\b$1\b")" = "" && "$(cat $SSH_PATH/.ssh/config | grep -E "^#Host .*\b$1\b")" != "" ]]; then
@@ -6763,11 +6767,15 @@ _enable_node(){
 		fi
 
 		if [[ "$1" != "" && "$(cat $SSH_PATH/.ssh/config | grep -E "Host .*\b$1\b")" != "" ]]; then
+			__debug --level 6 "Node exists in SSH config"
 			if [[ "$(cat $SSH_PATH/.ssh/config | grep -E "^#Host .*\b$1\b")" != "" ]]; then
+				__debug --level 6 "Node is currently disabled"
 				if [[ $ARG_QUIET -ne 1 ]]; then
 					__debug --color "yellow" "WARNING: Enabling node <$1>!"
 				fi
-				sed --in-place "s/^#Host $1$/Host $1/" $SSH_PATH/.ssh/config
+				local full_node_line=$(cat $SSH_PATH/.ssh/config | grep -E "Host .*\b$1\b.*" | cut -c2-)
+				__debug --level 5 "sed --in-place \"s/^#${full_node_line}\$/${full_node_line}/\" $SSH_PATH/.ssh/config"
+				sed --in-place "s/^#${full_node_line}$/${full_node_line}/" $SSH_PATH/.ssh/config
 			fi
 
 			if [[ "$(cat $SSH_PATH/.ssh/config | grep -E "^#Host .*\b$1\b")" = "" && "$(cat $SSH_PATH/.ssh/config | grep -E "^Host .*\b$1\b")" != "" ]]; then
@@ -7222,11 +7230,19 @@ _node(){
 							if [[ $ret -eq 0 ]]; then
 								if [[ $enabled -ne 1 ]]; then
 									_enable_node "$node"
+									ret=$?
+									if [[ $ret -ne 0 ]]; then
+										__debug --color "red" "There was a problem while trying to enable <$node> node!"
+									fi
 								fi
 							else
 								if [[ $enabled -ne 0 ]]; then
 									_disable_node "$node"
-									if [[ $nodeid -lt 2 ]]; then
+									ret=$?
+									if [[ $ret -ne 0 ]]; then
+										__debug --color "red" "There was a problem while trying to disable <$node> node!"
+									fi
+									if [[ $ret -eq 0 && $nodeid -lt 2 ]]; then
 										__debug --color "red" "WARNING! This federation CAN'T work without this essential node: <$node>!!"
 									fi
 								fi
@@ -7237,12 +7253,18 @@ _node(){
 						ret=1
 						_enable_node "$node"
 						ret=$?
+						if [[ $ret -ne 0 ]]; then
+							__debug --color "red" "There was a problem while trying to enable <$node> node!"
+						fi
 						;;
 					disable)
 						ret=1
 						_disable_node "$node"
 						ret=$?
-						if [[ $nodeid -lt 2 ]]; then
+						if [[ $ret -ne 0 ]]; then
+							__debug --color "red" "There was a problem while trying to disable <$node> node!"
+						fi
+						if [[ $ret -eq 0 && $nodeid -lt 2 ]]; then
 							__debug --color "red" "WARNING! This federation CAN'T work without this essential node: <$node>!!"
 						fi
 						;;
