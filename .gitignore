@@ -6,6 +6,9 @@ logs/
 Federation/data
 Federation/logs
 Federation/.combined_env
+tests/portal_backend_integration_tests/setup/poetry.lock
 federated
 local
+venv/
+__pycache__
 **/.fuse*

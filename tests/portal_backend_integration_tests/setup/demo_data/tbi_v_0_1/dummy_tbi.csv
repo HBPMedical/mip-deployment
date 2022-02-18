@@ -1,6 +1,6 @@
 age_value,gender_type,gcs_eye_response_scale,gcs_motor_response_scale,gcs_verbal_response_scale,pupil_reactivity_right_eye_result,pupil_reactivity_left_eye_result,gcs_total_score,cisternal_compression_status,epidural_hematoma_anatomic_status,midline_shift_supratentorial_indicator,marshall_ct_classification_code,hypoxic_episode_indicator,hypotensive_episode_indicator,gose_score,laboratory_procedure_glucose_value,laboratory_procedure_hemoglobin_value,dataset,mortality_core,mortality_gose,subjectcode
 8,F,,2,,Brisk,Sluggish,,,,,,,,,,,dummy_tbi,0.741482390043395,0,0
-17,F,,1,,Brisk,Nonreactive,,,,,,,,1,,,dummy_tbi,0.976743123048618,0,1
+17,F,,1,,Brisk,Nonreactive,,,,,,,,3,,,dummy_tbi,0.976743123048618,0,1
 17,F,,1,,Brisk,Brisk,,,,,,,,4,,,dummy_tbi,0.885776417274072,1,2
 17,F,,Untestable,,Nonreactive,Nonreactive,,,,,,,,3,,,dummy_tbi,0.017010589573197,1,3
 17,F,,6,,Brisk,Brisk,,,,,,,,,,,dummy_tbi,0.834956686677029,0,4

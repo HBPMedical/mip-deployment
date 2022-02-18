@@ -1,0 +1,238 @@
+version: '3.2'
+
+services:
+  exareme_keystore:
+    image: bitnami/consul:1.8.3
+    environment:
+      - CONSUL_AGENT_MODE=server
+      - CONSUL_BOOTSTRAP_EXPECT=1
+      - CONSUL_CLIENT_LAN_ADDRESS=0.0.0.0
+      - CONSUL_ENABLE_UI=true
+    restart: unless-stopped
+
+  exareme_master:
+    image: hbpmip/exareme:${EXAREME}
+    ports:
+      - '9090:9090'
+    environment:
+      - CONSULURL=exareme_keystore:8500
+      - FEDERATION_ROLE=master
+      - NODE_NAME=miplocal
+      - TEMP_FILES_CLEANUP_TIME=30
+      - NODE_COMMUNICATION_TIMEOUT=30000        # (MILIS) NODE COMMUNICATION WILL DROP IF TIMEOUT IS PASSED
+      - ENVIRONMENT_TYPE=PROD                   # TEST / DEV / PROD
+      - LOG_LEVEL=INFO                          # INFO / DEBUG
+      - CONVERT_CSVS=TRUE                      # TRUE / FALSE
+    depends_on:
+      - exareme_keystore
+    volumes:
+      - ../../../data:/root/exareme/data/
+    restart: unless-stopped
+
+  rabbitmq_globalnode:
+    image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
+    ports:
+      - "5670:5672"
+    environment:
+      - RABBITMQ_ADMIN_USER=user
+      - RABBITMQ_ADMIN_PASSWORD=password
+      - RABBITMQ_ADMIN_VHOST=user_vhost
+      - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  rabbitmq_localnode1:
+    image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
+    ports:
+      - "5671:5672"
+    environment:
+      - RABBITMQ_ADMIN_USER=user
+      - RABBITMQ_ADMIN_PASSWORD=password
+      - RABBITMQ_ADMIN_VHOST=user_vhost
+      - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  rabbitmq_localnode2:
+    image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
+    ports:
+      - "5672:5672"
+    environment:
+      - RABBITMQ_ADMIN_USER=user
+      - RABBITMQ_ADMIN_PASSWORD=password
+      - RABBITMQ_ADMIN_VHOST=user_vhost
+      - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  monetdb_globalnode:
+    image: madgik/mipenginedb:${MIP_ENGINE}
+    ports:
+      - "50000:50000"
+
+  monetdb_localnode1:
+    image: madgik/mipenginedb:${MIP_ENGINE}
+    ports:
+      - "50001:50000"
+
+  monetdb_localnode2:
+    image: madgik/mipenginedb:${MIP_ENGINE}
+    ports:
+      - "50002:50000"
+
+  mipengine_globalnode:
+    image: madgik/mipengine_node:${MIP_ENGINE}
+    environment:
+      - NODE_IDENTIFIER=globalnode
+      - NODE_ROLE=GLOBALNODE
+      - LOG_LEVEL=INFO
+      - FRAMEWORK_LOG_LEVEL=INFO
+      - RABBITMQ_IP=172.17.0.1
+      - RABBITMQ_PORT=5670
+      - MONETDB_IP=172.17.0.1
+      - MONETDB_PORT=50000
+    depends_on:
+      - rabbitmq_globalnode
+      - monetdb_globalnode
+    restart: unless-stopped
+
+  mipengine_localnode1:
+    image: madgik/mipengine_node:${MIP_ENGINE}
+    environment:
+      - NODE_IDENTIFIER=localnode1
+      - NODE_ROLE=LOCALNODE
+      - LOG_LEVEL=INFO
+      - FRAMEWORK_LOG_LEVEL=INFO
+      - RABBITMQ_IP=172.17.0.1
+      - RABBITMQ_PORT=5671
+      - MONETDB_IP=172.17.0.1
+      - MONETDB_PORT=50001
+    depends_on:
+      - rabbitmq_localnode1
+      - monetdb_localnode1
+    restart: unless-stopped
+
+  mipengine_localnode2:
+    image: madgik/mipengine_node:${MIP_ENGINE}
+    environment:
+      - NODE_IDENTIFIER=localnode2
+      - NODE_ROLE=LOCALNODE
+      - LOG_LEVEL=INFO
+      - FRAMEWORK_LOG_LEVEL=INFO
+      - RABBITMQ_IP=172.17.0.1
+      - RABBITMQ_PORT=5672
+      - MONETDB_IP=172.17.0.1
+      - MONETDB_PORT=50002
+    depends_on:
+      - rabbitmq_localnode2
+      - monetdb_localnode2
+    restart: unless-stopped
+
+  mipengine_controller:
+    image: madgik/mipengine_controller:${MIP_ENGINE}
+    ports:
+      - '5000:5000'
+    environment:
+      - LOG_LEVEL=DEBUG
+      - FRAMEWORK_LOG_LEVEL=INFO
+      - CDES_METADATA_PATH=/opt/data
+      - DEPLOYMENT_TYPE=LOCAL
+      - NODE_REGISTRY_UPDATE_INTERVAL=30
+      - LOCALNODES_CONFIG_FILE=/opt/config/localnodes_config.json
+    volumes:
+      - ./config/:/opt/config/
+      - ./demo_data/:/opt/data/
+    restart: unless-stopped
+
+  portalbackend_db:
+    image: postgres:11.3-alpine
+    volumes:
+      - ./.stored_data/portalbackenddb:/var/lib/postgresql/data
+    hostname: portalbackend_db
+    environment:
+      POSTGRES_PASSWORD: test
+    command: -p 5433
+    expose:
+      - 5433
+    restart: unless-stopped
+
+  create_dbs:
+    image: hbpmip/create-databases:1.1.0
+    environment:
+      DB_HOST: portalbackend_db
+      DB_PORT: 5433
+      DB_ADMIN_USER: postgres
+      DB_ADMIN_PASSWORD: test
+      DB4: portal
+      USER4: portal
+      PASSWORD4: portalpwd
+    depends_on:
+      - portalbackend_db
+    restart: on-failure
+
+  portalbackend:
+    image: hbpmip/portal-backend:${PORTALBACKEND}
+    ports:
+      - '8080:8080'
+      - '8089:8089'
+    environment:
+      ### API ###
+      LOG_LEVEL: INFO
+      LOG_LEVEL_FRAMEWORK: INFO
+      AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
+      ### Database ###
+      PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
+      PORTAL_DB_SERVER: portalbackend_db:5433
+      PORTAL_DB_USER: portal
+      PORTAL_DB_PASSWORD: portalpwd
+      ### MIP-Engine ###
+      MIPENGINE_URL: http://172.17.0.1:5000
+      ### Exareme ###
+      EXAREME_URL: http://exareme_master:9090
+      ### Galaxy ###
+      #GALAXY_URL: http://galaxy
+      #GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
+      #GALAXY_USERNAME: admin
+      #GALAXY_PASSWORD: password
+      ### Keycloak ###
+      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_SSL_REQUIRED: external
+    depends_on:
+      - create_dbs
+    volumes:
+      - ./config:/opt/portal/api
+      - ./logs:/opt/portal/logs
+    restart: unless-stopped
+
+  frontend:
+    image: hbpmip/portal-frontend:${FRONTEND}
+    depends_on:
+      - portalbackend
+    ports:
+      - '80:80'
+    environment:
+      WORKER_PROCESSES: 1
+      ERROR_LOG_LEVEL: warn
+      PORTAL_VIRTUAL_HOST: frontend
+      PORTAL_BACKEND_SERVER: portalbackend:8080
+      PORTAL_BACKEND_CONTEXT: services
+      INSTANCE_NAME: 'MIP ${MIP}'
+      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
+      TRACKER_ID: UA-80660232-5
+      GALAXY_URL: http://127.0.0.1:8095/nativeGalaxy
+      # TODO      KEYCLOAK_AUTH_URL: /services/sso/login
+      KEYCLOAK_AUTH_URL: http://127.0.0.1:8095/auth/
+      KEYCLOAK_LOGIN_URL: http://127.0.0.1:8095/auth/
+    restart: unless-stopped
