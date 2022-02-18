@@ -1037,6 +1037,12 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 											Can be limited to one node with --node option
 			status							(PUSHER action) Get the status of the configured nodes in the federation.
 											Can be limited to one node with --node option
+			check							(PUSHER action) Check the connectivity (automatically enable/disable nodes) of the configured nodes in the federation.
+											Can be limited to one node with --node option
+			enable							(PUSHER action) Forcefully enable the configured nodes in the federation.
+											Can be limited to one node with --node option
+			disable							(PUSHER action) Forcefully disable the configured nodes in the federation.
+											Can be limited to one node with --node option
 		service [SERVICE_ACTION]
 			status							(PUSHER action) Get the status of the services on the configured nodes in the federation.
 											Can be limited to one node with --node option
@@ -3874,6 +3880,60 @@ _get_list_element_by_id(){
 	fi
 }
 
+_tcp_check(){
+	__debug --level 4 "_tcp_check($*)"
+	local result=1
+
+	local HOST
+	local PORT
+	local TIMEOUT="1"
+	local positional=()
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--host)
+				if [[ "$2" != "" && "$(echo $2 | cut -c1)" != "-" ]]; then
+					HOST="$2"
+					shift
+				fi
+				shift
+				;;
+			--port)
+				if [[ "$2" != "" && "$(echo $2 | cut -c1)" != "-" ]]; then
+					PORT="$2"
+					shift
+				fi
+				shift
+				;;
+			--timeout)
+				if [[ "$2" != "" && "$(echo $2 | cut -c1)" != "-" ]]; then
+					TIMEOUT="$2"
+					shift
+				fi
+				shift
+				;;
+			*)
+				positional+=("$1")
+				shift
+				;;
+		esac
+	done
+	set -- "${positional[@]}"
+
+	__debug --level 6 "HOST=<$HOST>"
+	__debug --level 6 "PORT=<$PORT>"
+	__debug --level 6 "TIMEOUT=<$TIMEOUT>"
+
+	if [[ "$HOST" != "" && "$PORT" != "" ]]; then
+		__debug --level 5 "Checking $HOST:$PORT (timeout $TIMEOUT)..."
+		local check=$(timeout $TIMEOUT bash -c "</dev/tcp/$HOST/$PORT" && echo "ok" || echo "ko")
+		if [[ "$check" = "ok" ]]; then
+			result=0
+		fi
+	fi
+
+	return $result
+}
+
 _get_remote_var(){
 	if [[ $ARG_PUSHER -ne 1 ]]; then
 		echo ""
@@ -4667,7 +4727,7 @@ check_running_swarm(){
 				if [[ "$tmp_node_name" != "$node_name" ]]; then
 					node_count=$((node_count + 1))
 					node_name=$tmp_node_name
-					node_id=$(docker node ls | awk -v hostname="$node_name" '{if($2~hostname || $3~hostname) print $1}')
+					node_id=$(docker node ls | awk -v hostname="$node_name" '{if($2==hostname || $3==hostname) print $1}')
 					if [[ $verbose_level -ge 1 ]]; then
 						node_role=$(_get_container_info_item $node_id "/Spec/Role")
 						if [[ "$node_role" = "manager" ]]; then
@@ -6667,6 +6727,66 @@ _get_mip_address(){
 	fi
 }
 
+_disable_node(){
+	__debug --level 4 "_disable_node($*)"
+	local result=1
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		if [[ ! -f $SSH_PATH/.ssh/config ]]; then
+			__red "It seems that the MIP is not configured properly. Did you run 'sudo $0 --pusher --federation <FEDERATION> configure pusher'?"
+			exit 1
+		fi
+
+		if [[ "$1" != "" && "$(cat $SSH_PATH/.ssh/config | grep -E "Host .*\b$1\b")" != "" ]]; then
+			__debug --level 6 "Node exists in SSH config"
+			if [[ "$(cat $SSH_PATH/.ssh/config | grep -E "^Host .*\b$1\b")" != "" ]]; then
+				__debug --level 6 "Node is currently enabled"
+				if [[ $ARG_QUIET -ne 1 ]]; then
+					__debug --color "yellow" "WARNING: Disabling node <$1>!"
+				fi
+				local full_node_line=$(cat $SSH_PATH/.ssh/config | grep -E "Host .*\b$1\b.*")
+				__debug --level 5 "sed --in-place \"s/^${full_node_line}\$/#${full_node_line}/\" $SSH_PATH/.ssh/config"
+				sed --in-place "s/^${full_node_line}$/#${full_node_line}/" $SSH_PATH/.ssh/config
+			fi
+
+			if [[ "$(cat $SSH_PATH/.ssh/config | grep -E "^Host .*\b$1\b")" = "" && "$(cat $SSH_PATH/.ssh/config | grep -E "^#Host .*\b$1\b")" != "" ]]; then
+				result=0
+			fi
+		fi
+	fi
+
+	return $result
+}
+
+_enable_node(){
+	__debug --level 4 "_enable_node($*)"
+	local result=1
+	if [[ $ARG_PUSHER -eq 1 ]]; then
+		if [[ ! -f $SSH_PATH/.ssh/config ]]; then
+			__red "It seems that the MIP is not configured properly. Did you run 'sudo $0 --pusher --federation <FEDERATION> configure pusher'?"
+			exit 1
+		fi
+
+		if [[ "$1" != "" && "$(cat $SSH_PATH/.ssh/config | grep -E "Host .*\b$1\b")" != "" ]]; then
+			__debug --level 6 "Node exists in SSH config"
+			if [[ "$(cat $SSH_PATH/.ssh/config | grep -E "^#Host .*\b$1\b")" != "" ]]; then
+				__debug --level 6 "Node is currently disabled"
+				if [[ $ARG_QUIET -ne 1 ]]; then
+					__debug --color "yellow" "WARNING: Enabling node <$1>!"
+				fi
+				local full_node_line=$(cat $SSH_PATH/.ssh/config | grep -E "Host .*\b$1\b.*" | cut -c2-)
+				__debug --level 5 "sed --in-place \"s/^#${full_node_line}\$/${full_node_line}/\" $SSH_PATH/.ssh/config"
+				sed --in-place "s/^#${full_node_line}$/${full_node_line}/" $SSH_PATH/.ssh/config
+			fi
+
+			if [[ "$(cat $SSH_PATH/.ssh/config | grep -E "^#Host .*\b$1\b")" = "" && "$(cat $SSH_PATH/.ssh/config | grep -E "^Host .*\b$1\b")" != "" ]]; then
+				result=0
+			fi
+		fi
+	fi
+
+	return $result
+}
+
 _node_exists(){
 	local result=1
 
@@ -6998,12 +7118,13 @@ _node(){
 	fi
 
 	if [[ -f $SSH_PATH/.ssh/config ]]; then
-		local nodes=$(cat $SSH_PATH/.ssh/config|awk '/^Host/ {print $NF}')
+		local nodes=$(cat $SSH_PATH/.ssh/config | awk '/Host / {print $NF}')
 		local node
-		local nodecount=$(cat $SSH_PATH/.ssh/config|wc -l)
 		local nodeid=0
 		local nodeshortname
 		local localhostname
+		local nodeport
+		local enabled
 		local nodeip
 		local ansiblenodename
 
@@ -7015,14 +7136,26 @@ _node(){
 	fi
 
 	case $NODE_ACTION in
-		list|status)
+		list|status|check|enable|disable)
+			if [[ "$NODE_ACTION" = "check" ]]; then
+				__echo "Checking nodes connectivity..."
+			fi
+
 			for node in $nodes; do
-				nodeshortname=$(cat $SSH_PATH/.ssh/config|grep "^Host .*\b$node\b"|awk '{print $2}')
-				localhostname=$(cat $SSH_PATH/.ssh/config|grep -A3 "^Host .*\b$node\b"|awk '/Hostname / {print $2}')
+				enabled=0
+				if [[ "$(cat $SSH_PATH/.ssh/config | grep -E "^Host .*\b$node\b")" != "" ]]; then
+					enabled=1
+				fi
+				nodeshortname=$(cat $SSH_PATH/.ssh/config | grep -E "Host .*\b$node\b" | awk '{print $2}')
+				localhostname=$(cat $SSH_PATH/.ssh/config | grep -A3 -E "Host .*\b$node\b" | awk '/Hostname / {print $2}')
+				nodeport=$(cat $SSH_PATH/.ssh/config | grep -A3 -E "Host .*\b$node\b" | awk '/Port / {print $2}')
+				if [[ "$nodeport" = "" ]]; then
+					nodeport="22"
+				fi
 				_valid_IPv4 $localhostname
 				ret=$?
 				if [[ $ret -ne 0 ]]; then
-					nodeip=$(host $localhostname|awk '/has address/ {print $NF}')
+					nodeip=$(host $localhostname | awk '/has address/ {print $NF}')
 				else
 					nodeip=$localhostname
 				fi
@@ -7038,43 +7171,102 @@ _node(){
 				if [[ $nodeid -eq 0 ]]; then
 					ansiblenodename="master"
 				elif [[ $nodeid -gt 1 ]]; then
-					ansiblenodename="worker"$(echo $nodeip|sed 's/\./_/g')
+					ansiblenodename="worker"$(echo $nodeip | sed 's/\./_/g')
 				fi
 
 				case $NODE_ACTION in
 					list)
+						if [[ $enabled -ne 1 ]]; then
+							result+="\${red}/!\\ Disabled "
+						fi
 						case $nodeid in
 							0)
-								result="${result}Master node (\${yellow}ms\${reset})"
+								result+="Master node\${reset} (\${yellow}ms\${reset})"
 								;;
 							1)
-								result="${result}Frontend node (\${yellow}ui\${reset})"
+								result+="Frontend node\${reset} (\${yellow}ui\${reset})"
 								;;
 							*)
-								result="${result}Worker node $(expr $nodeid - 1) (\${yellow}wk$(expr $nodeid - 1)\${reset})"
+								result+="Worker node $(expr $nodeid - 1)\${reset} (\${yellow}wk$(expr $nodeid - 1)\${reset})"
 								;;
 						esac
 						if [[ $nodeid -lt 2 ]]; then
-							result="${result}@: \${magenta}${node}@${localhostname}\${reset}@@"
+							result+="@: \${magenta}${node}@${localhostname}\${reset}@@"
 						else
-							result="${result}@: \${cyan}${node}@${localhostname}\${reset}@@"
+							result+="@: \${cyan}${node}@${localhostname}\${reset}@@"
 						fi
 						;;
 					status)
+						result=""
+						if [[ $enabled -ne 1 ]]; then
+							result+="\${red}/!\\ Disabled "
+						fi
 						case $nodeid in
 							0)
-								__echo "Master node (\${yellow}ms\${reset}) / \${magenta}$node ($localhostname)\${reset}"
+								__echo "${result}Master node\${reset} (\${yellow}ms\${reset}) / \${magenta}$node ($localhostname)\${reset}"
 								;;
 							1)
 								if [[ ! -n $ARG_NODE ]]; then __echo; fi
-								__echo "Frontend node (\${yellow}ui\${reset}) / \${magenta}$node ($localhostname)\${reset}"
+								__echo "${result}Frontend node\${reset} (\${yellow}ui\${reset}) / \${magenta}$node ($localhostname)\${reset}"
 								;;
 							*)
 								if [[ ! -n $ARG_NODE ]]; then __echo; fi
-								__echo "Worker node $(expr $nodeid - 1) (\${yellow}wk$(expr $nodeid - 1)\${reset}) / \${cyan}$node ($localhostname)\${reset}"
+								__echo "${result}Worker node $(expr $nodeid - 1)\${reset} (\${yellow}wk$(expr $nodeid - 1)\${reset}) / \${cyan}$node ($localhostname)\${reset}"
 								;;
 						esac
-						_remote_exec $node ${MIP_COMMAND} status 2>/dev/null
+						if [[ $enabled -eq 1 ]]; then
+							_remote_exec $node ${MIP_COMMAND} status 2>/dev/null
+						else
+							__echo "\${red}Undetermined Status!\${reset}"
+						fi
+						;;
+					check)
+						ret=1
+
+						if [[ "$nodeip" != "" ]]; then
+							__debug --level 5 "Testing $nodeip:$nodeport..."
+							_tcp_check --host $nodeip --port $nodeport --timeout 0.2
+							ret=$?
+							if [[ $ret -eq 0 ]]; then
+								if [[ $enabled -ne 1 ]]; then
+									_enable_node "$node"
+									ret=$?
+									if [[ $ret -ne 0 ]]; then
+										__debug --color "red" "There was a problem while trying to enable <$node> node!"
+									fi
+								fi
+							else
+								if [[ $enabled -ne 0 ]]; then
+									_disable_node "$node"
+									ret=$?
+									if [[ $ret -ne 0 ]]; then
+										__debug --color "red" "There was a problem while trying to disable <$node> node!"
+									fi
+									if [[ $ret -eq 0 && $nodeid -lt 2 ]]; then
+										__debug --color "red" "WARNING! This federation CAN'T work without this essential node: <$node>!!"
+									fi
+								fi
+							fi
+						fi
+						;;
+					enable)
+						ret=1
+						_enable_node "$node"
+						ret=$?
+						if [[ $ret -ne 0 ]]; then
+							__debug --color "red" "There was a problem while trying to enable <$node> node!"
+						fi
+						;;
+					disable)
+						ret=1
+						_disable_node "$node"
+						ret=$?
+						if [[ $ret -ne 0 ]]; then
+							__debug --color "red" "There was a problem while trying to disable <$node> node!"
+						fi
+						if [[ $ret -eq 0 && $nodeid -lt 2 ]]; then
+							__debug --color "red" "WARNING! This federation CAN'T work without this essential node: <$node>!!"
+						fi
 						;;
 				esac
 				nodeid=$(expr $nodeid + 1)
@@ -7085,7 +7277,7 @@ _node(){
 			fi
 			;;
 		*)
-			__red "Usage: $0 --pusher --federation <FEDERATION> (--node <NODE_SHORT_NAME/NODE_NAME/NODE_ID/NODE_IP>) node [list|status]"
+			__red "Usage: $0 --pusher --federation <FEDERATION> (--node <NODE_SHORT_NAME/NODE_NAME/NODE_ID/NODE_IP>) node [list|status|check|enable|disable]"
 			exit 1
 	esac
 }
@@ -9690,12 +9882,25 @@ _data(){
 					_contains "$host $customhostname" "$remotehostname"
 					local ret=$?
 					if [[ $ret -ne 0 ]]; then
-						__debug --level 0 --color "red" "SSH (and Ansible) defined host have to be the same than the corresponding 'machine hostname'!"
-						__debug --level 0 --color "red" "SSH defined host: <$customhostname> ($localhostname), remote machine hostname: <$remotehostname>"
-						__debug --level 0 --color "red" "Please fix it!"
-						exit 1
+						if [[ "$remotehostname" != "" || "$host" = "ms" || "$host" = "ui" ]]; then
+							__debug --level 0 --color "red" "SSH (and Ansible) defined host have to be the same than the corresponding 'machine hostname'!"
+							__debug --level 0 --color "red" "SSH defined host: <$customhostname> ($localhostname), remote machine hostname: <$remotehostname>"
+							__debug --level 0 --color "red" "Please fix it!"
+							exit 1
+						elif [[ "$remotehostname" = "" ]]; then
+							__debug --level 0 --color "red" "It seems that the remote host $host $customhostname ($localhostname) is not reachable!"
+							__debug --level 0 --color "red" "As this host is a worker node, you MUST DISABLE IT!"
+							__debug --level 0 --color "yellow" "In order to check all the nodes' connectivity, run:"
+							__debug --level 0 --color "yellow" "$0 --pusher --federation <FEDERATION> node check"
+							__debug --level 0 --color "yellow" "Alternatively, you can forcefully disable this node by running:"
+							__debug --level 0 --color "yellow" "$0 --pusher --federation <FEDERATION> --node $host node disable"
+							__debug --level 0 --color "yellow" "Once you're done, you will have to run the data consolidation again."
+							__debug --level 0 --color "yellow" "As a direct consequence, all the content (pathologies/datasets) of the disabled nodes won't be visible in the UI!"
+							exit 1
+						fi
+					else
+						__debug --level 0 --color "green" "ok"
 					fi
-					__debug --level 0 --color "green" "ok"
 
 					if [[ "$host" = "ms" ]]; then
 						nodetype=$host
@@ -9709,7 +9914,7 @@ _data(){
 						nodetype="wk"
 					fi
 
-					if [[ "$nodetype" = "wk" ]]; then
+					if [[ "$nodetype" = "wk" && "$remotehostname" != "" ]]; then
 						if [[ $quiet -ne 1 ]]; then
 							__debug --level 0 "\${cyan}Asking worker <$host/$remotehostname> node ($localhostname) to provide dataset list\${reset}"
 						fi

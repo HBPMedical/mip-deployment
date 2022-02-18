@@ -24,7 +24,7 @@ It means that if the MIP installation runs inside a VM which is connected via a 
 * Ubuntu Server 20.04 (minimal installation, without GUI).  
   Beside the basic OS requirements, everything you need to deploy a local MIP is available in this repository. If you don't match the OS requirements, we recommend that you deploy it inside a Virtual Machine. For that purpose, you can use any hypervisor, but if you don't know much about it, Vagrant and VirtualBox could make things easier.
 
-## Setup
+## Installing the **local** MIP
 1. Prepare a VM/Physical machine with the minimal **Ubuntu Server 20.04** operating system installation.
 
    You'll have to know on which URL (like http://\<HOSTNAME>, http://\<HOSTNAME>:\<PORT> or http://\<IP>:\<PORT>) you want to expose your MIP. If you're operating it inside a VM on your computer, you may use the IP of your computer, and the port on which your VM's port 80 is mapped to, like:
@@ -103,43 +103,35 @@ http://192.168.0.100:8888
      </Location>
      ```
 
-     Again, don't hesitate to use:
-     ```
-     mip --help
-     ```
+     Again, don't hesitate to use *mip --help*
 
-1. Become **mipadmin**
+## Operating the **local** MIP
+### Becoming **mipadmin**
+After the first time that you run *mip configure*, the **mipadmin** user will be created. Then, anytime you need to operate the **ui** node, you should use this user.  
+If you don't know the *mipadmin* password, you can use the "sudoer" user to become *mipadmin*
+```
+sudo su - mipadmin
+```
 
-   After the first time that you run *mip configure*, the **mipadmin** user will be created. Then, anytime you need to operate the **ui** node, you should use this user.  
-   If you don't know the *mipadmin* password, you can use the "sudoer" user to become *mipadmin*
-   ```
-   sudo su - mipadmin
-   ```
+### Consolidating the data
+As **mipadmin**, you can run
+```
+mip data consolidate
+```
+For each pathology, this will list the different available datasets in the pathology's Common Data Elements (CDE) file, and then, from all the CDEs, it will generate the *pathologies.json* file, used by the MIP Web interface to display the different variables.  
+Alternatively, you can ask to **re**-label the pathologies and/or the datasets by using the flag *--review-dataset-labels*.
 
-1. Consolidate data
+### Compiling the data
+As **mipadmin**, run
+```
+mip data compile
+```
+At any time, you can **re**-compile by using the *--force* flag.  
+You can also specify the pathology(ies) to compile, with the *--pathology* flag.
 
-   As **mipadmin**, you can run
-   ```
-   mip data consolidate
-   ```
-   For each pathology, this will list the different available datasets in the pathology's Common Data Elements (CDE) file, and then, from all the CDEs, it will generate the *pathologies.json* file, used by the MIP Web interface to display the different variables.  
-   Alternatively, you can ask to **re**-label the pathologies and/or the datasets by using the flag *--review-dataset-labels*.
+As usual, to get more details, use *mip --help*
 
-1. Compile data
-
-   As **mipadmin**, run
-   ```
-   mip data compile
-   ```
-   At any time, you can **re**-compile by using the *--force* flag.  
-   You can also specify the pathology(ies) to compile, with the *--pathology* flag.
-
-   As usual, to get more details, use:
-   ```
-   mip --help
-   ```
-
-## Run
+### Running the MIP
 Still as **mipadmin** user, you can then launch the MIP with:
 ```
 mip start
@@ -157,7 +149,32 @@ Of course, you can also do other actions here:
   ```
   Note that a *restart* is actually different from a "*stop* *start*" cycle. See the Docker documentation.
 
-At anytime, you can learn more about the *mip* commands with:
+At anytime, you can learn more about the *mip* commands with *mip --help*
+
+## Upgrading the **local** MIP
+### Check-list
+* Make sure you're connected as *mipadmin* user
+* Make sure you're not in the *mip-deployment* folder
+  ```
+  cd
+  ```
+
+### Installing the new version of the *mip* script
 ```
-mip --help
+git clone https://github.com/HBPMedical/mip-deployment
 ```
+```
+sudo mip-deployment/mip --self --force install
+```
+As it was already explained in the installation section, there are other parameters you can use here to install another specific version of the *MIP* (and they can be used in the case of the *mip script* install as well).
+
+#### Cleanup
+```
+rm -rf mip-deployment
+```
+
+### Installing the new *MIP* version
+```
+sudo mip install
+```
+Again, as explained in the installation section, if you have to install a specific version, use the documented parameters, and don't hesitate to call *mip --help*.

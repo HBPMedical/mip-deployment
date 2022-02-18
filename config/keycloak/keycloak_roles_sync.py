@@ -495,7 +495,7 @@ class MIPKeycloakAdmin(KeycloakAdmin):
             realm_id = self._realm['id']
 
             tmp_default_groups = self.get_realm_default_groups()
-            if len(tmp_default_groups) > 0:
+            if tmp_default_groups is not None and len(tmp_default_groups) > 0:
                 for group in tmp_default_groups:
                     group = group[1:]
                     if default_groups is None:
@@ -575,7 +575,7 @@ def main():
     argsparser.add_argument('-s', '--sync-client-id', dest='sync_client_id', help='Keycloak Realm client-id to create/synchronize. Commonly MIP federation name. Will be used as group prefix as well.', type=str)
     argsparser.add_argument('-c', '--copy-users-from-client-id', dest='copy_from_client_id', help='If you want to copy the user/group relationships from another client/group_prefix', type=str)
     argsparser.add_argument('-i', '--data-structure-json-file', dest='data_structure_json_file', default=sys.stdin, nargs='?', help='JSON data structure file to use as a pattern for roles/groups creation/synchronization', type=argparse.FileType('r'))
-    argsparser.add_argument('-v', '--verbose', dest='verbose_level', action='count', default=0, help='Verbose level')
+    argsparser.add_argument('-v', dest='verbose_level', action='count', default=0, help='Verbose level')
 
     args = argsparser.parse_args()
     args = vars(args)

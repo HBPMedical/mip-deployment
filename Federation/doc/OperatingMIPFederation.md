@@ -126,10 +126,7 @@ At any time, you can **re**-compile by using the *--force* flag.
 You can also specify the pathology(ies) to compile, with the *--pathology \<PATHOLOGIES>* parameter (comma-separated pathologies list).  
 If you want to limitate the compilation to a certain node, you can use the *--node \<NODE_NAME>* parameter, but in this case, you'll also have to pass the *--pathology* argument.  
 
-As usual, to get more details, use:
-```
-mip --help
-```
+As usual, to get more details, use *mip --help*
 
 ## <a id="DeployingServices">Deploying services</a>
 In the *tmux* session (opened as **mipadmin** user), in the **pusher** window (#0)
@@ -162,10 +159,7 @@ Alternatively, there are different things that you can run in the same way (stil
 
 For all these commands (including the *deploy* one), you can use the *--node <NODE_NAME>* parameter to limitate the scope to a certain node.
 
-As usual, to get more details, use:
-```
-mip --help
-```
+As usual, to get more details, use *mip --help*
 
 ## <a id="SynchronizingKeycloakRoles"></a>[Synchronizing the KeyCloak roles](SynchronizingKeycloakRoles.md).
 
@@ -189,7 +183,4 @@ Of course, you can also do other actions here:
   ```
   Note that a *restart* is actually different from a "*stop* *start*" cycle. See the Docker documentation.
 
-At anytime, you can learn more about the *mip* commands with:
-```
-mip --help
-```
+At anytime, you can learn more about the *mip* commands with *mip --help*
