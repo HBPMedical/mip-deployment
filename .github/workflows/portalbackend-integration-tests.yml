@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ./tests/portal_backend_integration_tests/setup/.venv
-          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          key: venv-${{ runner.os }}-${{ hashFiles('./tests/portal_backend_integration_tests/setup/pyproject.toml') }}
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
