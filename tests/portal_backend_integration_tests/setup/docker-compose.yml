@@ -94,12 +94,14 @@ services:
     environment:
       - NODE_IDENTIFIER=globalnode
       - NODE_ROLE=GLOBALNODE
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5670
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50000
+      - SMPC_ENABLED=false
+      - SMPC_OPTIONAL=false
     depends_on:
       - rabbitmq_globalnode
       - monetdb_globalnode
@@ -110,12 +112,14 @@ services:
     environment:
       - NODE_IDENTIFIER=localnode1
       - NODE_ROLE=LOCALNODE
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5671
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50001
+      - SMPC_ENABLED=false
+      - SMPC_OPTIONAL=false
     depends_on:
       - rabbitmq_localnode1
       - monetdb_localnode1
@@ -126,12 +130,14 @@ services:
     environment:
       - NODE_IDENTIFIER=localnode2
       - NODE_ROLE=LOCALNODE
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5672
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50002
+      - SMPC_ENABLED=false
+      - SMPC_OPTIONAL=false
     depends_on:
       - rabbitmq_localnode2
       - monetdb_localnode2
@@ -144,13 +150,17 @@ services:
     environment:
       - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
-      - CDES_METADATA_PATH=/opt/data
       - DEPLOYMENT_TYPE=LOCAL
-      - NODE_REGISTRY_UPDATE_INTERVAL=30
+      - NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL=30
+      - CLEANUP_FOLDER=/tmp/mipengine
+      - NODES_CLEANUP_INTERVAL=60
+      - NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT=3600
       - LOCALNODES_CONFIG_FILE=/opt/config/localnodes_config.json
+      - CELERY_TASKS_TIMEOUT=60
+      - SMPC_ENABLED=false
+      - SMPC_OPTIONAL=false
     volumes:
       - ./config/:/opt/config/
-      - ./demo_data/:/opt/data/
     restart: unless-stopped
 
   portalbackend_db:
@@ -161,8 +171,8 @@ services:
     environment:
       POSTGRES_PASSWORD: test
     command: -p 5433
-    expose:
-      - 5433
+    ports:
+      - '5433:5433'
     restart: unless-stopped
 
   create_dbs:
@@ -216,23 +226,23 @@ services:
       - ./logs:/opt/portal/logs
     restart: unless-stopped
 
-  frontend:
-    image: hbpmip/portal-frontend:${FRONTEND}
-    depends_on:
-      - portalbackend
-    ports:
-      - '80:80'
-    environment:
-      WORKER_PROCESSES: 1
-      ERROR_LOG_LEVEL: warn
-      PORTAL_VIRTUAL_HOST: frontend
-      PORTAL_BACKEND_SERVER: portalbackend:8080
-      PORTAL_BACKEND_CONTEXT: services
-      INSTANCE_NAME: 'MIP ${MIP}'
-      VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
-      TRACKER_ID: UA-80660232-5
-      GALAXY_URL: http://127.0.0.1:8095/nativeGalaxy
-      # TODO      KEYCLOAK_AUTH_URL: /services/sso/login
-      KEYCLOAK_AUTH_URL: http://127.0.0.1:8095/auth/
-      KEYCLOAK_LOGIN_URL: http://127.0.0.1:8095/auth/
-    restart: unless-stopped
+  # frontend:
+  #   image: hbpmip/portal-frontend:${FRONTEND}
+  #   depends_on:
+  #     - portalbackend
+  #   ports:
+  #     - '80:80'
+  #   environment:
+  #     WORKER_PROCESSES: 1
+  #     ERROR_LOG_LEVEL: warn
+  #     PORTAL_VIRTUAL_HOST: frontend
+  #     PORTAL_BACKEND_SERVER: portalbackend:8080
+  #     PORTAL_BACKEND_CONTEXT: services
+  #     INSTANCE_NAME: 'MIP ${MIP}'
+  #     VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
+  #     TRACKER_ID: UA-80660232-5
+  #     GALAXY_URL: http://127.0.0.1:8095/nativeGalaxy
+  #     # TODO      KEYCLOAK_AUTH_URL: /services/sso/login
+  #     KEYCLOAK_AUTH_URL: http://127.0.0.1:8095/auth/
+  #     KEYCLOAK_LOGIN_URL: http://127.0.0.1:8095/auth/
+  #   restart: unless-stopped

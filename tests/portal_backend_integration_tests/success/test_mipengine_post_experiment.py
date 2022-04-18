@@ -31,12 +31,12 @@ all_success_cases = [
                 {
                     "name": "pathology",
                     "label": "pathology",
-                    "value": "dementia"
+                    "value": "dementia:0.1"
                 },
                 {
                     "name": "dataset",
                     "label": "dataset",
-                    "value": "edsd,ppmi"
+                    "value": "edsd0,edsd1,edsd8,edsd9,ppmi0,ppmi1,ppmi8,ppmi9"
                 },
                 {
                     "name": "filter",
@@ -71,12 +71,12 @@ all_success_cases = [
                 {
                     "name": "pathology",
                     "label": "pathology",
-                    "value": "dementia"
+                    "value": "dementia:0.1"
                 },
                 {
                     "name": "dataset",
                     "label": "dataset",
-                    "value": "edsd,ppmi"
+                    "value": "edsd0,edsd1,edsd8,edsd9,ppmi0,ppmi1,ppmi8,ppmi9"
                 },
                 {
                     "name": "filter",
@@ -99,19 +99,19 @@ all_success_cases = [
             "label": "Principal component algorithm",
             "parameters": [
                 {
-                    "name": "x",
-                    "label": "x",
+                    "name": "y",
+                    "label": "y",
                     "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala"
                 },
                 {
                     "name": "pathology",
                     "label": "pathology",
-                    "value": "dementia"
+                    "value": "dementia:0.1"
                 },
                 {
                     "name": "dataset",
                     "label": "dataset",
-                    "value": "edsd"
+                    "value": "edsd0,edsd1,edsd8,edsd9"
                 },
                 {
                     "name": "filter",
@@ -122,6 +122,36 @@ all_success_cases = [
             "type": "mipengine"
         },
         "name": "Pca"
+    },
+    {
+        "algorithm": {
+            "name": "pearson",
+            "label": "Pearson Correlation",
+            "parameters": [
+                {
+                    "name": "y",
+                    "value": "rightsplsuperiorparietallobule,rightttgtransversetemporalgyrus,leftcaudate,leftocpoccipitalpole"
+                },
+                {
+                    "name": "pathology",
+                    "value": "dementia:0.1"
+                },
+                {
+                    "name": "dataset",
+                    "value": "edsd0,edsd1,edsd8,edsd9"
+                },
+                {
+                    "name": "filter",
+                    "value": ""
+                },
+                {
+                    "name": "alpha",
+                    "value": "0.9529895484370635"
+                }
+            ],
+            "type": "mipengine"
+        },
+        "name": "pearson"
     },
 ]
 
