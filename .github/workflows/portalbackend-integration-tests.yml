@@ -118,3 +118,7 @@ jobs:
         working-directory: ./tests/portal_backend_integration_tests/setup/
         run: poetry run pytest ../fail
 
+      - name: Run the federation info tests
+        working-directory: ./tests/portal_backend_integration_tests/setup/
+        run: poetry run pytest ../test_federation_info.py
+
