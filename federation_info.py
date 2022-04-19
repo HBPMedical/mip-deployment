@@ -23,8 +23,10 @@ TIMESTAMP_REGEX = (
 )
 # Experiment log is of format:
 # 2022-04-18 14:07:21.042 - anonymous - EXPERIMENT_FINISHED - Pearson Correlation - pathology - datasets - error - 1s - [{"name":"y","desc":null,"label":null,"type":null,"columnValuesSQLType":null,"columnValuesIsCategorical":null,"value":"rightsplsuperiorparietallobule,rightttgtransversetemporalgyrus,leftcaudate,leftocpoccipitalpole","defaultValue":null,"valueType":null,"valueNotBlank":null,"valueMultiple":null,"valueMin":null,"valueMax":null,"valueEnumerations":null},{"name":"pathology","desc":null,"label":null,"type":null,"columnValuesSQLType":null,"columnValuesIsCategorical":null,"value":"dementia:0.1","defaultValue":null,"valueType":null,"valueNotBlank":null,"valueMultiple":null,"valueMin":null,"valueMax":null,"valueEnumerations":null},{"name":"dataset","desc":null,"label":null,"type":null,"columnValuesSQLType":null,"columnValuesIsCategorical":null,"value":"edsd0,edsd1,edsd8,edsd9","defaultValue":null,"valueType":null,"valueNotBlank":null,"valueMultiple":null,"valueMin":null,"valueMax":null,"valueEnumerations":null},{"name":"filter","desc":null,"label":null,"type":null,"columnValuesSQLType":null,"columnValuesIsCategorical":null,"value":"","defaultValue":null,"valueType":null,"valueNotBlank":null,"valueMultiple":null,"valueMin":null,"valueMax":null,"valueEnumerations":null},{"name":"alpha","desc":null,"label":null,"type":null,"columnValuesSQLType":null,"columnValuesIsCategorical":null,"value":"0.9529895484370635","defaultValue":null,"valueType":null,"valueNotBlank":null,"valueMultiple":null,"valueMin":null,"valueMax":null,"valueEnumerations":null}]
-EXPERIMENT_FINISHED_PATTERN = rf"({TIMESTAMP_REGEX})  INFO .* User -> (.*) ,Endpoint.*Finished the experiment: .*uuid=(.*), name.*, status=(.*), result.*, finished=(.*), algorithm=.*\"label\":\"(.*)\",.*\"parameters\":(.*)\}}, algorithmId.* created=(.*), updated.*"
-EXPERIMENT_PARAMETER_PATTERN = '.*"name":"(.*)","desc".*,"value":"(.*)","defaultValue".*'
+EXPERIMENT_FINISHED_PATTERN = rf"({TIMESTAMP_REGEX})  INFO .* User -> (.*) ,Endpoint.*Finished the experiment: .*uuid=(.*), name.*, status=(.*), result.*, finished=(.*), algorithm=.*\"label\":\"(.*)\",\"type\".*\"parameters\":(.*)\}}, algorithmId.* created=(.*), updated.*"
+EXPERIMENT_PARAMETER_PATTERN = (
+    '.*"name":"(.*)","desc".*,"value":"(.*)","defaultValue".*'
+)
 EXPERIMENT_TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
 
@@ -51,7 +53,10 @@ def print_audit_entry(log_line):
         exp_created_dt = datetime.strptime(exp_created, EXPERIMENT_TIMESTAMP_FORMAT)
         exp_finished_dt = datetime.strptime(exp_finished, EXPERIMENT_TIMESTAMP_FORMAT)
         exp_finished_timedelta = exp_finished_dt - exp_created_dt
-        exp_time_to_finish = int(exp_finished_timedelta.seconds*1000 + exp_finished_timedelta.microseconds/1000)
+        exp_time_to_finish = int(
+            exp_finished_timedelta.seconds * 1000
+            + exp_finished_timedelta.microseconds / 1000
+        )
         print(
             f"{log_timestamp} - {user} - EXPERIMENT_FINISHED - {uuid} - {algorithm} - {parameters['pathology']} - {parameters['dataset']} - {status} - {exp_time_to_finish} - {parameters}"
         )
