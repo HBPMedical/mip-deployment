@@ -7,7 +7,7 @@ SPECIFIC_EXPERIMENT_PATTERN = ".* - anonymous - EXPERIMENT_FINISHED - .* - Logis
 
 
 def test_federation_info():
-    cmd = f"docker logs setup_portalbackend_1 | python3 federation_info.py show-portal-backend-audit-entries"
+    cmd = f"docker logs setup_portalbackend_1 | python3 ../../../federation_info.py show-portal-backend-audit-entries"
     res = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
