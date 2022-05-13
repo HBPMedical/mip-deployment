@@ -74,7 +74,6 @@ services:
     image: hbpmip/portal-backend:${PORTALBACKEND}
     ports:
       - '8080:8080'
-      - '8089:8089'
     environment:
       ### API ###
       LOG_LEVEL: INFO
@@ -104,7 +103,6 @@ services:
       - create_dbs
     volumes:
       - ./config:/opt/portal/api
-      - ./logs:/opt/portal/logs
     restart: unless-stopped
 
   gateway:
