@@ -87,6 +87,7 @@ services:
       - '8081:8081'
     depends_on:
       - portalbackend
+    restart: unless-stopped
 
   frontend:
     image: hbpmip/portal-frontend:${FRONTEND}
