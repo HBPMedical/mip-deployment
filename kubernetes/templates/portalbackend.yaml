@@ -1,0 +1,317 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: portalbackend-db-vol0
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: portalbackend-db-storage0
+spec:
+  capacity:
+    storage: {{ .Values.portalbackend_db.storage.storage0.data_size }}
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: k8s-local-storage
+  hostPath:
+    path: {{ .Values.portalbackend_db.storage.storage0.data_path }}
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: master
+          operator: In
+          values:
+          - "true"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portalbackend-db-claim0
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: portalbackend-db-storage0
+spec:
+  selector:
+    matchLabels:
+      storage: portalbackend-db-storage0
+  storageClassName: k8s-local-storage
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.portalbackend_db.storage.storage0.data_size }}
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: portalbackend-vol0
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: portalbackend-storage0
+spec:
+  capacity:
+    storage: {{ .Values.portalbackend.storage.storage0.data_size }}
+  volumeMode: Filesystem
+  accessModes:
+  - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: k8s-local-storage
+  hostPath:
+    path: {{ .Values.portalbackend.storage.storage0.data_path }}
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: master
+          operator: In
+          values:
+          - "true"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portalbackend-claim0
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: portalbackend-storage0
+spec:
+  selector:
+    matchLabels:
+      storage: portalbackend-storage0
+  storageClassName: k8s-local-storage
+  accessModes:
+  - ReadOnlyMany
+  resources:
+    requests:
+      storage: {{ .Values.portalbackend.storage.storage0.data_size }}
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: portalbackend-vol1
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: portalbackend-storage1
+spec:
+  capacity:
+    storage: {{ .Values.portalbackend.storage.storage1.data_size }}
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: k8s-local-storage
+  hostPath:
+    path: {{ .Values.portalbackend.storage.storage1.data_path }}
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: master
+          operator: In
+          values:
+          - "true"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portalbackend-claim1
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: portalbackend-storage1
+spec:
+  selector:
+    matchLabels:
+      storage: portalbackend-storage1
+  storageClassName: k8s-local-storage
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.portalbackend.storage.storage1.data_size }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portalbackend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: portalbackend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portalbackend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: portalbackend
+    spec:
+      nodeSelector:
+        master: "true"
+      hostname: portalbackend
+      volumes:
+      - name: portalbackend-db-claim0
+        persistentVolumeClaim:
+          claimName: portalbackend-db-claim0
+      - name: portalbackend-claim0
+        persistentVolumeClaim:
+          claimName: portalbackend-claim0
+      - name: portalbackend-claim1
+        persistentVolumeClaim:
+          claimName: portalbackend-claim1
+      containers:
+      - name: portalbackend-db
+        image: {{ .Values.portalbackend_db.image.name }}:{{ .Values.portalbackend_db.image.version }}
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: portalbackend-db-claim0
+          mountPath: /var/lib/postgresql/data
+        args:
+        - -p
+        - "5432"
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.DB_ADMIN_PASSWORD
+
+      - name: portalbackend
+        image: {{ .Values.portalbackend.image.name }}:{{ .Values.portalbackend.image.version }}
+        ports:
+        - containerPort: 8080
+        - containerPort: 8089
+        volumeMounts:
+        - name: portalbackend-claim0
+          mountPath: /opt/portal/api
+        - name: portalbackend-claim1
+          mountPath: /opt/portal/logs
+        env:
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: portalbackend.LOG_LEVEL
+        - name: LOG_LEVEL_FRAMEWORK
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: portalbackend.LOG_LEVEL_FRAMEWORK
+        - name: MIP_LINK
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: MIP_LINK
+        - name: EXTERNAL_MIP_PROTOCOL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: EXTERNAL_MIP_PROTOCOL
+        - name: AUTHENTICATION
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: KEYCLOAK_AUTHENTICATION
+        - name: PORTAL_DB_URL
+          value: jdbc:postgresql://localhost:5432/portal
+        - name: PORTAL_DB_SERVER
+          value: localhost:5432
+        - name: PORTAL_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.PORTAL_DB_USER
+        - name: PORTAL_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.PORTAL_DB_PASSWORD
+        - name: MIPENGINE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: EXAREME2_URL
+        - name: EXAREME_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: EXAREME_URL
+        - name: GALAXY_URL
+          value: http://galaxy-service
+        - name: GALAXY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: galaxy.API_KEY
+        - name: GALAXY_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: galaxy.USER
+        - name: GALAXY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: galaxy.PASSWORD
+        - name: KEYCLOAK_AUTH_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: KEYCLOAK_AUTH_URL
+        - name: KEYCLOAK_REALM
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: KEYCLOAK_REALM
+        - name: KEYCLOAK_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: KEYCLOAK_CLIENT_ID
+        - name: KEYCLOAK_CLIENT_SECRET
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: KEYCLOAK_CLIENT_SECRET
+        - name: KEYCLOAK_SSL_REQUIRED
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: KEYCLOAK_SSL_REQUIRED
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portalbackend-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: portalbackend
+spec:
+  selector:
+    app: portalbackend
+  ports:
+  - name: "5432"
+    port: 5432
+    targetPort: 5432
+  - name: "8080"
+    port: 8080
+    targetPort: 8080
+  {{- if eq .Values.portalbackend.LOG_LEVEL "DEBUG" }}
+  type: LoadBalancer
+  externalIPs:
+  - {{ tpl .Values.frontend.EXTERNAL_IP . }}
+  {{- end }}

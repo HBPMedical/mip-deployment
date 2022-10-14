@@ -1,0 +1,225 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: frontend-vol0
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: frontend-storage0
+  annotations:
+    config.kubernetes.io/depends-on: apps/namespaces/{{ .Values.namespace }}/PersistentVolume/portalbackend-vol0
+spec:
+  capacity:
+    storage: {{ .Values.frontend.storage.storage0.data_size }}
+  volumeMode: Filesystem
+  accessModes:
+  - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: k8s-local-storage
+  hostPath:
+    path: {{ .Values.frontend.storage.storage0.data_path }}
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: master
+          operator: In
+          values:
+          - "true"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: frontend-claim0
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: frontend-storage0
+spec:
+  selector:
+    matchLabels:
+      storage: frontend-storage0
+  storageClassName: k8s-local-storage
+  accessModes:
+  - ReadOnlyMany
+  resources:
+    requests:
+      storage: {{ .Values.frontend.storage.storage0.data_size }}
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: frontend-vol1
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: frontend-storage1
+spec:
+  capacity:
+    storage: {{ .Values.frontend.storage.storage1.data_size }}
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: k8s-local-storage
+  hostPath:
+    path: {{ .Values.frontend.storage.storage1.data_path }}
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: master
+          operator: In
+          values:
+          - "true"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: frontend-claim1
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: frontend-storage1
+spec:
+  selector:
+    matchLabels:
+      storage: frontend-storage1
+  storageClassName: k8s-local-storage
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.frontend.storage.storage1.data_size }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      nodeSelector:
+        master: "true"
+      volumes:
+      - name: frontend-claim0
+        persistentVolumeClaim:
+          claimName: frontend-claim0
+      - name: frontend-claim1
+        persistentVolumeClaim:
+          claimName: frontend-claim1
+      containers:
+      - name: frontend
+        image: {{ .Values.frontend.image.name }}:{{ .Values.frontend.image.version }}
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        volumeMounts:
+        - name: frontend-claim0
+          mountPath: /etc/caddy
+        - name: frontend-claim1
+          mountPath: /data
+        env:
+        - name: ERROR_LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: frontend.ERROR_LOG_LEVEL
+        - name: GATEWAY_SERVER
+          value: gateway-service:8081
+        - name: INSTANCE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: INSTANCE_NAME
+        - name: VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: INSTANCE_VERSION
+        - name: EXTERNAL_MIP_PROTOCOL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: EXTERNAL_MIP_PROTOCOL
+        - name: PUBLIC_MIP_PROTOCOL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: PUBLIC_MIP_PROTOCOL
+        - name: PUBLIC_MIP_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: PUBLIC_MIP_HOST
+        - name: KEYCLOAK_HOST                           # Only used with internal Keycloak auth
+          value: http://keycloak-service:8095
+        - name: KEYCLOAK_AUTH_PATH                      # Only used with internal Keyclaok auth
+          value: /auth
+        - name: MIP_LINK
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: MIP_LINK
+        - name: GALAXY_HOST
+          value: http://galaxy-service
+        - name: GALAXY_PATH
+          value: /nativeGalaxy
+        - name: DATACATALOGUE_SERVER
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: frontend.DATACATALOGUE_SERVER
+        - name: MATOMO_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: frontend.MATOMO_ENABLED
+        - name: MATOMO_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: frontend.MATOMO_URL
+        - name: MATOMO_SITE_ID
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: frontend.MATOMO_SITE_ID
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: frontend
+spec:
+  selector:
+    app: frontend
+  type: LoadBalancer
+  ports:
+  - name: "80"
+    port: 80
+    targetPort: 80
+    nodePort: 30080
+  - name: "443"
+    port: 443
+    targetPort: 443
+    nodePort: 30443
+  externalIPs:
+  - {{ tpl .Values.frontend.EXTERNAL_IP . }}

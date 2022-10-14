@@ -1,0 +1,126 @@
+namespace: default
+
+engines:
+  exareme:
+    IP: ""
+    URL: "http://{{ .Values.engines.exareme.IP }}:31000"
+    image:
+      version: 24.3.0
+  exareme2:
+    URL: ""
+    image:
+      version: dev
+
+mip:
+  version: 7.0.0
+  LINK: ""
+  EXTERNAL_PROTOCOL: ""
+  PUBLIC_PROTOCOL: ""
+  PUBLIC_HOST: ""
+  NAME: "MIP {{ .Values.mip.version }}"
+  VERSION_STRING: "Frontend: {{ .Values.frontend.image.version }}, Gateway: {{ .Values.gateway.image.version }}, Backend: {{ .Values.portalbackend.image.version }}, Engine1 (Exareme): {{ .Values.engines.exareme.image.version }}, Engine2 (MIP-ENGINE): {{ .Values.engines.exareme2.image.version }}, Galaxy: {{ .Values.galaxy.image.version }}"
+
+datacatalogue:
+  PROTOCOL: https
+  HOST: ""
+
+portalbackend_db:
+  image:
+    name: postgres
+    version: 11.3-alpine
+  storage:
+    storage0:
+      data_path: /opt/mip-deployment/.stored_data/portalbackenddb
+      data_size: 1Gi
+
+create_dbs:
+  image:
+    name: hbpmip/create-databases
+    version: 1.1.0
+
+portalbackend:
+  LOG_LEVEL: DEBUG
+  LOG_LEVEL_FRAMEWORK: DEBUG
+  image:
+    name: hbpmip/portal-backend
+    version: dev
+  storage:
+    storage0:
+      data_path: /opt/mip-deployment/config
+      data_size: 100Mi
+    storage1:
+      data_path: /opt/mip-deployment/logs
+      data_size: 1Gi
+
+gateway_db:
+  image:
+    name: postgres
+    version: 14-alpine
+  storage:
+    storage0:
+      data_path: /opt/mip-deployment/.stored_data/gatewaydb
+      data_size: 100Mi
+
+gateway:
+  ENGINE_TYPE: EXAREME
+  NODE_ENV: production                  # development/production
+  LOG_LEVEL: 4
+  CACHE_ENABLED: true
+  CACHE_TTL: 30
+  CACHE_MAX_ITEMS: 100
+  image:
+    name: hbpmip/gateway
+    version: 1.2.2-beta.1
+
+frontend:
+  ERROR_LOG_LEVEL: info
+  DATACATALOGUE_PROTOCOL: "{{ .Values.datacatalogue.PROTOCOL }}"
+  DATACATALOGUE_HOST: "{{ .Values.datacatalogue.HOST }}"
+  MATOMO_ENABLED: false
+  MATOMO_URL: https://stats.humanbrainproject.eu/
+  MATOMO_SITE_ID: 29
+  EXTERNAL_IP: "{{ .Values.engines.exareme.IP }}"
+  image:
+    name: hbpmip/portal-frontend
+    version: 9.0.1-beta.2
+  storage:
+    storage0:
+      data_path: /opt/mip-deployment/config/caddy
+      data_size: 100Mi
+    storage1:
+      data_path: /opt/mip-deployment/.stored_data/caddy/caddy_data
+      data_size: 100Mi
+
+keycloak_db:
+  image:
+    name: postgres
+    version: 12.2
+  storage:
+    storage0:
+      data_path: /opt/mip-deployment/.stored_data/keycloak
+      data_size: 100Mi
+
+keycloak:
+  AUTHENTICATION: 0
+  INTERNAL_AUTH: 0
+  URL: ""
+  REALM: MIP
+  CLIENT_ID: MIP
+  CLIENT_SECRET: ""
+  SSL_REQUIRED: external
+  PROXY_ADDRESS_FORWARDING: true        # important for reverse-proxy
+  image:
+    name: jboss/keycloak
+    version: 15.0.2
+  storage:
+    storage0:
+      data_path: /opt/mip-deployment/config/keycloak
+      data_size: 100Mi
+    storage1:
+      data_path: /opt/mip-deployment/config/keycloak/HBPTheme
+      data_size: 100Mi
+
+galaxy:
+  image:
+    name: hbpmip/galaxy
+    version: 1.3.4
