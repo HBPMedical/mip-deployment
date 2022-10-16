@@ -233,7 +233,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: KEYCLOAK_HOSTNAME
+              key: keycloak.HOSTNAME
         - name: KEYCLOAK_IMPORT
           value: /tmp/keycloak.json
         - name: KEYCLOAK_USER

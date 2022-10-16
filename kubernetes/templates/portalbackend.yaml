@@ -214,17 +214,17 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: MIP_LINK
+              key: mip.LINK
         - name: EXTERNAL_MIP_PROTOCOL
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: EXTERNAL_MIP_PROTOCOL
+              key: mip.EXTERNAL_PROTOCOL
         - name: AUTHENTICATION
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: KEYCLOAK_AUTHENTICATION
+              key: keycloak.AUTHENTICATION
         - name: PORTAL_DB_URL
           value: jdbc:postgresql://localhost:5432/portal
         - name: PORTAL_DB_SERVER
@@ -239,16 +239,16 @@ spec:
             secretKeyRef:
               name: mip-secret
               key: portalbackend-db.PORTAL_DB_PASSWORD
-        - name: MIPENGINE_URL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: EXAREME2_URL
         - name: EXAREME_URL
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: EXAREME_URL
+              key: engines.exareme.URL
+        - name: MIPENGINE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: engines.exareme2.URL
         - name: GALAXY_URL
           value: http://galaxy-service
         - name: GALAXY_API_KEY
@@ -270,27 +270,27 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: KEYCLOAK_AUTH_URL
+              key: keycloak.AUTH_URL
         - name: KEYCLOAK_REALM
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: KEYCLOAK_REALM
+              key: keycloak.REALM
         - name: KEYCLOAK_CLIENT_ID
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: KEYCLOAK_CLIENT_ID
+              key: keycloak.CLIENT_ID
         - name: KEYCLOAK_CLIENT_SECRET
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: KEYCLOAK_CLIENT_SECRET
+              key: keycloak.CLIENT_SECRET
         - name: KEYCLOAK_SSL_REQUIRED
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: KEYCLOAK_SSL_REQUIRED
+              key: keycloak.SSL_REQUIRED
 
 ---
 apiVersion: v1

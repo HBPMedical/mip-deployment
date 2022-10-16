@@ -4,23 +4,16 @@ metadata:
   name: mip-config
   namespace: {{ .Values.namespace }}
 data:
-  INSTANCE_NAME: "{{ tpl .Values.mip.NAME . }}"
-  INSTANCE_VERSION: "{{ tpl .Values.mip.VERSION_STRING . }}"
+  engines.exareme.IP: {{ .Values.engines.exareme.IP }}
+  engines.exareme.URL: {{ tpl .Values.engines.exareme.URL . }}
+  engines.exareme2.URL: {{ .Values.engines.exareme2.URL }}
 
-  EXAREME_IP: {{ .Values.engines.exareme.IP }}
-  EXAREME_URL: {{ tpl .Values.engines.exareme.URL . }}
-  EXAREME2_URL: {{ .Values.engines.exareme2.URL }}
-  MIP_LINK: {{ .Values.mip.LINK }}
-  EXTERNAL_MIP_PROTOCOL: {{ .Values.mip.EXTERNAL_PROTOCOL }}
-  PUBLIC_MIP_PROTOCOL: {{ .Values.mip.PUBLIC_PROTOCOL }}
-  PUBLIC_MIP_HOST: {{ .Values.mip.PUBLIC_HOST }}
-  KEYCLOAK_AUTHENTICATION: "{{ .Values.keycloak.AUTHENTICATION }}"
-  KEYCLOAK_HOSTNAME: {{ .Values.keycloak.URL }} # Only used with internal Keycloak auth
-  KEYCLOAK_AUTH_URL: {{ .Values.keycloak.PROTOCOL }}://{{ .Values.keycloak.URL }}/auth/
-  KEYCLOAK_REALM: {{ .Values.keycloak.REALM }}
-  KEYCLOAK_CLIENT_ID: {{ .Values.keycloak.CLIENT_ID }}
-  KEYCLOAK_CLIENT_SECRET: {{ .Values.keycloak.CLIENT_SECRET }}
-  KEYCLOAK_SSL_REQUIRED: {{ .Values.keycloak.SSL_REQUIRED }}
+  mip.INSTANCE_NAME: "{{ tpl .Values.mip.NAME . }}"
+  mip.INSTANCE_VERSION: "{{ tpl .Values.mip.VERSION_STRING . }}"
+  mip.LINK: {{ .Values.mip.LINK }}
+  mip.EXTERNAL_PROTOCOL: {{ .Values.mip.EXTERNAL_PROTOCOL }}
+  mip.PUBLIC_PROTOCOL: {{ .Values.mip.PUBLIC_PROTOCOL }}
+  mip.PUBLIC_HOST: {{ .Values.mip.PUBLIC_HOST }}
 
   portalbackend.LOG_LEVEL: {{ .Values.portalbackend.LOG_LEVEL }}
   portalbackend.LOG_LEVEL_FRAMEWORK: {{ .Values.portalbackend.LOG_LEVEL_FRAMEWORK }}
@@ -38,4 +31,11 @@ data:
   frontend.MATOMO_URL: {{ .Values.frontend.MATOMO_URL }}
   frontend.MATOMO_SITE_ID: "{{ .Values.frontend.MATOMO_SITE_ID }}"
 
+  keycloak.AUTHENTICATION: "{{ .Values.keycloak.AUTHENTICATION }}"
+  keycloak.HOSTNAME: {{ .Values.keycloak.URL }} # Only used with internal Keycloak auth
+  keycloak.AUTH_URL: {{ .Values.keycloak.PROTOCOL }}://{{ .Values.keycloak.URL }}/auth/
+  keycloak.REALM: {{ .Values.keycloak.REALM }}
+  keycloak.CLIENT_ID: {{ .Values.keycloak.CLIENT_ID }}
+  keycloak.CLIENT_SECRET: {{ .Values.keycloak.CLIENT_SECRET }}
+  keycloak.SSL_REQUIRED: {{ .Values.keycloak.SSL_REQUIRED }}
   keycloak.PROXY_ADDRESS_FORWARDING: "{{ .Values.keycloak.PROXY_ADDRESS_FORWARDING }}"

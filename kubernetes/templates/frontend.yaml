@@ -141,31 +141,35 @@ spec:
               key: frontend.ERROR_LOG_LEVEL
         - name: GATEWAY_SERVER
           value: gateway-service:8081
+        - name: PORTAL_BACKEND_SERVER
+          value: portalbackend-service:8080
+        - name: PORTAL_BACKEND_CONTEXT
+          value: services
         - name: INSTANCE_NAME
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: INSTANCE_NAME
+              key: mip.INSTANCE_NAME
         - name: VERSION
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: INSTANCE_VERSION
+              key: mip.INSTANCE_VERSION
         - name: EXTERNAL_MIP_PROTOCOL
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: EXTERNAL_MIP_PROTOCOL
+              key: mip.EXTERNAL_PROTOCOL
         - name: PUBLIC_MIP_PROTOCOL
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: PUBLIC_MIP_PROTOCOL
+              key: mip.PUBLIC_PROTOCOL
         - name: PUBLIC_MIP_HOST
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: PUBLIC_MIP_HOST
+              key: mip.PUBLIC_HOST
         - name: KEYCLOAK_HOST                           # Only used with internal Keycloak auth
           value: http://keycloak-service:8095
         - name: KEYCLOAK_AUTH_PATH                      # Only used with internal Keyclaok auth
@@ -174,7 +178,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: MIP_LINK
+              key: mip.LINK
         - name: GALAXY_HOST
           value: http://galaxy-service
         - name: GALAXY_PATH

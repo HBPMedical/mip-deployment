@@ -31,7 +31,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: EXAREME_IP
+              key: engines.exareme.IP
         - name: EXAREME_PORT
           value: "9090"
         - name: PASSWORD
