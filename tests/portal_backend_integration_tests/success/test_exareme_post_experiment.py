@@ -21,134 +21,64 @@ all_success_cases = [
                 {
                     "name": "x",
                     "label": "x",
-                    "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala"
+                    "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
                 },
+                {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
+                {"name": "pathology", "label": "pathology", "value": "dementia:0.1"},
+                {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
+                {"name": "filter", "label": "filter", "value": ""},
+                {"name": "formula", "label": "formula", "value": ""},
+                {"name": "positive_level", "label": "Positive level", "value": "AD"},
+                {"name": "negative_level", "label": "Negative level", "value": "CN"},
+            ],
+            "type": "python_iterative",
+        },
+        "name": "LOGISTIC_REGRESSION",
+    },
+    {
+        "algorithm": {
+            "name": "NAIVE_BAYES",
+            "label": "Naive Bayes classifier",
+            "parameters": [
+                {
+                    "name": "x",
+                    "label": "x",
+                    "value": "righthippocampus,lefthippocampus",
+                },
+                {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
+                {"name": "alpha", "label": "alpha", "value": "0.1"},
+                {"name": "k", "label": "number of batches", "value": "10"},
+                {"name": "pathology", "label": "pathology", "value": "dementia:0.1"},
+                {"name": "dataset", "label": "dataset", "value": "edsd"},
+                {"name": "filter", "label": "filter", "value": ""},
+            ],
+            "type": "python_multiple_local_global",
+        },
+        "name": "Naive Bayes classifier",
+    },
+    {
+        "algorithm": {
+            "name": "TTEST_PAIRED",
+            "label": "T-Test Paired",
+            "parameters": [
                 {
                     "name": "y",
                     "label": "y",
-                    "value": "alzheimerbroadcategory"
+                    "value": "righthippocampus-lefthippocampus",
                 },
-                {
-                    "name": "pathology",
-                    "label": "pathology",
-                    "value": "dementia"
-                },
-                {
-                    "name": "dataset",
-                    "label": "dataset",
-                    "value": "edsd,ppmi"
-                },
-                {
-                    "name": "filter",
-                    "label": "filter",
-                    "value": ""
-                },
-                {
-                    "name": "formula",
-                    "label": "formula",
-                    "value": ""
-                },
-                {
-                    "name": "positive_level",
-                    "label": "Positive level",
-                    "value": "AD"
-                },
-                {
-                    "name": "negative_level",
-                    "label": "Negative level",
-                    "value": "CN"
-                }
+                {"name": "hypothesis", "label": "hypothesis", "value": "different"},
+                {"name": "pathology", "label": "pathology", "value": "dementia:0.1"},
+                {"name": "dataset", "label": "dataset", "value": "desd-synthdata"},
+                {"name": "filter", "label": "filter", "value": ""},
             ],
-            "type": "python_iterative"
+            "type": "local_global",
         },
-        "name": "LOGISTIC_REGRESSION"
+        "name": "T-Test Paired",
     },
-    {
-       "algorithm":{
-          "name":"NAIVE_BAYES",
-          "label":"Naive Bayes classifier",
-          "parameters":[
-             {
-                "name":"x",
-                "label":"x",
-                "value":"righthippocampus,lefthippocampus"
-             },
-             {
-                "name":"y",
-                "label":"y",
-                "value":"alzheimerbroadcategory"
-             },
-             {
-                "name":"alpha",
-                "label":"alpha",
-                "value":"0.1"
-             },
-             {
-                "name":"k",
-                "label":"number of batches",
-                "value":"10"
-             },
-             {
-                "name":"pathology",
-                "label":"pathology",
-                "value":"dementia"
-             },
-             {
-                "name":"dataset",
-                "label":"dataset",
-                "value":"edsd"
-             },
-             {
-                "name":"filter",
-                "label":"filter",
-                "value":""
-             }
-          ],
-          "type":"python_multiple_local_global"
-       },
-       "name":"Naive Bayes classifier"
-    },
-    {
-       "algorithm":{
-          "name":"TTEST_PAIRED",
-          "label":"T-Test Paired",
-          "parameters":[
-             {
-                "name":"y",
-                "label":"y",
-                "value":"righthippocampus-lefthippocampus"
-             },
-             {
-                "name":"hypothesis",
-                "label":"hypothesis",
-                "value":"different"
-             },
-             {
-                "name":"pathology",
-                "label":"pathology",
-                "value":"dementia"
-             },
-             {
-                "name":"dataset",
-                "label":"dataset",
-                "value":"desd-synthdata"
-             },
-             {
-                "name":"filter",
-                "label":"filter",
-                "value":""
-             }
-          ],
-          "type":"local_global"
-       },
-       "name":"T-Test Paired"
-    }
 ]
 
 
-@pytest.mark.parametrize(
-    "test_input", all_success_cases
-)
+@pytest.mark.parametrize("test_input", all_success_cases)
 def test_post_request_exareme(test_input):
     url = "http://127.0.0.1:8080/services/experiments"
 
