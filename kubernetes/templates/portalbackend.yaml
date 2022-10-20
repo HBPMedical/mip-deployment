@@ -210,16 +210,6 @@ spec:
             configMapKeyRef:
               name: mip-config
               key: portalbackend.LOG_LEVEL_FRAMEWORK
-        - name: MIP_LINK
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.LINK
-        - name: EXTERNAL_MIP_PROTOCOL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.EXTERNAL_PROTOCOL
         - name: AUTHENTICATION
           valueFrom:
             configMapKeyRef:

@@ -200,7 +200,6 @@ spec:
         image: {{ .Values.keycloak.image.name }}:{{ .Values.keycloak.image.version }}
         ports:
         - containerPort: 8095
-        - containerPort: 8443
         volumeMounts:
         - name: keycloak-claim0
           mountPath: /tmp

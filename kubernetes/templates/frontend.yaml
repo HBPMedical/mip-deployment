@@ -172,7 +172,7 @@ spec:
               key: mip.PUBLIC_HOST
         - name: KEYCLOAK_HOST                           # Only used with internal Keycloak auth
           value: http://keycloak-service:8095
-        - name: KEYCLOAK_AUTH_PATH                      # Only used with internal Keyclaok auth
+        - name: KEYCLOAK_AUTH_PATH                      # Only used with internal Keycloak auth
           value: /auth
         - name: MIP_LINK
           valueFrom:
@@ -183,7 +183,7 @@ spec:
           value: http://galaxy-service
         - name: GALAXY_PATH
           value: /nativeGalaxy
-        - name: DATACATALOGUE_SERVER
+        - name: DATACATALOGUE_SERVER                    # Only used in federated installation
           valueFrom:
             configMapKeyRef:
               name: mip-config

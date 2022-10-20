@@ -1,14 +1,14 @@
 engines:
   exareme:
-    IP: <MACHINE_IP>
+    IP: <MACHINE_MAIN_IP>
   exareme2:
-    URL: http://<MACHINE_IP>:30000
+    URL: http://<MACHINE_MAIN_IP>:30000
 
 mip:
   LINK: direct
   EXTERNAL_PROTOCOL: https
   PUBLIC_PROTOCOL: https
-  PUBLIC_HOST: <MACHINE_FQDN>
+  PUBLIC_HOST: <MACHINE_PUBLIC_FQDN>
 
 datacatalogue:
   PROTOCOL: https

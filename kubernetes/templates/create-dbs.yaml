@@ -6,11 +6,11 @@ metadata:
   labels:
     app: create-dbs
   annotations:
-    config.kubernetes.io/depends-on: apps/namespaces/{{ .Values.namespace }}/Service/portalbackend-service
+    config.kubernetes.io/depends-on: apps/namespaces/{{ .Values.namespace }}/Deployment/portalbackend
 spec:
   parallelism: 1
   completions: 1
-  ttlSecondsAfterFinished: 30
+  #ttlSecondsAfterFinished: 30
   template:
     spec:
       nodeSelector:
