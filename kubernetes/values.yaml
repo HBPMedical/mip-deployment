@@ -39,8 +39,8 @@ create_dbs:
     version: 1.1.0
 
 portalbackend:
-  LOG_LEVEL: DEBUG
-  LOG_LEVEL_FRAMEWORK: DEBUG
+  LOG_LEVEL: INFO
+  LOG_LEVEL_FRAMEWORK: INFO
   image:
     name: hbpmip/portal-backend
     version: dev
