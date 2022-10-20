@@ -92,12 +92,12 @@ def test_post_request_exareme(test_input):
     assert test_input["algorithm"]["label"] == algorithm["algorithm"]["label"]
     assert test_input["algorithm"]["type"] == algorithm["algorithm"]["type"]
     while True:
-        logistic_curent_state_response = do_get_experiment_request(algorithm["uuid"])
-        logistic_curent_state = json.loads(logistic_curent_state_response.text)
-        status = logistic_curent_state["status"]
+        logistic_current_state_response = do_get_experiment_request(algorithm["uuid"])
+        logistic_current_state = json.loads(logistic_current_state_response.text)
+        status = logistic_current_state["status"]
         if status != "pending":
             assert status == "success"
-            assert logistic_curent_state["result"] is not None
+            assert logistic_current_state["result"] is not None
             assert algorithm["algorithm"]["type"] != "mipengine"
             assert algorithm["algorithm"]["type"] != "workflow"
             break

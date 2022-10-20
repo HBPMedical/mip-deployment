@@ -202,7 +202,7 @@ all_success_cases = [
                 {
                     "name": "positive_class",
                     "label": "positive_class",
-                    "value": 'Other',
+                    "value": "Other",
                 },
             ],
             "type": "mipengine",
@@ -234,7 +234,7 @@ all_success_cases = [
                 {
                     "name": "positive_class",
                     "label": "positive_class",
-                    "value": 'AD',
+                    "value": "AD",
                 },
                 {
                     "name": "n_splits",
@@ -271,7 +271,7 @@ all_success_cases = [
                 {
                     "name": "alt_hypothesis",
                     "label": "alt_hypothesis",
-                    "value": 'less',
+                    "value": "less",
                 },
                 {
                     "name": "alpha",
@@ -308,7 +308,7 @@ all_success_cases = [
                 {
                     "name": "alt_hypothesis",
                     "label": "alt_hypothesis",
-                    "value": 'greater',
+                    "value": "greater",
                 },
                 {
                     "name": "alpha",
@@ -330,7 +330,11 @@ all_success_cases = [
             "name": "descriptive_stats",
             "label": "Descriptive stats",
             "parameters": [
-                {"name": "y", "label": "y", "value": "leftttgtransversetemporalgyrus,rightmprgprecentralgyrusmedialsegment"},
+                {
+                    "name": "y",
+                    "label": "y",
+                    "value": "leftttgtransversetemporalgyrus,rightmprgprecentralgyrusmedialsegment",
+                },
                 {"name": "pathology", "label": "pathology", "value": "dementia:0.1"},
                 {
                     "name": "dataset",
@@ -369,12 +373,12 @@ def test_post_request_mip_engine(test_input):
     assert test_input["algorithm"]["label"] == algorithm["algorithm"]["label"]
     assert test_input["algorithm"]["type"] == algorithm["algorithm"]["type"]
     while True:
-        algorithm_curent_state_response = do_get_experiment_request(algorithm["uuid"])
-        algorithm_curent_state = json.loads(algorithm_curent_state_response.text)
-        status = algorithm_curent_state["status"]
+        algorithm_current_state_response = do_get_experiment_request(algorithm["uuid"])
+        algorithm_current_state = json.loads(algorithm_current_state_response.text)
+        status = algorithm_current_state["status"]
         print(status)
         if status != "pending":
             assert status == "success"
-            assert algorithm_curent_state["result"] is not None
+            assert algorithm_current_state["result"] is not None
             break
         time.sleep(2)

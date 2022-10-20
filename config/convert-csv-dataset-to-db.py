@@ -21,24 +21,27 @@ def createMetadataDictionary(CDEsMetadataPath):
     metadataJSON = json.load(CDEsMetadata)
 
     metadataDictionary = {}
-    metadataDictionary['subjectcode'] = 'text'
-    metadataDictionary['dataset'] = 'text'
-    metadataDictionary = addGroupVariablesToDictionary(metadataJSON,
-                                                       metadataDictionary)
+    metadataDictionary["subjectcode"] = "text"
+    metadataDictionary["dataset"] = "text"
+    metadataDictionary = addGroupVariablesToDictionary(metadataJSON, metadataDictionary)
     return metadataDictionary
 
 
 def addGroupVariablesToDictionary(groupMetadata, metadataDictionary):
-    if 'variables' in groupMetadata:
-        for variable in groupMetadata['variables']:
-            if 'sql_type' not in variable:
+    if "variables" in groupMetadata:
+        for variable in groupMetadata["variables"]:
+            if "sql_type" not in variable:
                 raise ValueError(
-                    'The variable "' + variable['code'] + '" does not contain the sql_type field in the metadata.')
-            metadataDictionary[variable['code']] = variable['sql_type']
-    if 'groups' in groupMetadata:
-        for group in groupMetadata['groups']:
-            metadataDictionary = addGroupVariablesToDictionary(group,
-                                                               metadataDictionary)
+                    'The variable "'
+                    + variable["code"]
+                    + '" does not contain the sql_type field in the metadata.'
+                )
+            metadataDictionary[variable["code"]] = variable["sql_type"]
+    if "groups" in groupMetadata:
+        for group in groupMetadata["groups"]:
+            metadataDictionary = addGroupVariablesToDictionary(
+                group, metadataDictionary
+            )
     return metadataDictionary
 
 
@@ -53,54 +56,67 @@ def createMetadataList(CDEsMetadataPath):
 
 
 def addGroupVariablesToList(groupMetadata, metadataList):
-    if 'variables' in groupMetadata:
-        for variable in groupMetadata['variables']:
+    if "variables" in groupMetadata:
+        for variable in groupMetadata["variables"]:
             variableDictionary = {}
-            variableDictionary['code'] = variable['code']
+            variableDictionary["code"] = variable["code"]
 
-            if 'label' not in variable:
+            if "label" not in variable:
                 raise ValueError(
-                    'The variable "' + variable['code'] + '" does not contain the label field in the metadata.')
-            variableDictionary['label'] = variable['label']
+                    'The variable "'
+                    + variable["code"]
+                    + '" does not contain the label field in the metadata.'
+                )
+            variableDictionary["label"] = variable["label"]
 
-            if 'sql_type' not in variable:
+            if "sql_type" not in variable:
                 raise ValueError(
-                    'The variable "' + variable['code'] + '" does not contain the sql_type field in the metadata.')
-            variableDictionary['sql_type'] = variable['sql_type']
+                    'The variable "'
+                    + variable["code"]
+                    + '" does not contain the sql_type field in the metadata.'
+                )
+            variableDictionary["sql_type"] = variable["sql_type"]
 
-            if 'isCategorical' not in variable:
+            if "isCategorical" not in variable:
                 raise ValueError(
-                    'The variable "' + variable['code'] + '" does not contain the isCategorical field in the metadata.')
-            variableDictionary['isCategorical'] = '1' if variable['isCategorical'] else '0'
+                    'The variable "'
+                    + variable["code"]
+                    + '" does not contain the isCategorical field in the metadata.'
+                )
+            variableDictionary["isCategorical"] = (
+                "1" if variable["isCategorical"] else "0"
+            )
 
-            if variable['isCategorical'] and 'enumerations' not in variable:
-                raise ValueError('The variable "' + variable[
-                    'code'] + '" does not contain enumerations even though it is categorical.')
+            if variable["isCategorical"] and "enumerations" not in variable:
+                raise ValueError(
+                    'The variable "'
+                    + variable["code"]
+                    + '" does not contain enumerations even though it is categorical.'
+                )
 
-            if 'enumerations' in variable:
+            if "enumerations" in variable:
                 enumerations = []
-                for enumeration in variable['enumerations']:
-                    enumerations.append(str(enumeration['code']))
-                variableDictionary['enumerations'] = ','.join(enumerations)
+                for enumeration in variable["enumerations"]:
+                    enumerations.append(str(enumeration["code"]))
+                variableDictionary["enumerations"] = ",".join(enumerations)
             else:
-                variableDictionary['enumerations'] = None
+                variableDictionary["enumerations"] = None
 
-            if 'min' in variable:
-                variableDictionary['min'] = variable['min']
+            if "min" in variable:
+                variableDictionary["min"] = variable["min"]
             else:
-                variableDictionary['min'] = None
+                variableDictionary["min"] = None
 
-            if 'max' in variable:
-                variableDictionary['max'] = variable['max']
+            if "max" in variable:
+                variableDictionary["max"] = variable["max"]
             else:
-                variableDictionary['max'] = None
+                variableDictionary["max"] = None
 
             metadataList.append(variableDictionary)
 
-    if 'groups' in groupMetadata:
-        for group in groupMetadata['groups']:
-            metadataList = addGroupVariablesToList(group,
-                                                   metadataList)
+    if "groups" in groupMetadata:
+        for group in groupMetadata["groups"]:
+            metadataList = addGroupVariablesToList(group, metadataList)
     return metadataList
 
 
@@ -109,40 +125,48 @@ def addMetadataInTheDatabase(CDEsMetadataPath, cur):
     metadataList = createMetadataList(CDEsMetadataPath)
 
     # Create the query for the metadata table
-    createMetadataTableQuery = 'CREATE TABLE METADATA('
-    createMetadataTableQuery += ' code TEXT PRIMARY KEY ASC CHECK (TYPEOF(code) = "text")'
+    createMetadataTableQuery = "CREATE TABLE METADATA("
+    createMetadataTableQuery += (
+        ' code TEXT PRIMARY KEY ASC CHECK (TYPEOF(code) = "text")'
+    )
     createMetadataTableQuery += ', label TEXT CHECK (TYPEOF(label) = "text")'
     createMetadataTableQuery += ', sql_type TEXT CHECK (TYPEOF(sql_type) = "text")'
-    createMetadataTableQuery += ', isCategorical INTEGER CHECK (TYPEOF(isCategorical) = "integer")'
+    createMetadataTableQuery += (
+        ', isCategorical INTEGER CHECK (TYPEOF(isCategorical) = "integer")'
+    )
     createMetadataTableQuery += ', enumerations TEXT CHECK (TYPEOF(enumerations) = "text" OR TYPEOF(enumerations) = "null")'
-    createMetadataTableQuery += ', min INTEGER CHECK (TYPEOF(min) = "integer" OR TYPEOF(min) = "null")'
-    createMetadataTableQuery += ', max INTEGER CHECK (TYPEOF(max) = "integer" OR TYPEOF(max) = "null"))'
+    createMetadataTableQuery += (
+        ', min INTEGER CHECK (TYPEOF(min) = "integer" OR TYPEOF(min) = "null")'
+    )
+    createMetadataTableQuery += (
+        ', max INTEGER CHECK (TYPEOF(max) = "integer" OR TYPEOF(max) = "null"))'
+    )
 
     # Create the metadata table
-    cur.execute('DROP TABLE IF EXISTS METADATA')
+    cur.execute("DROP TABLE IF EXISTS METADATA")
     cur.execute(createMetadataTableQuery)
 
     # Add data to the metadata table
-    columnsQuery = 'INSERT INTO METADATA (code, label, sql_type, isCategorical, enumerations, min, max) VALUES ('
+    columnsQuery = "INSERT INTO METADATA (code, label, sql_type, isCategorical, enumerations, min, max) VALUES ("
 
     for variable in metadataList:
         insertVariableQuery = columnsQuery
-        insertVariableQuery += "'" + variable['code'] + "'"
-        insertVariableQuery += ", '" + variable['label'] + "'"
-        insertVariableQuery += ", '" + variable['sql_type'] + "'"
-        insertVariableQuery += ", " + variable['isCategorical']
-        if variable['enumerations']:
-            insertVariableQuery += ", '" + variable['enumerations'] + "'"
+        insertVariableQuery += "'" + variable["code"] + "'"
+        insertVariableQuery += ", '" + variable["label"] + "'"
+        insertVariableQuery += ", '" + variable["sql_type"] + "'"
+        insertVariableQuery += ", " + variable["isCategorical"]
+        if variable["enumerations"]:
+            insertVariableQuery += ", '" + variable["enumerations"] + "'"
         else:
             insertVariableQuery += ", NULL"
 
-        if variable['min']:
-            insertVariableQuery += ", '" + variable['min'] + "'"
+        if variable["min"]:
+            insertVariableQuery += ", '" + variable["min"] + "'"
         else:
             insertVariableQuery += ", NULL"
 
-        if variable['max']:
-            insertVariableQuery += ", '" + variable['max'] + "'"
+        if variable["max"]:
+            insertVariableQuery += ", '" + variable["max"] + "'"
         else:
             insertVariableQuery += ", NULL"
 
@@ -151,28 +175,58 @@ def addMetadataInTheDatabase(CDEsMetadataPath, cur):
         try:
             cur.execute(insertVariableQuery)
         except sqlite3.IntegrityError:
-            raise ValueError('Failed to execute query: ' + insertVariableQuery + '  , due to database constraints.')
+            raise ValueError(
+                "Failed to execute query: "
+                + insertVariableQuery
+                + "  , due to database constraints."
+            )
 
 
 def createDataTable(metadataDictionary, cur):
     # Create the query for the sqlite data table
-    createDataTableQuery = 'CREATE TABLE DATA('
+    createDataTableQuery = "CREATE TABLE DATA("
     for column in metadataDictionary:
-        if metadataDictionary[column] in ['INT', 'int', 'Int']:
-            createDataTableQuery += column + ' ' + metadataDictionary[
-                column] + ' CHECK (TYPEOF(' + column + ') = "integer" OR TYPEOF(' + column + ') = "null"), '
-        elif metadataDictionary[column] in ['REAL', 'real', 'Real']:
-            createDataTableQuery += column + ' ' + metadataDictionary[
-                column] + ' CHECK (TYPEOF(' + column + ') = "real" OR TYPEOF(' + column + ') = "integer" OR TYPEOF(' + column + ') = "null"), '
-        elif metadataDictionary[column] in ['TEXT', 'text', 'Text']:
-            createDataTableQuery += column + ' ' + metadataDictionary[
-                column] + ' CHECK (TYPEOF(' + column + ') = "text" OR TYPEOF(' + column + ') = "null"), '
+        if metadataDictionary[column] in ["INT", "int", "Int"]:
+            createDataTableQuery += (
+                column
+                + " "
+                + metadataDictionary[column]
+                + " CHECK (TYPEOF("
+                + column
+                + ') = "integer" OR TYPEOF('
+                + column
+                + ') = "null"), '
+            )
+        elif metadataDictionary[column] in ["REAL", "real", "Real"]:
+            createDataTableQuery += (
+                column
+                + " "
+                + metadataDictionary[column]
+                + " CHECK (TYPEOF("
+                + column
+                + ') = "real" OR TYPEOF('
+                + column
+                + ') = "integer" OR TYPEOF('
+                + column
+                + ') = "null"), '
+            )
+        elif metadataDictionary[column] in ["TEXT", "text", "Text"]:
+            createDataTableQuery += (
+                column
+                + " "
+                + metadataDictionary[column]
+                + " CHECK (TYPEOF("
+                + column
+                + ') = "text" OR TYPEOF('
+                + column
+                + ') = "null"), '
+            )
     # Remove the last comma
     createDataTableQuery = createDataTableQuery[:-2]
-    createDataTableQuery += ')'
+    createDataTableQuery += ")"
 
     # Create the data table
-    cur.execute('DROP TABLE IF EXISTS DATA')
+    cur.execute("DROP TABLE IF EXISTS DATA")
     cur.execute(createDataTableQuery)
 
 
@@ -186,54 +240,66 @@ def addCSVInTheDataTable(csvFilePath, metadataDictionary, cur):
     columnsString = csvHeader[0]
     for column in csvHeader[1:]:
         if column not in metadataDictionary:
-            raise KeyError('Column ' + column + ' does not exist in the metadata!')
-        columnsString += ', ' + column
-    columnsSectionOfSQLQuery = 'INSERT INTO DATA (' + columnsString + ') VALUES '
+            raise KeyError("Column " + column + " does not exist in the metadata!")
+        columnsString += ", " + column
+    columnsSectionOfSQLQuery = "INSERT INTO DATA (" + columnsString + ") VALUES "
 
     # Insert data
     numberOfRows = 0
-    valuesSectionOfSQLQuery = '('
+    valuesSectionOfSQLQuery = "("
     for row in csvReader:
         numberOfRows += 1
         for (value, column) in zip(row, csvHeader):
-            if metadataDictionary[column] == 'text':
+            if metadataDictionary[column] == "text":
                 valuesSectionOfSQLQuery += "'" + value + "', "
-            elif value == '':
-                valuesSectionOfSQLQuery += 'null, '
+            elif value == "":
+                valuesSectionOfSQLQuery += "null, "
             else:
                 valuesSectionOfSQLQuery += value + ", "
         if numberOfRows % int(MAX_ROWS_TO_INSERT_INTO_SQL) == 0:
             valuesSectionOfSQLQuery = valuesSectionOfSQLQuery[:-2]
-            valuesSectionOfSQLQuery += ');'
+            valuesSectionOfSQLQuery += ");"
 
             try:
                 cur.execute(columnsSectionOfSQLQuery + valuesSectionOfSQLQuery)
             except:
-                findErrorOnBulkInsertQuery(cur, valuesSectionOfSQLQuery, csvHeader, metadataDictionary, csvFilePath)
+                findErrorOnBulkInsertQuery(
+                    cur,
+                    valuesSectionOfSQLQuery,
+                    csvHeader,
+                    metadataDictionary,
+                    csvFilePath,
+                )
                 raise ValueError("Error inserting the CSV to the database.")
-            valuesSectionOfSQLQuery = '('
+            valuesSectionOfSQLQuery = "("
         else:
             valuesSectionOfSQLQuery = valuesSectionOfSQLQuery[:-2]
-            valuesSectionOfSQLQuery += '),('
+            valuesSectionOfSQLQuery += "),("
 
     if numberOfRows % int(MAX_ROWS_TO_INSERT_INTO_SQL) != 0:
         valuesSectionOfSQLQuery = valuesSectionOfSQLQuery[:-3]
-        valuesSectionOfSQLQuery += ');'
+        valuesSectionOfSQLQuery += ");"
 
         try:
             cur.execute(columnsSectionOfSQLQuery + valuesSectionOfSQLQuery)
         except:
-            findErrorOnBulkInsertQuery(cur, valuesSectionOfSQLQuery, csvHeader, metadataDictionary, csvFilePath)
+            findErrorOnBulkInsertQuery(
+                cur, valuesSectionOfSQLQuery, csvHeader, metadataDictionary, csvFilePath
+            )
 
 
-def findErrorOnBulkInsertQuery(cur, valuesOfQuery, csvHeader, metadataDictionary, csvFilePath):
+def findErrorOnBulkInsertQuery(
+    cur, valuesOfQuery, csvHeader, metadataDictionary, csvFilePath
+):
     # Removing the first and last parenthesis
     valuesOfQuery = valuesOfQuery[1:-2]
     # Removing the ' from character values
-    valuesOfQuery = valuesOfQuery.replace("\'", "")
+    valuesOfQuery = valuesOfQuery.replace("'", "")
     # Call findErrorOnSqlQuery for each row in the bulk query
-    for row in valuesOfQuery.split('),('):
-        findErrorOnSqlQuery(cur, row.split(','), csvHeader, metadataDictionary, csvFilePath)
+    for row in valuesOfQuery.split("),("):
+        findErrorOnSqlQuery(
+            cur, row.split(","), csvHeader, metadataDictionary, csvFilePath
+        )
 
 
 def findErrorOnSqlQuery(cur, row, csvHeader, metadataDictionary, csvFilePath):
@@ -246,47 +312,88 @@ def findErrorOnSqlQuery(cur, row, csvHeader, metadataDictionary, csvFilePath):
             code = value
             insertQuery = "INSERT INTO DATA (subjectcode) VALUES ('" + value + "');"
             cur.execute(insertQuery)
-            continue;
+            continue
 
-        if metadataDictionary[column] == 'text':
-            updateQuery = "UPDATE DATA SET " + column + " = '" + value + "' WHERE subjectcode = '" + code + "';";
-        elif value == '':
-            updateQuery = "UPDATE DATA SET " + column + " = null WHERE subjectcode = '" + code + "';";
+        if metadataDictionary[column] == "text":
+            updateQuery = (
+                "UPDATE DATA SET "
+                + column
+                + " = '"
+                + value
+                + "' WHERE subjectcode = '"
+                + code
+                + "';"
+            )
+        elif value == "":
+            updateQuery = (
+                "UPDATE DATA SET "
+                + column
+                + " = null WHERE subjectcode = '"
+                + code
+                + "';"
+            )
         else:
-            updateQuery = "UPDATE DATA SET " + column + " = " + value + " WHERE subjectcode = '" + code + "';";
+            updateQuery = (
+                "UPDATE DATA SET "
+                + column
+                + " = "
+                + value
+                + " WHERE subjectcode = '"
+                + code
+                + "';"
+            )
 
         try:
             cur.execute(updateQuery)
         except:
             raise ValueError(
-                "Error inserting into the database. Could not insert value: '" + value + "', into column: '" + column + "', at row with subjectcode: " + code + ", while inserting csv: " + csvFilePath)
+                "Error inserting into the database. Could not insert value: '"
+                + value
+                + "', into column: '"
+                + column
+                + "', at row with subjectcode: "
+                + code
+                + ", while inserting csv: "
+                + csvFilePath
+            )
 
 
 def main():
     # Read the parameters
     parser = ArgumentParser()
-    parser.add_argument('-f', '--pathologiesFolderPath', required=True,
-                        help='The folder with the pathologies data.')
-    parser.add_argument('-p', '--pathologies', required=False,
-                        help='Specific pathologies to parse. (Example: "dementia,tbi"'
-                        )
+    parser.add_argument(
+        "-f",
+        "--pathologiesFolderPath",
+        required=True,
+        help="The folder with the pathologies data.",
+    )
+    parser.add_argument(
+        "-p",
+        "--pathologies",
+        required=False,
+        help='Specific pathologies to parse. (Example: "dementia,tbi"',
+    )
     args = parser.parse_args()
     pathologiesFolderPath = os.path.abspath(args.pathologiesFolderPath)
 
     # Get all pathologies
     pathologiesList = next(os.walk(pathologiesFolderPath))[1]
-    
+
     if args.pathologies != None:
         pathologiesToConvert = args.pathologies.split(",")
         pathologiesList = list(set(pathologiesList) & set(pathologiesToConvert))
-    print ("Converting csvs for pathologies: " + ",".join(pathologiesList))
+    print("Converting csvs for pathologies: " + ",".join(pathologiesList))
 
     # Create the datasets db for each pathology
     for pathologyName in pathologiesList:
 
         # Initializing metadata and output absolute path
-        CDEsMetadataPath = os.path.join(pathologiesFolderPath, pathologyName, "CDEsMetadata.json")
-        outputDBAbsPath = os.path.join(pathologiesFolderPath, pathologyName, "datasets.db")
+        CDEsMetadataPath = os.path.join(
+            pathologiesFolderPath, pathologyName, "CDEsMetadata.json"
+        )
+        outputDBAbsPath = os.path.join(
+            pathologiesFolderPath, pathologyName, "datasets.db"
+        )
 
         # Connect to the database
         con = sqlite3.connect(outputDBAbsPath)
@@ -303,7 +410,7 @@ def main():
 
         # Add all the csvs in the database
         for csv in os.listdir(os.path.join(pathologiesFolderPath, pathologyName)):
-            if csv.endswith('.csv'):
+            if csv.endswith(".csv"):
                 csvFilePath = os.path.join(pathologiesFolderPath, pathologyName, csv)
                 addCSVInTheDataTable(csvFilePath, metadataDictionary, cur)
 
@@ -311,5 +418,5 @@ def main():
         con.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

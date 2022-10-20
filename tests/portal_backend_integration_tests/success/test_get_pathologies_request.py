@@ -11,8 +11,10 @@ def test_get_pathologies_request():
     print(f"Pathologies result-> {response.text}")
     pathologies = json.loads(response.text)
     assert len(pathologies) == 3
-    assert all(pathology["code"] in ["dementia", "mentalhealth", "tbi"] for pathology in pathologies)
-    assert all(len(pathology["datasets"]) in [21, 185, 192] for pathology in pathologies)
-
-
-
+    assert all(
+        pathology["code"] in ["dementia", "mentalhealth", "tbi"]
+        for pathology in pathologies
+    )
+    assert all(
+        len(pathology["datasets"]) in [21, 185, 192] for pathology in pathologies
+    )

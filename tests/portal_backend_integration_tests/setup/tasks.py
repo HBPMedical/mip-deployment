@@ -90,8 +90,14 @@ def setup_dbs(c):
     datasets_per_data_model = {}
 
     datasets_per_location = {
-        50001: {"dementia": ["desd-synthdata.csv", "ppmi.csv"], "tbi": ["dummy_tbi.csv"]},
-        50002: {"dementia": ["edsd.csv", "fake_longitudinal.csv"], "mentalhealth": ["demo.csv"]},
+        50001: {
+            "dementia": ["desd-synthdata.csv", "ppmi.csv"],
+            "tbi": ["dummy_tbi.csv"],
+        },
+        50002: {
+            "dementia": ["edsd.csv", "fake_longitudinal.csv"],
+            "mentalhealth": ["demo.csv"],
+        },
     }
 
     for port in datasets_per_location.keys():

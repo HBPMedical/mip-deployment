@@ -46,7 +46,7 @@ jobs:
 
       - name: Deploy portalbackend, exareme and mip-engine
         working-directory: ./tests/portal_backend_integration_tests/setup/
-        run: docker-compose --env-file .env up -d
+        run: docker-compose up -d
 
       - name: Initialize MONETDBs with mipdb initial metadata tables
         working-directory: ./tests/portal_backend_integration_tests/setup/
@@ -75,18 +75,6 @@ jobs:
 
       - name: Get deployment status
         run: docker ps
-
-      - name: Controller
-        run: docker logs setup_mipengine_controller_1
-
-      - name: Globalnode
-        run: docker logs setup_mipengine_globalnode_1
-
-      - name: Localnode1
-        run: docker logs setup_mipengine_localnode1_1
-
-      - name: Localnode2
-        run: docker logs setup_mipengine_localnode2_1
 
       - name: Run the success tests
         working-directory: ./tests/portal_backend_integration_tests/setup/
