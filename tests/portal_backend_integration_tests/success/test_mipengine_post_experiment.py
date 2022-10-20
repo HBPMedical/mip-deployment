@@ -325,6 +325,28 @@ all_success_cases = [
         },
         "name": "T-Test One-Sample",
     },
+    {
+        "algorithm": {
+            "name": "descriptive_stats",
+            "label": "Descriptive stats",
+            "parameters": [
+                {"name": "y", "label": "y", "value": "leftttgtransversetemporalgyrus,rightmprgprecentralgyrusmedialsegment"},
+                {"name": "pathology", "label": "pathology", "value": "dementia:0.1"},
+                {
+                    "name": "dataset",
+                    "label": "dataset",
+                    "value": "desd-synthdata,edsd,ppmi",
+                },
+                {
+                    "name": "filter",
+                    "label": "filter",
+                    "value": "",
+                },
+            ],
+            "type": "mipengine",
+        },
+        "name": "Descriptive stats",
+    },
 ]
 
 

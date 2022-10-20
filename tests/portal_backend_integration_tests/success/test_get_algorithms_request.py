@@ -15,13 +15,17 @@ def test_get_algorithms_request():
     mip_engine_algorithms = [
         algorithm for algorithm in algorithms if algorithm["type"] == "mipengine"
     ]
-    print(f"mip_engine_algorithms-> {mip_engine_algorithms}")
-    assert len(mip_engine_algorithms) == 10
+    # print(f"mip_engine_algorithms-> {mip_engine_algorithms}")
+
+    assert len(mip_engine_algorithms) == 11
 
     exareme_engine_algorithms = [
         algorithm
         for algorithm in algorithms
         if algorithm["type"] not in ["mipengine", "workflow"]
     ]
+    for algorithm in exareme_engine_algorithms:
+        print(algorithm["name"])
+        print("\n")
     print(f"exareme_engine_algorithms-> {exareme_engine_algorithms}")
-    assert len(exareme_engine_algorithms) == 21
+    assert len(exareme_engine_algorithms) == 20
