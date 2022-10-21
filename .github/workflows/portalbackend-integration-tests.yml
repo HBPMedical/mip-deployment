@@ -46,7 +46,7 @@ jobs:
 
       - name: Deploy portalbackend, exareme and mip-engine
         working-directory: ./tests/portal_backend_integration_tests/setup/
-        run: docker-compose --env-file .env up -d
+        run: docker-compose up -d
 
       - name: Initialize MONETDBs with mipdb initial metadata tables
         working-directory: ./tests/portal_backend_integration_tests/setup/
@@ -57,50 +57,16 @@ jobs:
       - name: Load data into MONETDB containers
         working-directory: ./tests/portal_backend_integration_tests/setup/
         run: |
-          poetry run mipdb add-data-model test_data/dementia_v_0_1/CDEsMetadata.json --port 50001
-          poetry run mipdb add-data-model test_data/dementia_v_0_1/CDEsMetadata.json --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd0.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd1.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd2.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd3.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd4.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd5.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd6.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd7.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd8.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/edsd9.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi0.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi1.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi2.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi3.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi4.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi5.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi6.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi7.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi8.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/ppmi9.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata0.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata1.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata2.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata3.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata4.csv -d dementia -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata5.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata6.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata7.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata8.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/dementia_v_0_1/desd-synthdata9.csv -d dementia -v 0.1 --port 50002
-          poetry run mipdb add-data-model test_data/tbi_v_0_1/CDEsMetadata.json --port 50001
-          poetry run mipdb add-data-model test_data/tbi_v_0_1/CDEsMetadata.json --port 50002
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi0.csv -d tbi -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi1.csv -d tbi -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi2.csv -d tbi -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi3.csv -d tbi -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi4.csv -d tbi -v 0.1 --port 50001
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi5.csv -d tbi -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi6.csv -d tbi -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi7.csv -d tbi -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi8.csv -d tbi -v 0.1 --port 50002
-          poetry run mipdb add-dataset test_data/tbi_v_0_1/dummy_tbi9.csv -d tbi -v 0.1 --port 50002
+          poetry run mipdb add-data-model ../../../data/tbi/CDEsMetadata.json --ip 127.0.0.1 --port 50001 
+          poetry run mipdb add-dataset ../../../data/tbi/dummy_tbi.csv -d tbi -v 0.1 --ip 127.0.0.1 --port 50001 
+          poetry run mipdb add-data-model ../../../data/dementia/CDEsMetadata.json --ip 127.0.0.1 --port 50001 
+          poetry run mipdb add-dataset ../../../data/dementia/desd-synthdata.csv -d dementia -v 0.1 --ip 127.0.0.1 --port 50001 
+          poetry run mipdb add-dataset ../../../data/dementia/ppmi.csv -d dementia -v 0.1 --ip 127.0.0.1 --port 50001 
+          poetry run mipdb add-data-model ../../../data/mentalhealth/CDEsMetadata.json --ip 127.0.0.1 --port 50002 
+          poetry run mipdb add-dataset ../../../data/mentalhealth/demo.csv -d mentalhealth -v 0.1 --ip 127.0.0.1 --port 50002 
+          poetry run mipdb add-data-model ../../../data/dementia/CDEsMetadata.json --ip 127.0.0.1 --port 50002 
+          poetry run mipdb add-dataset ../../../data/dementia/edsd.csv -d dementia -v 0.1 --ip 127.0.0.1 --port 50002 
+          poetry run mipdb add-dataset ../../../data/dementia/fake_longitudinal.csv -d dementia -v 0.1 --ip 127.0.0.1 --port 50002 
 
       - name: Wait for services to be up
         uses: jakejarvis/wait-action@master
