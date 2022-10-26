@@ -1,14 +1,12 @@
 import subprocess
 import re
 
-import pytest
 
-EXPERIMENTS_EXECUTED = 14
+EXPERIMENTS_EXECUTED = 21
 EXPERIMENT_AUDIT_ENTRY_IDENTIFIER = " - EXPERIMENT_FINISHED - "
-SPECIFIC_EXPERIMENT_PATTERN = ".* - anonymous - EXPERIMENT_FINISHED - .* - Logistic Regression - dementia - edsd,ppmi - success - .* - .*\\n.*"
+SPECIFIC_EXPERIMENT_PATTERN = ".*? - anonymous - EXPERIMENT_FINISHED - .*? - LOGISTIC_REGRESSION - dementia:0.1 - edsd,ppmi - success - .*? - .*?\\n.*"
 
 
-@pytest.mark.skip
 def test_federation_info():
     cmd = f"docker logs setup_portalbackend_1 | python3 ../../../federation_info.py show-portal-backend-audit-entries"
     res = subprocess.run(
@@ -23,3 +21,4 @@ def test_federation_info():
     )
 
     assert re.match(SPECIFIC_EXPERIMENT_PATTERN, str_output)
+
