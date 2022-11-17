@@ -15,6 +15,24 @@ def do_get_experiment_request(uuid):
 all_success_cases = [
     {
         "algorithm": {
+            "parameters": [
+                {"name": "dataset", "label": "dataset", "value": "dummy_tbi"},
+                {"name": "filter", "label": "filter", "value": ""},
+                {"name": "pathology", "label": "pathology", "value": "tbi:0.1"},
+                {
+                    "name": "y",
+                    "label": "y",
+                    "value": "pupil_reactivity_right_eye_result",
+                },
+            ],
+            "label": "DESCRIPTIVE_STATS",
+            "type": "mipengine",
+            "name": "DESCRIPTIVE_STATS",
+        },
+        "name": "Descriptive analysis",
+    },
+    {
+        "algorithm": {
             "name": "PCA",
             "label": "Principal component algorithm",
             "parameters": [
