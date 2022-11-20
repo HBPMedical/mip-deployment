@@ -9,7 +9,7 @@ engines:
   exareme2:
     URL: ""
     image:
-      version: dev
+      version: 0.13.0
 
 mip:
   version: 7.0.0
@@ -43,7 +43,7 @@ portalbackend:
   LOG_LEVEL_FRAMEWORK: INFO
   image:
     name: hbpmip/portal-backend
-    version: dev
+    version: 7.6.1
   storage:
     storage0:
       data_path: /opt/mip-deployment/config
