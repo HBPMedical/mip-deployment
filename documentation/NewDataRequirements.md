@@ -1,32 +1,15 @@
-# New Data Requirements
+# Data Requirements
 
-This document describes the specifications that any new data (CSVs) should have in order to be imported properly.
+This document describes the specifications that any new data (CSVs) **must** have in order to be imported properly.
 
-# New Data on existing Pathology
 
-If you don't want to create a new pathology with **custom variables** then you just need to add your data, in csv format, inside the pathology folder in the `data` directory, for example in the `data/dementia` directory.
-
-There can be many csv files in a pathology. A csv file should follow these rules:
-* The csv file should contain at least one row with the variable names (CDEs), like a header, corresponding to the rest of the rows.
-* It should contain a subjectcode variable, with the pseudo-id of each record,
-* and the dataset column, that declares in which dataset the row belongs to.
-* All the variable names should exist in the CDEsMetadata.json file, except from the `subjectcode`.
-
-If your data do not match the specifications of MIP, a message will be shown when installing the software.
-
-# New Pathology
-
-If you want to add a new pathology on MIP then you need to create a new folder inside the `data` directory with the name of your pathology. Inside that folder you need to add:
-* The CDEsMetadata.json file
-* and the CSVs containing the data.
-
-## CDEsMetadata:
+## CDEsMetadata Requirements:
 
 The CDEsMetadata (Common Data Elements Metadata) is a json file that is used to define the type of the variables inside each csv files.
 
-The metadata file should follow these rules:
-* It should follow a tree structure. The `variables` lists are the leafs and the `groups` lists are the branches where one or more `variables` lists can exist.
-* A `variable` inside the `variables` list must have these fields:
+The metadata file **must** follow these rules:
+* It **must** follow a tree structure. The `variables` lists are the leafs and the `groups` lists are the branches where one or more `variables` lists can exist.
+* A `variable` inside the `variables` list **must** have these fields:
   * **code** (Variable name)
   * **isCategorical** (true/false)
   * **sql_type** (TEXT, REAL, INT)
@@ -34,7 +17,35 @@ The metadata file should follow these rules:
   * **min** (Integer)
   * **max** (Integer)
   * **enumerations** (List of codes)
+* The `dataset` CDE is required.
 
 An example can be seen [here](../data/dementia/CDEsMetadata.json).
 
 After adding the CDEsMetadata file you can add your data the same way as adding **New Data on existing Pathology**.
+
+## CSV File Requirements:
+
+A csv file **must** follow these rules:
+* The csv file **must** contain at least one row with the variable names (CDEs), like a header, corresponding to the rest of the rows.
+* All the CDEs that exist in the CDEsMetadata.json file, **must** also exist in the csv as column names.
+* The `dataset` CDE is **required** in the CDEsMetadata.json and consequently as a column in the csvs.
+
+# Loading Data on Exareme1
+
+## New Data on existing Pathology
+
+If you don't want to create a new pathology with **custom variables** then you just need to add your data, in csv format, inside the pathology folder in the `data` directory, for example in the `data/dementia` directory.
+
+There can be many csv files in a pathology. 
+
+If your data do not match the specifications of MIP, a message will be shown when installing the software.
+
+## New Pathology
+
+If you want to add a new pathology on MIP then you need to create a new folder inside the `data` directory with the name of your pathology. Inside that folder you need to add:
+* The CDEsMetadata.json file
+* and the CSVs containing the data.
+
+# Loading data on Exareme2
+
+There is more detailed documentation on adding data to exareme2 [here](https://github.com/madgik/MIP-Engine/blob/master/kubernetes/docs/ImportNodeData.md).
