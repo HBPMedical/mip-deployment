@@ -1,15 +1,15 @@
 # Data Requirements
 
-This document describes the specifications that any new data (CSVs) must have in order to be imported properly.
+This document describes the specifications that any new data (CSVs) **must** have in order to be imported properly.
 
 
 ## CDEsMetadata Requirements:
 
 The CDEsMetadata (Common Data Elements Metadata) is a json file that is used to define the type of the variables inside each csv files.
 
-The metadata file must follow these rules:
-* It must follow a tree structure. The `variables` lists are the leafs and the `groups` lists are the branches where one or more `variables` lists can exist.
-* A `variable` inside the `variables` list must have these fields:
+The metadata file **must** follow these rules:
+* It **must** follow a tree structure. The `variables` lists are the leafs and the `groups` lists are the branches where one or more `variables` lists can exist.
+* A `variable` inside the `variables` list **must** have these fields:
   * **code** (Variable name)
   * **isCategorical** (true/false)
   * **sql_type** (TEXT, REAL, INT)
@@ -25,10 +25,10 @@ After adding the CDEsMetadata file you can add your data the same way as adding 
 
 ## CSV File Requirements:
 
-A csv file must follow these rules:
-* The csv file must contain at least one row with the variable names (CDEs), like a header, corresponding to the rest of the rows.
-* All the CDEs that exist in the CDEsMetadata.json file, must also exist in the csv as column names.
-* The `dataset` CDE is required in the CDEsMetadata.json and consequently as a column in the csvs.
+A csv file **must** follow these rules:
+* The csv file **must** contain at least one row with the variable names (CDEs), like a header, corresponding to the rest of the rows.
+* All the CDEs that exist in the CDEsMetadata.json file, **must** also exist in the csv as column names.
+* The `dataset` CDE is **required** in the CDEsMetadata.json and consequently as a column in the csvs.
 
 # Loading Data on Exareme1
 
