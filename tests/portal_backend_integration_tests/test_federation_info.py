@@ -1,9 +1,10 @@
 import subprocess
 import re
 
-EXPERIMENTS_EXECUTED = 14
+
+EXPERIMENTS_EXECUTED = 22
 EXPERIMENT_AUDIT_ENTRY_IDENTIFIER = " - EXPERIMENT_FINISHED - "
-SPECIFIC_EXPERIMENT_PATTERN = ".* - anonymous - EXPERIMENT_FINISHED - .* - Logistic Regression - dementia - edsd,ppmi - success - .* - .*\\n.*"
+SPECIFIC_EXPERIMENT_PATTERN = ".*? - anonymous - EXPERIMENT_FINISHED - .*? - LOGISTIC_REGRESSION - dementia:0.1 - edsd,ppmi - success - .*? - .*?\\n.*"
 
 
 def test_federation_info():
@@ -20,3 +21,4 @@ def test_federation_info():
     )
 
     assert re.match(SPECIFIC_EXPERIMENT_PATTERN, str_output)
+

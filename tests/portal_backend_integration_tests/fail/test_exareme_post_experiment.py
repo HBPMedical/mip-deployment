@@ -13,168 +13,105 @@ def do_get_experiment_request(uuid):
 
 
 all_success_cases = [
-    ("Invalid name",
-     {
-         "algorithm": {
-             "name": "LOGISTIC_REGRES",
-             "label": "Logistic Regression",
-             "parameters": [
-                 {
-                     "name": "x",
-                     "label": "x",
-                     "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala"
-                 },
-                 {
-                     "name": "y",
-                     "label": "y",
-                     "value": "alzheimerbroadcategory"
-                 },
-                 {
-                     "name": "pathology",
-                     "label": "pathology",
-                     "value": "dementia"
-                 },
-                 {
-                     "name": "dataset",
-                     "label": "dataset",
-                     "value": "edsd,ppmi"
-                 },
-                 {
-                     "name": "filter",
-                     "label": "filter",
-                     "value": ""
-                 },
-                 {
-                     "name": "formula",
-                     "label": "formula",
-                     "value": ""
-                 },
-                 {
-                     "name": "positive_level",
-                     "label": "Positive level",
-                     "value": "AD"
-                 },
-                 {
-                     "name": "negative_level",
-                     "label": "Negative level",
-                     "value": "CN"
-                 }
-             ],
-             "type": "python_iterative"
-         },
-         "name": "Exarene Invalid name"
-     }
-     ),
-    ("Invalid parameter name",
-     {
-         "algorithm": {
-             "name": "LOGISTIC_REGRESSION",
-             "label": "Logistic Regression",
-             "parameters": [
-                 {
-                     "name": "xyz",
-                     "label": "x",
-                     "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala"
-                 },
-                 {
-                     "name": "xyz",
-                     "label": "y",
-                     "value": "alzheimerbroadcategory"
-                 },
-                 {
-                     "name": "pathology",
-                     "label": "pathology",
-                     "value": "dementia"
-                 },
-                 {
-                     "name": "dataset",
-                     "label": "dataset",
-                     "value": "edsd,ppmi"
-                 },
-                 {
-                     "name": "filter",
-                     "label": "filter",
-                     "value": ""
-                 },
-                 {
-                     "name": "formula",
-                     "label": "formula",
-                     "value": ""
-                 },
-                 {
-                     "name": "positive_level",
-                     "label": "Positive level",
-                     "value": "AD"
-                 },
-                 {
-                     "name": "negative_level",
-                     "label": "Negative level",
-                     "value": "CN"
-                 }
-             ],
-             "type": "Exarene Invalid parameter name"
-         },
-         "name": "dsafas"
-     }
-     ),
-    ("Invalid parameter value",
-     {
-         "algorithm": {
-             "name": "LOGISTIC_REGRESSION",
-             "label": "Logistic Regression",
-             "parameters": [
-                 {
-                     "name": "x",
-                     "label": "x",
-                     "value": "xyz"
-                 },
-                 {
-                     "name": "y",
-                     "label": "y",
-                     "value": "xyz"
-                 },
-                 {
-                     "name": "pathology",
-                     "label": "pathology",
-                     "value": "dementia"
-                 },
-                 {
-                     "name": "dataset",
-                     "label": "dataset",
-                     "value": "edsd,ppmi"
-                 },
-                 {
-                     "name": "filter",
-                     "label": "filter",
-                     "value": ""
-                 },
-                 {
-                     "name": "formula",
-                     "label": "formula",
-                     "value": ""
-                 },
-                 {
-                     "name": "positive_level",
-                     "label": "Positive level",
-                     "value": "AD"
-                 },
-                 {
-                     "name": "negative_level",
-                     "label": "Negative level",
-                     "value": "CN"
-                 }
-             ],
-             "type": "python_iterative"
-         },
-         "name": "Exarene Invalid parameter value"
-     }
-     ),
+    (
+        "Invalid name",
+        {
+            "algorithm": {
+                "name": "LOGISTIC_REGRES",
+                "label": "Logistic Regression",
+                "parameters": [
+                    {
+                        "name": "x",
+                        "label": "x",
+                        "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
+                    },
+                    {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
+                    {"name": "pathology", "label": "pathology", "value": "dementia"},
+                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
+                    {"name": "filter", "label": "filter", "value": ""},
+                    {"name": "formula", "label": "formula", "value": ""},
+                    {
+                        "name": "positive_level",
+                        "label": "Positive level",
+                        "value": "AD",
+                    },
+                    {
+                        "name": "negative_level",
+                        "label": "Negative level",
+                        "value": "CN",
+                    },
+                ],
+                "type": "python_iterative",
+            },
+            "name": "Exarene Invalid name",
+        },
+    ),
+    (
+        "Invalid parameter name",
+        {
+            "algorithm": {
+                "name": "LOGISTIC_REGRESSION",
+                "label": "Logistic Regression",
+                "parameters": [
+                    {
+                        "name": "xyz",
+                        "label": "x",
+                        "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
+                    },
+                    {"name": "xyz", "label": "y", "value": "alzheimerbroadcategory"},
+                    {"name": "pathology", "label": "pathology", "value": "dementia"},
+                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
+                    {"name": "filter", "label": "filter", "value": ""},
+                    {"name": "formula", "label": "formula", "value": ""},
+                    {
+                        "name": "positive_level",
+                        "label": "Positive level",
+                        "value": "AD",
+                    },
+                    {
+                        "name": "negative_level",
+                        "label": "Negative level",
+                        "value": "CN",
+                    },
+                ],
+                "type": "Exarene Invalid parameter name",
+            },
+            "name": "dsafas",
+        },
+    ),
+    (
+        "Invalid parameter value",
+        {
+            "algorithm": {
+                "name": "LOGISTIC_REGRESSION",
+                "label": "Logistic Regression",
+                "parameters": [
+                    {"name": "x", "label": "x", "value": "xyz"},
+                    {"name": "y", "label": "y", "value": "xyz"},
+                    {"name": "pathology", "label": "pathology", "value": "dementia"},
+                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
+                    {"name": "filter", "label": "filter", "value": ""},
+                    {"name": "formula", "label": "formula", "value": ""},
+                    {
+                        "name": "positive_level",
+                        "label": "Positive level",
+                        "value": "AD",
+                    },
+                    {
+                        "name": "negative_level",
+                        "label": "Negative level",
+                        "value": "CN",
+                    },
+                ],
+                "type": "python_iterative",
+            },
+            "name": "Exarene Invalid parameter value",
+        },
+    ),
 ]
 
 
-@pytest.mark.parametrize(
-    "test_case,test_input", all_success_cases
-)
+@pytest.mark.parametrize("test_case,test_input", all_success_cases)
 def test_post_request_exareme(test_case, test_input):
     url = "http://127.0.0.1:8080/services/experiments"
 
@@ -206,9 +143,9 @@ def test_post_request_exareme_invalid_parameter_type():
                 "name": "LOGISTIC_REGRESSION",
                 "label": "Logistic Regression",
                 "parameters": "xyz",
-                "type": "python_iterative"
+                "type": "python_iterative",
             },
-            "name": "LOGISTIC_REGRESSION"
+            "name": "LOGISTIC_REGRESSION",
         }
     )
 

@@ -13,132 +13,78 @@ def do_get_experiment_request(uuid):
 
 
 all_error_cases = [
-    ("Invalid name", {
-        "algorithm": {
-            "name": "LOGISTIC_REGRESSIO",
-            "label": "Logistic Regression",
-            "parameters": [
-                {
-                    "name": "x",
-                    "label": "x",
-                    "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala"
-                },
-                {
-                    "name": "y",
-                    "label": "y",
-                    "value": "alzheimerbroadcategory"
-                },
-                {
-                    "name": "pathology",
-                    "label": "pathology",
-                    "value": "dementia"
-                },
-                {
-                    "name": "dataset",
-                    "label": "dataset",
-                    "value": "edsd,ppmi"
-                },
-                {
-                    "name": "filter",
-                    "label": "filter",
-                    "value": ""
-                },
-                {
-                    "name": "classes",
-                    "label": "classes",
-                    "value": "AD,CN"
-                }
-            ],
-            "type": "mipengine"
+    (
+        "Invalid name",
+        {
+            "algorithm": {
+                "name": "LOGISTIC_REGRESSIO",
+                "label": "Logistic Regression",
+                "parameters": [
+                    {
+                        "name": "x",
+                        "label": "x",
+                        "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
+                    },
+                    {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
+                    {"name": "pathology", "label": "pathology", "value": "dementia"},
+                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
+                    {"name": "filter", "label": "filter", "value": ""},
+                    {"name": "classes", "label": "classes", "value": "AD,CN"},
+                ],
+                "type": "mipengine",
+            },
+            "name": "MIP-Engine Invalid name",
         },
-        "name": "MIP-Engine Invalid name"
-    }, "text/plain+error"),
-    ("Invalid parameter name", {
-        "algorithm": {
-            "name": "LOGISTIC_REGRESSION",
-            "label": "Logistic Regression",
-            "parameters": [
-                {
-                    "name": "xyz",
-                    "label": "x",
-                    "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala"
-                },
-                {
-                    "name": "y",
-                    "label": "y",
-                    "value": "alzheimerbroadcategory"
-                },
-                {
-                    "name": "pathology",
-                    "label": "pathology",
-                    "value": "dementia"
-                },
-                {
-                    "name": "dataset",
-                    "label": "dataset",
-                    "value": "edsd,ppmi"
-                },
-                {
-                    "name": "filter",
-                    "label": "filter",
-                    "value": ""
-                },
-                {
-                    "name": "classes",
-                    "label": "classes",
-                    "value": "AD,CN"
-                }
-            ],
-            "type": "mipengine"
+        "text/plain+error",
+    ),
+    (
+        "Invalid parameter name",
+        {
+            "algorithm": {
+                "name": "LOGISTIC_REGRESSION",
+                "label": "Logistic Regression",
+                "parameters": [
+                    {
+                        "name": "xyz",
+                        "label": "x",
+                        "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
+                    },
+                    {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
+                    {"name": "pathology", "label": "pathology", "value": "dementia"},
+                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
+                    {"name": "filter", "label": "filter", "value": ""},
+                    {"name": "classes", "label": "classes", "value": "AD,CN"},
+                ],
+                "type": "mipengine",
+            },
+            "name": "MIP-Engine Invalid parameter name",
         },
-        "name": "MIP-Engine Invalid parameter name"
-    }, "text/plain+user_error"),
-    ("Invalid parameter value", {
-        "algorithm": {
-            "name": "LOGISTIC_REGRESSION",
-            "label": "Logistic Regression",
-            "parameters": [
-                {
-                    "name": "x",
-                    "label": "x",
-                    "value": "xyz"
-                },
-                {
-                    "name": "y",
-                    "label": "y",
-                    "value": "alzheimerbroadcategory"
-                },
-                {
-                    "name": "pathology",
-                    "label": "pathology",
-                    "value": "dementia"
-                },
-                {
-                    "name": "dataset",
-                    "label": "dataset",
-                    "value": "edsd,ppmi"
-                },
-                {
-                    "name": "filter",
-                    "label": "filter",
-                    "value": ""
-                },
-                {
-                    "name": "classes",
-                    "label": "classes",
-                    "value": "AD,CN"
-                }
-            ],
-            "type": "mipengine"
+        "text/plain+user_error",
+    ),
+    (
+        "Invalid parameter value",
+        {
+            "algorithm": {
+                "name": "LOGISTIC_REGRESSION",
+                "label": "Logistic Regression",
+                "parameters": [
+                    {"name": "x", "label": "x", "value": "xyz"},
+                    {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
+                    {"name": "pathology", "label": "pathology", "value": "dementia"},
+                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
+                    {"name": "filter", "label": "filter", "value": ""},
+                    {"name": "classes", "label": "classes", "value": "AD,CN"},
+                ],
+                "type": "mipengine",
+            },
+            "name": "MIP-Engine Invalid parameter value",
         },
-        "name": "MIP-Engine Invalid parameter value"
-    }, "text/plain+user_error"),
+        "text/plain+user_error",
+    ),
 ]
 
 
-@pytest.mark.parametrize(
-    "test_case,test_input,expected_error_type", all_error_cases
-)
+@pytest.mark.parametrize("test_case,test_input,expected_error_type", all_error_cases)
 def test_post_request_mip_engine(test_case, test_input, expected_error_type):
     url = "http://127.0.0.1:8080/services/experiments"
 
@@ -167,15 +113,17 @@ def test_post_request_mip_engine(test_case, test_input, expected_error_type):
 def test_post_request_mip_engine_invalid_parameter_type():
     url = "http://127.0.0.1:8080/services/experiments"
 
-    request_json = json.dumps({
-        "algorithm": {
-            "name": "LOGISTIC_REGRESSION",
-            "label": "Logistic Regression",
-            "parameters": "xyz",
-            "type": "mipengine"
-        },
-        "name": "Error_Logistic_Regression"
-    })
+    request_json = json.dumps(
+        {
+            "algorithm": {
+                "name": "LOGISTIC_REGRESSION",
+                "label": "Logistic Regression",
+                "parameters": "xyz",
+                "type": "mipengine",
+            },
+            "name": "Error_Logistic_Regression",
+        }
+    )
 
     headers = {"Content-type": "application/json", "Accept": "application/json"}
     response = requests.post(url, data=request_json, headers=headers)

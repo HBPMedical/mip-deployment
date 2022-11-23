@@ -18,6 +18,7 @@
         }
     ],
     "code": "mentalhealth",
+    "version": "0.1",
     "groups": [
         {
             "variables": [

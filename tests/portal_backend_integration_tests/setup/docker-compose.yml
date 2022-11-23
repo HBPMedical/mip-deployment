@@ -1,4 +1,4 @@
-version: '3.2'
+version: '3.7'
 
 services:
   exareme_keystore:
@@ -96,6 +96,8 @@ services:
       - NODE_ROLE=GLOBALNODE
       - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
+      - CELERY_TASKS_TIMEOUT=20
+      - CELERY_RUN_UDF_TASK_TIMEOUT=120
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5670
       - MONETDB_IP=172.17.0.1
@@ -114,6 +116,8 @@ services:
       - NODE_ROLE=LOCALNODE
       - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
+      - CELERY_TASKS_TIMEOUT=20
+      - CELERY_RUN_UDF_TASK_TIMEOUT=120
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5671
       - MONETDB_IP=172.17.0.1
@@ -132,6 +136,8 @@ services:
       - NODE_ROLE=LOCALNODE
       - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
+      - CELERY_TASKS_TIMEOUT=20
+      - CELERY_RUN_UDF_TASK_TIMEOUT=120
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5672
       - MONETDB_IP=172.17.0.1
@@ -156,7 +162,8 @@ services:
       - NODES_CLEANUP_INTERVAL=60
       - NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT=3600
       - LOCALNODES_CONFIG_FILE=/opt/config/localnodes_config.json
-      - CELERY_TASKS_TIMEOUT=60
+      - CELERY_TASKS_TIMEOUT=20
+      - CELERY_RUN_UDF_TASK_TIMEOUT=120
       - SMPC_ENABLED=false
       - SMPC_OPTIONAL=false
     volumes:
@@ -177,6 +184,8 @@ services:
 
   create_dbs:
     image: hbpmip/create-databases:1.1.0
+    depends_on:
+      - portalbackend_db
     environment:
       DB_HOST: portalbackend_db
       DB_PORT: 5433
@@ -185,8 +194,6 @@ services:
       DB4: portal
       USER4: portal
       PASSWORD4: portalpwd
-    depends_on:
-      - portalbackend_db
     restart: on-failure
 
   portalbackend:
@@ -205,7 +212,7 @@ services:
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       ### MIP-Engine ###
-      MIPENGINE_URL: http://172.17.0.1:5000
+      MIPENGINE_URL: ${MIP_ENGINE_URL}
       ### Exareme ###
       EXAREME_URL: http://exareme_master:9090
       ### Galaxy ###
@@ -218,31 +225,10 @@ services:
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-      KEYCLOAK_SSL_REQUIRED: external
+      KEYCLOAK_SSL_REQUIRED: ${KEYCLOAK_SSL_REQUIRED}
     depends_on:
       - create_dbs
     volumes:
       - ./config:/opt/portal/api
       - ./logs:/opt/portal/logs
     restart: unless-stopped
-
-  # frontend:
-  #   image: hbpmip/portal-frontend:${FRONTEND}
-  #   depends_on:
-  #     - portalbackend
-  #   ports:
-  #     - '80:80'
-  #   environment:
-  #     WORKER_PROCESSES: 1
-  #     ERROR_LOG_LEVEL: warn
-  #     PORTAL_VIRTUAL_HOST: frontend
-  #     PORTAL_BACKEND_SERVER: portalbackend:8080
-  #     PORTAL_BACKEND_CONTEXT: services
-  #     INSTANCE_NAME: 'MIP ${MIP}'
-  #     VERSION: 'Frontend: ${FRONTEND}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
-  #     TRACKER_ID: UA-80660232-5
-  #     GALAXY_URL: http://127.0.0.1:8095/nativeGalaxy
-  #     # TODO      KEYCLOAK_AUTH_URL: /services/sso/login
-  #     KEYCLOAK_AUTH_URL: http://127.0.0.1:8095/auth/
-  #     KEYCLOAK_LOGIN_URL: http://127.0.0.1:8095/auth/
-  #   restart: unless-stopped
