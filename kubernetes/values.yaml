@@ -5,11 +5,11 @@ engines:
     IP: ""
     URL: "http://{{ .Values.engines.exareme.IP }}:31000"
     image:
-      version: 24.3.0
+      version: 24.5.0
   exareme2:
     URL: ""
     image:
-      version: 0.13.0
+      version: 0.13.1
 
 mip:
   version: 7.0.0
