@@ -26,7 +26,7 @@ def test_get_pathologies_request():
     )
 
     assert all(
-        count_cdes(pathology["metadataHierarchy"]) in [20, 184, 191] for pathology in pathologies
+        count_cdes(pathology["metadataHierarchy"]) in [20, 185, 191] for pathology in pathologies
     )
 
 
