@@ -12,5 +12,5 @@ flake8 = "3.9.2"
 pymonetdb = "~1.4.1"
 
 [tool.poetry.dev-dependencies]
-mipdb = "0.4.3"
+mipdb = "0.5.2"
 invoke = "^1.7.1"

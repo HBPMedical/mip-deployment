@@ -31,6 +31,14 @@
         },
         {
             "isCategorical": false,
+            "label": "subjectcode",
+            "code": "subjectcode",
+            "sql_type": "text",
+            "description": "",
+            "methodology": ""
+        },
+        {
+            "isCategorical": false,
             "code": "subjectvisitid",
             "sql_type": "text",
             "description": "The ID of the Patient’s Visit",
