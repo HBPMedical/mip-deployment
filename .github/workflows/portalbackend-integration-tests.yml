@@ -33,29 +33,29 @@ jobs:
         id: cached-poetry-dependencies
         uses: actions/cache@v2
         with:
-          path: ./tests/portal_backend_integration_tests/setup/.venv
-          key: venv-${{ runner.os }}-${{ hashFiles('./tests/portal_backend_integration_tests/setup/pyproject.toml') }}
+          path: ./tests/setup/backend_components/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('./tests/setup/backend_components/pyproject.toml') }}
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        working-directory: ./tests/portal_backend_integration_tests/setup/
+        working-directory: ./tests/setup/backend_components/
         run: poetry install --no-interaction
 
       - name: Configure the deployment env file
-        run: cat .versions_env >> tests/portal_backend_integration_tests/setup/.env
+        run: cat .versions_env >> tests/.env
 
       - name: Deploy portalbackend, exareme and mip-engine
-        working-directory: ./tests/portal_backend_integration_tests/setup/
-        run: docker-compose up -d
+        working-directory: ./tests/setup/backend_components/
+        run: docker-compose --env-file ../.env up -d
 
       - name: Initialize MONETDBs with mipdb initial metadata tables
-        working-directory: ./tests/portal_backend_integration_tests/setup/
+        working-directory: ./tests/setup/backend_components/
         run: |
           poetry run mipdb init --ip 127.0.0.1 --port 50001
           poetry run mipdb init --ip 127.0.0.1 --port 50002
 
       - name: Load data into MONETDB containers
-        working-directory: ./tests/portal_backend_integration_tests/setup/
+        working-directory: ./tests/setup/backend_components/
         run: |
           poetry run mipdb add-data-model ../../../data/tbi/CDEsMetadata.json --ip 127.0.0.1 --port 50001 
           poetry run mipdb add-dataset ../../../data/tbi/dummy_tbi.csv -d tbi -v 0.1 --ip 127.0.0.1 --port 50001 
@@ -77,14 +77,14 @@ jobs:
         run: docker ps
 
       - name: Run the success tests
-        working-directory: ./tests/portal_backend_integration_tests/setup/
-        run: poetry run pytest ../success
+        working-directory: ./tests/setup/backend_components/test_integration/
+        run: poetry run pytest test_success_cases
 
       - name: Run the failure tests
-        working-directory: ./tests/portal_backend_integration_tests/setup/
-        run: poetry run pytest ../fail
+        working-directory: ./tests/setup/backend_components/test_integration/
+        run: poetry run pytest test_fail_cases
 
       - name: Run the federation info tests
-        working-directory: ./tests/portal_backend_integration_tests/setup/
-        run: poetry run pytest ../test_federation_info.py
+        working-directory: ./tests/setup/backend_components/test_integration/
+        run: poetry run pytest test_federation_info.py
 
