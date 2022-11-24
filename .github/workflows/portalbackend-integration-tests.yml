@@ -41,32 +41,9 @@ jobs:
         working-directory: ./tests/setup/backend_components/
         run: poetry install --no-interaction
 
-      - name: Configure the deployment env file
-        run: cat .versions_env >> tests/.env
-
       - name: Deploy portalbackend, exareme and mip-engine
-        working-directory: ./tests/setup/backend_components/
-        run: docker-compose --env-file ../.env up -d
-
-      - name: Initialize MONETDBs with mipdb initial metadata tables
-        working-directory: ./tests/setup/backend_components/
-        run: |
-          poetry run mipdb init --ip 127.0.0.1 --port 50001
-          poetry run mipdb init --ip 127.0.0.1 --port 50002
-
-      - name: Load data into MONETDB containers
-        working-directory: ./tests/setup/backend_components/
-        run: |
-          poetry run mipdb add-data-model ../../../data/tbi/CDEsMetadata.json --ip 127.0.0.1 --port 50001 
-          poetry run mipdb add-dataset ../../../data/tbi/dummy_tbi.csv -d tbi -v 0.1 --ip 127.0.0.1 --port 50001 
-          poetry run mipdb add-data-model ../../../data/dementia/CDEsMetadata.json --ip 127.0.0.1 --port 50001 
-          poetry run mipdb add-dataset ../../../data/dementia/desd-synthdata.csv -d dementia -v 0.1 --ip 127.0.0.1 --port 50001 
-          poetry run mipdb add-dataset ../../../data/dementia/ppmi.csv -d dementia -v 0.1 --ip 127.0.0.1 --port 50001 
-          poetry run mipdb add-data-model ../../../data/mentalhealth/CDEsMetadata.json --ip 127.0.0.1 --port 50002 
-          poetry run mipdb add-dataset ../../../data/mentalhealth/demo.csv -d mentalhealth -v 0.1 --ip 127.0.0.1 --port 50002 
-          poetry run mipdb add-data-model ../../../data/dementia/CDEsMetadata.json --ip 127.0.0.1 --port 50002 
-          poetry run mipdb add-dataset ../../../data/dementia/edsd.csv -d dementia -v 0.1 --ip 127.0.0.1 --port 50002 
-          poetry run mipdb add-dataset ../../../data/dementia/fake_longitudinal.csv -d dementia -v 0.1 --ip 127.0.0.1 --port 50002 
+        working-directory: ./tests/setup/
+        run: bash run.sh
 
       - name: Wait for services to be up
         uses: jakejarvis/wait-action@master
@@ -87,4 +64,3 @@ jobs:
       - name: Run the federation info tests
         working-directory: ./tests/setup/backend_components/test_integration/
         run: poetry run pytest test_federation_info.py
-

@@ -12,10 +12,10 @@ services:
       - 5432
 
   gateway:
-    image: m4n0x/gateway:develop
+    image: hbpmip/gateway:${GATEWAY}
     environment:
       - ENGINE_TYPE=exareme
-      - ENGINE_BASE_URL=http://portalbackend:8080/services/
+      - ENGINE_BASE_URL=http://${PORTALBACKEND_URL}:8080/services/
       - AUTH_SKIP=true
       - DB_HOST=gateway-db
       - BASE_URL_CONTEXT=services
@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: m4n0x/mip-frontend:dev
+    image: hbpmip/portal-frontend:${FRONTEND}
     depends_on:
       - gateway
     ports:
