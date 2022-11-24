@@ -15,7 +15,6 @@ def test_get_algorithms_request():
     mip_engine_algorithms = [
         algorithm for algorithm in algorithms if algorithm["type"] == "mipengine"
     ]
-    # print(f"mip_engine_algorithms-> {mip_engine_algorithms}")
 
     assert len(mip_engine_algorithms) == 11
 
