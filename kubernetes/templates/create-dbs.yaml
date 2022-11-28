@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-dbs
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: create-dbs
+  annotations:
+    config.kubernetes.io/depends-on: apps/namespaces/{{ .Values.namespace }}/Deployment/portalbackend
+spec:
+  parallelism: 1
+  completions: 1
+  #ttlSecondsAfterFinished: 30
+  template:
+    spec:
+      nodeSelector:
+        master: "true"
+      restartPolicy: OnFailure
+      containers:
+      - name: create-dbs
+        image: {{ .Values.create_dbs.image.name }}:{{ .Values.create_dbs.image.version }}
+        env:
+        - name: DB_HOST
+          value: portalbackend-service
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.DB_ADMIN_USER
+        - name: DB_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.DB_ADMIN_PASSWORD
+        - name: DB4
+          value: portal
+        - name: USER4
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.PORTAL_DB_USER
+        - name: PASSWORD4
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.PORTAL_DB_PASSWORD

@@ -20,7 +20,7 @@ CONFLICTING_PACKAGES="docker docker-engine docker.io docker-compose containerd r
 CONFLICTING_SNAP_PACKAGES="docker"
 PREREQUIRED_PACKAGES="git apt-transport-https ca-certificates ssl-cert curl gnupg-agent software-properties-common neofetch net-tools mtr-tiny inetutils-traceroute haveged whois lsof expect python3-pip"
 REQUIRED_PACKAGES="docker-ce docker-ce-cli docker-ce-rootless-extras containerd.io"
-REQUIRED_PIP3_PACKAGES="chardet requests==2.25.1 urllib3==1.26.5 python-keycloak==0.25.0 bpytop"
+REQUIRED_PIP3_PACKAGES="chardet requests==2.25.1 urllib3==1.26.5 python-keycloak bpytop"
 REQUIRED_CUSTOM_PACKAGES="docker-compose:latest"
 DEFAULT_MIP_GITHUB_OWNER="HBPMedical"
 DEFAULT_MIP_GITHUB_PROJECT="mip-deployment"

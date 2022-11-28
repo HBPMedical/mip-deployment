@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: galaxy-deployment
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: galaxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: galaxy
+  template:
+    metadata:
+      labels:
+        app: galaxy
+    spec:
+      nodeSelector:
+        master: "true"
+      containers:
+      - name: galaxy
+        image: {{ .Values.galaxy.image.name }}:{{ .Values.galaxy.image.version }}
+        ports:
+        - containerPort: 80
+        args:
+        - bash
+        - -c
+        - "htpasswd -bc /etc/apache2/htpasswd admin $$PASSWORD && ./createExaremeVariables.sh && /etc/init.d/apache2 restart && ./run.sh"
+        env:
+        - name: EXAREME_IP
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: engines.exareme.IP
+        - name: EXAREME_PORT
+          value: "9090"
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: galaxy.PASSWORD
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: galaxy-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: galaxy
+spec:
+  selector:
+    app: galaxy
+  ports:
+  - name: "80"
+    port: 80
+    targetPort: 80
