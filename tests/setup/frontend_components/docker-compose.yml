@@ -1,0 +1,54 @@
+version: '3.7'
+
+services:
+  gateway-db:
+    image: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: pass123
+    volumes:
+      - ./.stored_data/gatewaydb:/var/lib/postgres
+    expose:
+      - 5432
+
+  gateway:
+    image: hbpmip/gateway:${GATEWAY}
+    environment:
+      - ENGINE_TYPE=exareme
+      - ENGINE_BASE_URL=http://${PORTALBACKEND_URL}:8080/services/
+      - AUTH_SKIP=true
+      - DB_HOST=gateway-db
+      - BASE_URL_CONTEXT=services
+      - GATEWAY_PORT=8081
+      - CACHE_TTL=30
+    links:
+      - gateway-db
+    depends_on:
+      - gateway-db
+    expose:
+      - '8081'
+    restart: unless-stopped
+
+  frontend:
+    image: hbpmip/portal-frontend:${FRONTEND}
+    depends_on:
+      - gateway
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile
+      - ./.stored_data/caddy/caddy_data:/data
+    environment:
+      ERROR_LOG_LEVEL: info
+      GALAXY_HOST: http://galaxy
+      GALAXY_PATH: /nativeGalaxy
+      GATEWAY_SERVER: gateway:8081
+      INSTANCE_NAME: 'MIP ${MIP}'
+      VERSION: 'Frontend: ${FRONTEND}, Gateway: ${GATEWAY}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
+      PUBLIC_MIP_HOST: ${PUBLIC_MIP_HOST}
+      PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}
+      KEYCLOAK_HOST: http://keycloak:8095
+      KEYCLOAK_AUTH_PATH: /auth
+      MIP_LINK: ${MIP_LINK}
+    restart: unless-stopped
