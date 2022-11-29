@@ -2,13 +2,13 @@ import subprocess
 import re
 
 
-EXPERIMENTS_EXECUTED = 22
+EXPERIMENTS_EXECUTED = 20
 EXPERIMENT_AUDIT_ENTRY_IDENTIFIER = " - EXPERIMENT_FINISHED - "
-SPECIFIC_EXPERIMENT_PATTERN = ".*? - anonymous - EXPERIMENT_FINISHED - .*? - LOGISTIC_REGRESSION - dementia:0.1 - edsd,ppmi - success - .*? - .*?\\n.*"
+SPECIFIC_EXPERIMENT_PATTERN = ".*? - anonymous - EXPERIMENT_FINISHED - .*? - NAIVE_BAYES - dementia:0.1 - edsd - success - .*? - .*?\\n.*"
 
 
 def test_federation_info():
-    cmd = f"docker logs backend_components_portalbackend_1 | python3 ../../../../federation_info.py show-portal-backend-audit-entries"
+    cmd = f"docker logs backend_components_portalbackend_1 | python3 ../../federation_info.py show-portal-backend-audit-entries"
     res = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
