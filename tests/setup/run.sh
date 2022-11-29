@@ -8,10 +8,11 @@ docker-compose down
 docker-compose --env-file ../.env_with_versions up -d
 poetry run inv setup-dbs
 
-cd ..
+cd ../
 cd frontend_components
 docker-compose down
 docker-compose --env-file ../.env_with_versions up -d
 
-cd ..
+cd ../
 rm .env_with_versions
+

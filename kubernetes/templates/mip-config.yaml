@@ -17,6 +17,7 @@ data:
 
   portalbackend.LOG_LEVEL: {{ .Values.portalbackend.LOG_LEVEL }}
   portalbackend.LOG_LEVEL_FRAMEWORK: {{ .Values.portalbackend.LOG_LEVEL_FRAMEWORK }}
+  portalbackend.ALGORITHM_UPDATE_INTERVAL: "{{ .Values.portalbackend.ALGORITHM_UPDATE_INTERVAL}}"
 
   gateway.ENGINE_TYPE: {{ .Values.gateway.ENGINE_TYPE }}
   gateway.NODE_ENV: {{ .Values.gateway.NODE_ENV }}

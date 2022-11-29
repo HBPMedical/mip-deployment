@@ -14,39 +14,6 @@ def do_get_experiment_request(uuid):
 
 all_success_cases = [
     (
-        "Invalid name",
-        {
-            "algorithm": {
-                "name": "LOGISTIC_REGRES",
-                "label": "Logistic Regression",
-                "parameters": [
-                    {
-                        "name": "x",
-                        "label": "x",
-                        "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
-                    },
-                    {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
-                    {"name": "pathology", "label": "pathology", "value": "dementia"},
-                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
-                    {"name": "filter", "label": "filter", "value": ""},
-                    {"name": "formula", "label": "formula", "value": ""},
-                    {
-                        "name": "positive_level",
-                        "label": "Positive level",
-                        "value": "AD",
-                    },
-                    {
-                        "name": "negative_level",
-                        "label": "Negative level",
-                        "value": "CN",
-                    },
-                ],
-                "type": "python_iterative",
-            },
-            "name": "Exarene Invalid name",
-        },
-    ),
-    (
         "Invalid parameter name",
         {
             "algorithm": {
@@ -152,3 +119,43 @@ def test_post_request_exareme_invalid_parameter_type():
     headers = {"Content-type": "application/json", "Accept": "application/json"}
     response = requests.post(url, data=request_json, headers=headers)
     assert response.text == ""
+
+def test_post_request_exareme_invalid_parameter_type():
+    url = "http://127.0.0.1:8080/services/experiments"
+
+    request_json = json.dumps(
+        {
+            "algorithm": {
+                "name": "LOGISTIC_REGRES",
+                "label": "Logistic Regression",
+                "parameters": [
+                    {
+                        "name": "x",
+                        "label": "x",
+                        "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
+                    },
+                    {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
+                    {"name": "pathology", "label": "pathology", "value": "dementia"},
+                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
+                    {"name": "filter", "label": "filter", "value": ""},
+                    {"name": "formula", "label": "formula", "value": ""},
+                    {
+                        "name": "positive_level",
+                        "label": "Positive level",
+                        "value": "AD",
+                    },
+                    {
+                        "name": "negative_level",
+                        "label": "Negative level",
+                        "value": "CN",
+                    },
+                ],
+                "type": "python_iterative",
+            },
+            "name": "Exarene Invalid name",
+        },
+    )
+
+    headers = {"Content-type": "application/json", "Accept": "application/json"}
+    response = requests.post(url, data=request_json, headers=headers)
+    assert "Algorithm: LOGISTIC_REGRES does not exist." in response.text

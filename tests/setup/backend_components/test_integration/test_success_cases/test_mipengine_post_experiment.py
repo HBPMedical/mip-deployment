@@ -1,3 +1,6 @@
+import re
+import subprocess
+
 import pytest
 import json
 import time
@@ -26,7 +29,7 @@ all_success_cases = [
                 },
             ],
             "label": "DESCRIPTIVE_STATS",
-            "type": "mipengine",
+            "type": "bla",
             "name": "DESCRIPTIVE_STATS",
         },
         "name": "Descriptive analysis",
@@ -345,7 +348,7 @@ all_success_cases = [
     },
     {
         "algorithm": {
-            "name": "descriptive_stats",
+            "name": "DESCRIPTIVE_STATS",
             "label": "Descriptive stats",
             "parameters": [
                 {
@@ -365,7 +368,7 @@ all_success_cases = [
                     "value": "",
                 },
             ],
-            "type": "mipengine",
+            "type": "bla",
         },
         "name": "Descriptive stats",
     },
@@ -389,7 +392,6 @@ def test_post_request_mip_engine(test_input):
     assert algorithm["status"] == "pending"
     assert test_input["algorithm"]["name"] == algorithm["algorithm"]["name"]
     assert test_input["algorithm"]["label"] == algorithm["algorithm"]["label"]
-    assert test_input["algorithm"]["type"] == algorithm["algorithm"]["type"]
     while True:
         algorithm_current_state_response = do_get_experiment_request(algorithm["uuid"])
         algorithm_current_state = json.loads(algorithm_current_state_response.text)
@@ -400,3 +402,15 @@ def test_post_request_mip_engine(test_input):
             assert algorithm_current_state["result"] is not None
             break
         time.sleep(2)
+
+
+def count_experiments_run_on_mipengine():
+    cmd = f"docker logs backend_components_portalbackend_1"
+    res = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    return len(re.findall("Starting MIP-Engine algorithm execution", res.stdout.decode()))
+
+
+def test_algorithms_runs_on_proper_engine():
+    assert 12 == count_experiments_run_on_mipengine()

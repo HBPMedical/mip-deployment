@@ -14,30 +14,6 @@ def do_get_experiment_request(uuid):
 
 all_error_cases = [
     (
-        "Invalid name",
-        {
-            "algorithm": {
-                "name": "LOGISTIC_REGRESSIO",
-                "label": "Logistic Regression",
-                "parameters": [
-                    {
-                        "name": "x",
-                        "label": "x",
-                        "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
-                    },
-                    {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
-                    {"name": "pathology", "label": "pathology", "value": "dementia"},
-                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
-                    {"name": "filter", "label": "filter", "value": ""},
-                    {"name": "classes", "label": "classes", "value": "AD,CN"},
-                ],
-                "type": "mipengine",
-            },
-            "name": "MIP-Engine Invalid name",
-        },
-        "text/plain+error",
-    ),
-    (
         "Invalid parameter name",
         {
             "algorithm": {
@@ -127,4 +103,35 @@ def test_post_request_mip_engine_invalid_parameter_type():
 
     headers = {"Content-type": "application/json", "Accept": "application/json"}
     response = requests.post(url, data=request_json, headers=headers)
-    assert response.text == ""
+    assert "Algorithm: LOGISTIC_REGRESSIO does not exist." in response.text
+
+
+def test_post_request_mip_engine_invalid_parameter_type():
+    url = "http://127.0.0.1:8080/services/experiments"
+
+    request_json = json.dumps(
+        {
+            "algorithm": {
+                "name": "LOGISTIC_REGRESSIO",
+                "label": "Logistic Regression",
+                "parameters": [
+                    {
+                        "name": "x",
+                        "label": "x",
+                        "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
+                    },
+                    {"name": "y", "label": "y", "value": "alzheimerbroadcategory"},
+                    {"name": "pathology", "label": "pathology", "value": "dementia"},
+                    {"name": "dataset", "label": "dataset", "value": "edsd,ppmi"},
+                    {"name": "filter", "label": "filter", "value": ""},
+                    {"name": "classes", "label": "classes", "value": "AD,CN"},
+                ],
+                "type": "mipengine",
+            },
+            "name": "MIP-Engine Invalid name",
+        },
+    )
+
+    headers = {"Content-type": "application/json", "Accept": "application/json"}
+    response = requests.post(url, data=request_json, headers=headers)
+    assert "Algorithm: LOGISTIC_REGRESSIO does not exist." in response.text
