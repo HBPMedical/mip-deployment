@@ -2,7 +2,7 @@ import subprocess
 import re
 
 
-EXPERIMENTS_EXECUTED = 20
+EXPERIMENTS_EXECUTED = 18
 EXPERIMENT_AUDIT_ENTRY_IDENTIFIER = " - EXPERIMENT_FINISHED - "
 SPECIFIC_EXPERIMENT_PATTERN = ".*? - anonymous - EXPERIMENT_FINISHED - .*? - NAIVE_BAYES - dementia:0.1 - edsd - success - .*? - .*?\\n.*"
 
