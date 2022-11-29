@@ -202,11 +202,11 @@ services:
       - '8080:8080'
       - '8089:8089'
     environment:
-      ALGORITHM_UPDATE_INTERVAL: 20
       ### API ###
       LOG_LEVEL: INFO
       LOG_LEVEL_FRAMEWORK: INFO
       AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
+      ALGORITHM_UPDATE_INTERVAL: 20     # seconds
       ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
       PORTAL_DB_SERVER: portalbackend_db:5433

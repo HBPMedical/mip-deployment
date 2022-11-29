@@ -281,6 +281,11 @@ spec:
             configMapKeyRef:
               name: mip-config
               key: keycloak.SSL_REQUIRED
+        - name: ALGORITHM_UPDATE_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: portalbackend.ALGORITHM_UPDATE_INTERVAL
 
 ---
 apiVersion: v1
