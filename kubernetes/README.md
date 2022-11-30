@@ -23,7 +23,7 @@ From now on, most of our deployments will be done with Ubuntu Server 22.04, but 
 Now, with the Kubernetes (K8s) deployment, we have 3 main, big components, which come as Helm charts:
 
 ### [Exareme](https://github.com/madgik/exareme/tree/master/Federated-Deployment/kubernetes)
-* [exareme_master](https://github.com/madgik/exareme): The "Analysis Engine" offers the federated (also used by the *local* MIP) analysis capabilities
+* [exareme](https://github.com/madgik/exareme/tree/master/Exareme-Docker): The "Analysis Engine" offers the federated (also used by the *local* MIP) analysis capabilities
 * [exareme_keystore](https://github.com/bitnami/bitnami-docker-consul): A "Key-Value" storage service used by the different nodes (the workers and the master in a *federated* MIP, or the same machine in a *local* MIP) to store/exchange variables
 
 ### [MIP-Engine](https://github.com/madgik/MIP-Engine/tree/master/kubernetes) (Exareme 2)
@@ -51,3 +51,5 @@ Now, with the Kubernetes (K8s) deployment, we have 3 main, big components, which
 * [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some <a id="UsersConfiguration">details</a>, which you can find [here](documentation/UsersConfiguration.md)
 * [keycloak_db](https://github.com/docker-library/postgres): The KeyCloak's database, required only if the *keycloak* component needs to be used
 * [create_dbs](https://github.com/HBPMedical/docker-create-databases): The *one shot* container which creates and populates the DBs when required
+
+For deployment documentation, go [here](doc/Readme.md).
