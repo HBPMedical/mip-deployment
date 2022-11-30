@@ -1,4 +1,4 @@
-[UI](../README.md#) -> `MIP UI deployment`
+[UI](../README.md#UI) -> `MIP UI deployment`
 
 In addition of the two other helm charts (exareme and exareme2), this one will run the components required to provide the MIP Web UI.
 
