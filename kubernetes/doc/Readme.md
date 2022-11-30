@@ -71,50 +71,72 @@ microk8s enable dns helm3 ingress
 ```
 ```
 sudo mkdir -p /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
+```
+```
 sudo chown -R mipadmin.mipadmin /data
 ```
 
-For a "federated" deployment, you may want to add nodes to your cluster. "microk8s add-node" will give you a **one-time usage** token, which you can use on a worker node to actually "join" the cluster. This process must be repeated on all the worker nodes.
+For a "federated" deployment, you may want to add nodes to your cluster. "microk8s add-node" will give you a **one-time usage** token, which you can use on a worker node to actually "join" the cluster. This process must be repeated on all the worker nodes.  
 
 ## Exareme
 * Install the repository content
-```
-sudo git clone https://github.com/madgik/exareme /opt/exareme
-sudo chown -R mipadmin.mipadmin /opt/exareme
-```
+  ```
+  sudo git clone https://github.com/madgik/exareme /opt/exareme
+  ```
+  ```
+  sudo chown -R mipadmin.mipadmin /opt/exareme
+  ```
 * Set the variables in /opt/exareme/Federated-Deployment/kubernetes/values.yaml
   * data_path: /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
   * exareme.convert_csvs: FALSE
   * workers: 0 for a "local" deployment, or more for a "federated" deployment
+* Label the nodes  
+  For all the worker nodes (even on a "local" deployment where the master and the worker are the **same** machine), add a *worker* label:
+  ```
+  microk8s kubectl label node <WORKER_HOSTNAME> worker=true
+  ```
 * Deploy the Helm chart
-```
-microk8s helm3 install exareme /opt/exareme/Federated-Deployment/kubernetes
-```
+  ```
+  microk8s helm3 install exareme /opt/exareme/Federated-Deployment/kubernetes
+  ```
 
 ## MIP-Engine (Exareme 2)
 * Install the repository content
-```
-sudo git clone https://github.com/madgik/MIP-Engine /opt/mipengine
-sudo chown -R mipadmin.mipadmin /opt/mipengine
-```
+  ```
+  sudo git clone https://github.com/madgik/MIP-Engine /opt/mipengine
+  ```
+  ```
+  sudo chown -R mipadmin.mipadmin /opt/mipengine
+  ```
 * Set the variables in /opt/mipengine/kubernetes/values.yaml
+  * localnodes: 1 for a "local" deployment (yes, even if it's the same machine for master and worker), or more (the number of workers, not counting the master node) for a "federated" deployment
   * db.storage_location: /opt/mipengine/.stored_data/db
   * db.csvs_location: /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
   * controller.cleanup_file_folder: /opt/mipengine/.stored_data/cleanup
   * smpc.enabled: true (if you want, and **ONLY** in case of a federated deployment, and also **ONLY** if you have at least 3 worker nodes!)
+* Label the nodes  
+  For all the worker nodes (even on a "local" deployment where the master and the worker are the **same** machine), add *worker* and (if you want) *smpc_player* labels:
+  ```
+  microk8s kubectl label node <WORKER_HOSTNAME> worker=true
+  ```
+  ```
+  microk8s kubectl label node <WORKER_HOSTNAME> smpc_player=true
+  ```
 * Deploy the Helm chart
-```
-microk8s helm3 install mipengine /opt/mipengine/kubernetes
-```
+  ```
+  microk8s helm3 install mipengine /opt/mipengine/kubernetes
+  ```
 
 ## MIP UI
 * Install the repository content
-```
-sudo git clone https://github.com/HBPMedical/mip-deployment /opt/mip-deployment
-sudo chown -R mipadmin.mipadmin /opt/mip-deployment
-```
+  ```
+  sudo git clone https://github.com/HBPMedical/mip-deployment /opt/mip-deployment
+  ```
+  ```
+  sudo chown -R mipadmin.mipadmin /opt/mip-deployment
+  ```
 * Set the different profiles in /opt/mip-deployment/kubernetes as explained before
 * Deploy the Helm chart with a specific profile
-```
-microk8s helm3 install mip -f /opt/mip-deployment/kubernetes/<PROFILE_CONFIGURATION_FILE> /opt/mip-deployment/kubernetes
-```
+  ```
+  microk8s helm3 install mip -f /opt/mip-deployment/kubernetes/<PROFILE_CONFIGURATION_FILE> /opt/mip-deployment/kubernetes
+  ```
