@@ -16,7 +16,7 @@ def test_get_algorithms_request():
         algorithm for algorithm in algorithms if algorithm["type"] == "mipengine"
     ]
 
-    assert len(mip_engine_algorithms) == 11
+    assert len(mip_engine_algorithms) == 12
 
     exareme_engine_algorithms = [
         algorithm
