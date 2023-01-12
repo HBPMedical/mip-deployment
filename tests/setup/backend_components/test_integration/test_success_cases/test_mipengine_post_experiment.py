@@ -398,7 +398,7 @@ def test_post_request_mip_engine(test_input):
         status = algorithm_current_state["status"]
         print(status)
         if status != "pending":
-            assert status == "success"
+            assert status == "success", f"Result: {algorithm_current_state}"
             assert algorithm_current_state["result"] is not None
             break
         time.sleep(2)
