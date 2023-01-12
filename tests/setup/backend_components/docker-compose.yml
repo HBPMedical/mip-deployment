@@ -83,11 +83,17 @@ services:
     image: madgik/mipenginedb:${MIP_ENGINE}
     ports:
       - "50001:50000"
+    volumes:
+      - ${PWD}/../../../data:${PWD}/../../../data
+
 
   monetdb_localnode2:
     image: madgik/mipenginedb:${MIP_ENGINE}
     ports:
       - "50002:50000"
+    volumes:
+      - ${PWD}/../../../data:${PWD}/../../../data
+
 
   mipengine_globalnode:
     image: madgik/mipengine_node:${MIP_ENGINE}
