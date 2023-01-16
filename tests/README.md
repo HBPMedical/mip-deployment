@@ -7,7 +7,7 @@
 * 2 CPU Cores
 
 ### Software
-* Ubuntu Server 20.04 (minimal installation, without GUI)
+* Ubuntu Server (minimal installation, without GUI)
 
 ### Prerequisites
 
