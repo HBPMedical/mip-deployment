@@ -13,7 +13,7 @@ from invoke import task
 wheel = cycle(r"-\|/")
 
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
-TEST_DATA_FOLDER = pathlib.Path(this_mod_path).parent.parent.parent / "data"
+TEST_DATA_FOLDER = pathlib.Path(this_mod_path).parent.parent / "data"
 
 
 def spin_wheel(promise=None, time=None):

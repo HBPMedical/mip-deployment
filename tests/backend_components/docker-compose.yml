@@ -26,7 +26,7 @@ services:
     depends_on:
       - exareme_keystore
     volumes:
-      - ../../../data:/root/exareme/data/
+      - ../../data:/root/exareme/data/
     restart: unless-stopped
 
   rabbitmq_globalnode:
@@ -84,7 +84,7 @@ services:
     ports:
       - "50001:50000"
     volumes:
-      - ${PWD}/../../../data:${PWD}/../../../data
+      - ${PWD}/../../data:${PWD}/../../data
 
 
   monetdb_localnode2:
@@ -92,7 +92,7 @@ services:
     ports:
       - "50002:50000"
     volumes:
-      - ${PWD}/../../../data:${PWD}/../../../data
+      - ${PWD}/../../data:${PWD}/../../data
 
 
   mipengine_globalnode:

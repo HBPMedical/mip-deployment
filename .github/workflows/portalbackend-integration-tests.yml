@@ -33,17 +33,17 @@ jobs:
         id: cached-poetry-dependencies
         uses: actions/cache@v2
         with:
-          path: ./tests/setup/backend_components/.venv
-          key: venv-${{ runner.os }}-${{ hashFiles('./tests/setup/backend_components/pyproject.toml') }}
+          path: ./tests/backend_components/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('./tests/backend_components/pyproject.toml') }}
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        working-directory: ./tests/setup/backend_components/
+        working-directory: ./tests/backend_components/
         run: poetry install --no-interaction
 
       - name: Deploy portalbackend, exareme and mip-engine
-        working-directory: ./tests/setup/
-        run: bash run.sh
+        working-directory: ./tests/
+        run: bash start.sh
 
       - name: Wait for services to be up
         uses: jakejarvis/wait-action@master
@@ -54,13 +54,13 @@ jobs:
         run: docker ps
 
       - name: Run the success tests
-        working-directory: ./tests/setup/backend_components/test_integration/
+        working-directory: ./tests/backend_components/test_integration/
         run: poetry run pytest test_success_cases
 
       - name: Run the failure tests
-        working-directory: ./tests/setup/backend_components/test_integration/
+        working-directory: ./tests/backend_components/test_integration/
         run: poetry run pytest test_fail_cases
 
       - name: Run the federation info tests
-        working-directory: ./tests/setup/backend_components/test_integration/
+        working-directory: ./tests/backend_components/test_integration/
         run: poetry run pytest test_federation_info.py
