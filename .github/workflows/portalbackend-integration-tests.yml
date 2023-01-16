@@ -43,7 +43,7 @@ jobs:
 
       - name: Deploy portalbackend, exareme and mip-engine
         working-directory: ./tests/setup/
-        run: bash run.sh
+        run: bash start.sh
 
       - name: Wait for services to be up
         uses: jakejarvis/wait-action@master
