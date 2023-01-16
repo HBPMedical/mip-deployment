@@ -1,5 +1,14 @@
 # Medical Informatics Platform (MIP), testing deployment
 
+## Requirements
+### Hardware
+* 40 GB HDD
+* 8 GB RAM
+* 2 CPU Cores
+
+### Software
+* Ubuntu Server 20.04 (minimal installation, without GUI)
+
 ### Prerequisites
 
 1. Install [python3.8](https://www.python.org/downloads/ "python3.8")
@@ -18,9 +27,9 @@
     git clone https://github.com/HBPMedical/mip-deployment
     ```
 
-2. Access the setup folder for the testing deployment:
+2. Access the 'test' folder:
     ```
-    cd tests/setup/
+    cd mip-deployment/tests/
     ``` 
 
 3. To start the MIP stack run the 'start.sh' script to setup all the containers:

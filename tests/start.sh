@@ -4,7 +4,7 @@ cat .env >> .env_with_versions
 cat  ../.versions_env >> .env_with_versions
 
 cd backend_components/
-docker-compose --log-level ERROR down
+docker-compose --env-file ../.env_with_versions down
 docker-compose --env-file ../.env_with_versions up -d
 echo "Installing dependencies..."
 poetry install
@@ -12,7 +12,7 @@ poetry run inv setup-dbs
 
 cd ../
 cd frontend_components/
-docker-compose --log-level ERROR down
+docker-compose --env-file ../.env_with_versions down
 docker-compose --env-file ../.env_with_versions up -d
 
 cd ../
