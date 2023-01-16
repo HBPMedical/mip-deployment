@@ -6,7 +6,7 @@ logs/
 Federation/data
 Federation/logs
 Federation/.combined_env
-tests/portal_backend_integration_tests/setup/poetry.lock
+tests1/portal_backend_integration_tests/setup/poetry.lock
 federated
 local
 venv/

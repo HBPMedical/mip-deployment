@@ -1,11 +1,12 @@
 #!/bin/env bash
 
 cat .env >> .env_with_versions
-cat ../../.versions_env >> .env_with_versions
+cat  ../.versions_env >> .env_with_versions
 
 cd backend_components/
 docker-compose down
 docker-compose --env-file ../.env_with_versions up -d
+echo "Installing dependencies..."
 poetry install
 poetry run inv setup-dbs
 
