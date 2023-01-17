@@ -137,7 +137,7 @@ def setup_dbs(c):
             )
 
             for csv in csvs:
-                cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --ip 127.0.0.1 --port {port} "
+                cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file false --ip 127.0.0.1 --port {port} "
                 run(c, cmd)
 
                 message(
