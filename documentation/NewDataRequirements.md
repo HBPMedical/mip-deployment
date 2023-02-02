@@ -18,10 +18,20 @@ The metadata file **must** follow these rules:
   * **max** (Integer)
   * **enumerations** (List of codes)
 * The `dataset` CDE is required.
+* In the parent dictionary there will be a `version` property, of string format.
 
 An example can be seen [here](../data/dementia/CDEsMetadata.json).
 
 After adding the CDEsMetadata file you can add your data the same way as adding **New Data on existing Pathology**.
+
+### Longitudinal CDEsMetadata Requirements:
+
+The metadata for the longitudinal analysis pathologies, in addition to the previous, will have the following constraints:
+* A pathology will be marked as `longitudinal` with a property in the metadata, similar to the "version".
+* The `subjectID` CDE will be required.
+* The `visitID` CDE will be required.
+* The `visitID` will be categorical, with enumerations “BL”, “FL1”, “FL2” …
+
 
 ## CSV File Requirements:
 
