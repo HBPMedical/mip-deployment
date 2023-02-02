@@ -46,9 +46,10 @@ services:
       GATEWAY_SERVER: gateway:8081
       INSTANCE_NAME: 'MIP ${MIP}'
       VERSION: 'Frontend: ${FRONTEND}, Gateway: ${GATEWAY}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
-      PUBLIC_MIP_HOST: ${PUBLIC_MIP_HOST}
-      PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}
       KEYCLOAK_HOST: http://keycloak:8095
       KEYCLOAK_AUTH_PATH: /auth
+      PUBLIC_MIP_HOST: ${PUBLIC_MIP_HOST}
+      PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}
+      EXTERNAL_MIP_PROTOCOL: ${EXTERNAL_MIP_PROTOCOL}
       MIP_LINK: ${MIP_LINK}
     restart: unless-stopped
