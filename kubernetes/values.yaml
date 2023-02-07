@@ -9,7 +9,7 @@ engines:
   exareme2:
     URL: ""
     image:
-      version: 0.14.1
+      version: 0.15.0
 
 mip:
   version: 7.0.0
@@ -71,7 +71,7 @@ gateway:
   CACHE_MAX_ITEMS: 100
   image:
     name: hbpmip/gateway
-    version: 1.3.0
+    version: 1.4.0-rc.1
 
 frontend:
   ERROR_LOG_LEVEL: info
@@ -83,7 +83,7 @@ frontend:
   EXTERNAL_IP: "{{ .Values.engines.exareme.IP }}"
   image:
     name: hbpmip/portal-frontend
-    version: 9.2.0
+    version: 9.3.0-rc.1
   storage:
     storage0:
       data_path: /opt/mip-deployment/config/caddy
