@@ -27,10 +27,12 @@ After adding the CDEsMetadata file you can add your data the same way as adding 
 ### Longitudinal CDEsMetadata Requirements:
 
 The metadata for the longitudinal analysis pathologies, in addition to the previous, will have the following constraints:
-* A pathology will be marked as `longitudinal` with a property in the metadata, similar to the "version".
+* A pathology will be marked as `longitudinal` with a property in the metadata, similar to the `version`.
 * The `subjectID` CDE will be required.
 * The `visitID` CDE will be required.
-* The `visitID` will be categorical, with enumerations “BL”, “FL1”, “FL2” …
+* The `visitID` will be categorical, with enumerations `BL`, `FL1`, `FL2` …
+
+**Important:** The `subjectID` and `visitID` columns must always exist and be filled, in the csvs.
 
 
 ## CSV File Requirements:
