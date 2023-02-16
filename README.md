@@ -47,7 +47,7 @@ Now, with the Kubernetes (K8s) deployment, we have 3 main, big components, which
 * [gateway_db](https://github.com/docker-library/postgres): The gateway's database
 * [portalbackend](https://github.com/HBPMedical/portal-backend): The "Backend API" which supports the Web App
 * [portalbackend_db](https://github.com/docker-library/postgres): The portal backend's database
-* [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some <a id="UsersConfiguration">details</a>, which you can find [here](documentation/UsersConfiguration.md)
+* [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some <a id="UsersConfiguration">details</a>, which you can find [here](config/keycloak/doc/UsersConfiguration.md)
 * [keycloak_db](https://github.com/docker-library/postgres): The KeyCloak's database, required only if the *keycloak* component needs to be used
 * [create_dbs](https://github.com/HBPMedical/docker-create-databases): The *one shot* container which creates and populates the DBs when required
 * [exareme2](https://github.com/madgik/exareme2): The "Analysis Engine" offers the federated (also used by the *local* MIP) analysis capabilities
