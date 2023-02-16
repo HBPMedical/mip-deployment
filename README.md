@@ -52,4 +52,4 @@ Now, with the Kubernetes (K8s) deployment, we have 3 main, big components, which
 * [keycloak_db](https://github.com/docker-library/postgres): The KeyCloak's database, required only if the *keycloak* component needs to be used
 * [create_dbs](https://github.com/HBPMedical/docker-create-databases): The *one shot* container which creates and populates the DBs when required
 
-For deployment documentation, go [here](doc/Readme.md).
+For deployment documentation, go [here](kubernetes/doc/Readme.md).
