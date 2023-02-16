@@ -1,180 +1,145 @@
-[MIP Deployment](../README.md#LocalDeployment) -> `Local MIP Deployment`
+[UI](../README.md#UI) -> `MIP UI deployment`
 
-# Local MIP Deployment
-## Structure
-![MIP Local Deployment Scheme](MIP_Local_Deployment.png)
+In addition of the two other helm charts (exareme and exareme2), this one will run the components required to provide the MIP Web UI.
 
-In this repository, we have both local and federated (in *Federation* subfolder) MIP structures.  
+# Configuration
+Prior to deploy it (on a microk8s K8s cluster of one or more nodes), there's some adjustments to do in the *values.yaml* file.  
+There are sections which correspond to the different components. In each section, you can adjust the container image name and version, local storage paths if needed, and some other settings as well.  
+Also, in addition to the main *values.yaml* file, there are some "profile" configuration files. These are made mostly to simplify the MIP reachability.  
+We recommend that you fill all those profile configuration files. Then, whenever you want, you can easily switch between the different profiles, just by reinstalling the Helm chart with another profile.
 
-The *local* MIP is composed by a few Docker containers (*3*), all running on the same machine.  
-This *mip-deployment* repository (*1*) includes a *docker-compose.yml* file, which contains references to the different Docker images (hosted on Docker Hub (*2*)) and their version tag.  
-The *mip* script will be able to manage the installation process, as well as the different administration aspects.  
+There are still two main ways of reaching the MIP UI:
+* Direct
+* Proxied
 
-Once running, by default, the client browser will arrive on a landing page which will redirect it on the local keycloak (provided as a container) instance's page for authentication (with credentials *user:password*). Once connected, the client browser will be redirected to the HOSTNAME:PORT which would has been set during the configuration process.  
-Therefore, it's important that both the keycloak container and the client browser can reach the HOSTNAME:PORT provided as the *PUBLIC_MIP_HOST* variable.  
-It means that if the MIP installation runs inside a VM which is connected via a NATted network, this HOSTNAME:PORT should be the one of the *host* (the machine which runs the hypervisor), and not the one of the *guest* (the VM).
+For each of them, you have four different profiles:
+* "Standard", with external KeyCloak authentication
+  * **.direct**
+  * **.proxied**
+* With internal, embedded KeyCloak authentication
+  * **.direct.internal_auth**
+  * **.proxied.internal_auth**
+* With unsecure embedded KeyCloak authentication
+  * **.direct.internal_auth.http**
+  * **.proxied.internal_auth.http**
+* Without authentication
+  * **.direct.no_auth**
+  * **.proxied.no_auth**
 
-## Requirements
-### Hardware
-* 40 GB HDD
-* 8 GB RAM
-* 2 CPU Cores
+In each of these profile configuration files, there are different settings already filled (which you may want to change) to cover most of the use cases, and others (between **<>**), which are required to be filled.
 
-### Software
-* Ubuntu Server 20.04 (minimal installation, without GUI).  
-  Beside the basic OS requirements, everything you need to deploy a local MIP is available in this repository. If you don't match the OS requirements, we recommend that you deploy it inside a Virtual Machine. For that purpose, you can use any hypervisor, but if you don't know much about it, Vagrant and VirtualBox could make things easier.
+The following picture describes the different ways of reaching the MIP, and these specific required fields are present on it.
+![MIP Reachability Scheme](MIP_Configuration.png)
 
-## Installing the **local** MIP
-1. Prepare a VM/Physical machine with the minimal **Ubuntu Server 20.04** operating system installation.
+## MACHINE_MAIN_IP
+This is the machine's main IP address. Generally, it's the IP address of the first NIC after the local one.  
+If the MIP is running on top of a VPN, you may want to put the VPN interface's IP address.  
+If you reach the machine through a public IP, if this IP is **NOT** directly assigned on the machine, but is using static NAT, you still **MUST** set the **INTERNAL** IP of the machine itself!
 
-   You'll have to know on which URL (like http://\<HOSTNAME>, http://\<HOSTNAME>:\<PORT> or http://\<IP>:\<PORT>) you want to expose your MIP. If you're operating it inside a VM on your computer, you may use the IP of your computer, and the port on which your VM's port 80 is mapped to, like:
-http://192.168.0.100:8888
+## MACHINE_PUBLIC_FQDN
+This is the public, fully qualified domain name of the MIP, the main URL on which you want to reach the MIP from the Internet. This may point:
+* Directly on the public IP of the MIP, for a **direct** use case. It may be assigned on the machine or used in front as a static NAT
+* On the public IP of the reverse-proxy server, for a **proxied** use case
 
-1. Install the MIP
+## MACHINE_PRIVATE_FQDN_OR_IP
+This is **ONLY** used in a **proxied** use case situation.  
+It's actually the internal IP or address from which the reverse-proxy server "sees" (reaches) the MIP machine.
 
-   As a "sudoer" user:
-   ```
-   git clone https://github.com/HBPMedical/mip-deployment
-   ```
-   ```       
-   sudo mip-deployment/mip --no-run install
-   ```
-   Alternatively, you can also install a specific version of the MIP. For that purpose, you can precise the tag (*--version \<TAG>*), the branch (*--branch \<BRANCH>*) or even the commit ID (*--commit \<COMMIT>*), each of these parameters having precedence over the next one(s). If you specify a non-default version, you also have to force this installation with the flag *--force-install-unstable*.  
-   The MIP will be installed by default in */opt/mip-deployment*.  
-   Still by default, the *mip-deployment* folder you just created when cloning the repository will be deleted after the installation. If you want to keep it, just use the *--keep-installer* flag.  
+Normally, these tree settings (repeated in several profile files) are the main things you have to know to set all these profiles.  
 
-   Don't hesitate to use:
-   ```
-   mip --help
-   ```
+**WARNING!**: In **ANY** case, when you use an **EXTERNAL** KeyCloak service (i.e. iam.ebrains.eu), make sure that you use the correct *CLIENT_ID* and *CLIENT_SECRET* to match the MIP instance you're deploying!
 
-1. Configure the MIP
+# Deployment
+**ONLY** after you have prepared all the profiles you may want to use, you can easily deploy the UI Helm chart.  
+Also, we recommend that you deploy the engines (*exareme* and *mipengine*) Helm charts, prior to run the UI.
 
-   Still as the "sudoer" user:
-   ```
-   sudo mip configure all
-   ```
-   With this command, the *mip* script will interactively ask you for the different parameters. Of course, you can also set these parameters within the *mip configure* command.  
-   If you want to configure a particular part, you can run *sudo mip configure \<PART>* (like *sudo mip configure keycloak*).  
-   At last, if you want to **re**-configure something, you will have to use the *--force* flag.
-
-   The configurations which come as variables will be written in the *.mipenv* file, at the root level of the *mip-deployment* folder. This file is automatically set by the *mip configure* command, but can also be edited by hand (**IF YOU KNOW WHAT YOU'RE DOING**) later on (running *mip configure* is still a mandatory step prior to doing anything like that).  
-
-   For each of these variables, there is a matching *mip configure* command parameter:
-
-   |Variable|Command parameter|Mandatory|
-   | -- | -- | -- |
-   |MIP_LINK|--link \<direct \| proxied>|yes|
-   |EXTERNAL_MIP_PROTOCOL|--ext-protocol \<http \| https>|yes|
-   |PUBLIC_MIP_PROTOCOL|--protocol \<http \| https>|yes|
-   |PUBLIC_MIP_HOST|--host \<HOSTNAME/IP_ADDRESS>|yes|
-   |KEYCLOAK_AUTHENTICATION (0/1)|--without-keycloak-authentication \| --with-keycloak-authentication|yes|
-   |KEYCLOAK_PROTOCOL|--keycloak-protocol \<http \| https>||
-   |KEYCLOAK_URL|--keycloak-url \<HOSTNAME/IP_ADDRESS>||
-   |KEYCLOAK_REALM|--keycloak-realm \<KEACLOAK_REALM>||
-   |KEYCLOAK_CLIENT_ID|--keycloak-client-id \<KEACLOAK_CLIENT_ID>||
-   |KEYCLOAK_CLIENT_SECRET|--keycloak-client-secret \<KEACLOAK_CLIENT_SECRET>||
-   |DATACATALOGUE_PROTOCOL|--datacatalogue-protocol \<DATACATALOGUE_PROTOCOL>||
-   |DATACATALOGUE_HOST|--datacatalogue-host \<DATACATALOGUE_HOST>||
-
-   Note that if you don't provide anything for KeyCloak, it will use the default configuration to connect to the "embedded" local KeyCloak, with the *MIP* client.
-
-   In order to better understand the different configuration parameters, check the following picture:
-   ![MIP Local Configuration Scheme](MIP_Local_Configuration.png)
-
-   You can see that there are two different setups:
-
-   * **direct**
-
-     The MIP is directly reachable from the browser.
-
-   * **proxied**
-
-     The MIP is reachable through a reverse-proxy server. Currently, it's been tested and validated with Apache server, with this specific VirtualHost configuration:
-
-     ```
-     ServerName public.mip.address
-
-     <Location />
-         ProxyPass http://internal.mip.address/
-         ProxyPassReverse http://internal.mip.address/
-         Allow from all
-         Required all granted
-     </Location>
-     ```
-
-     Again, don't hesitate to use *mip --help*
-
-## Operating the **local** MIP
-### Becoming **mipadmin**
-After the first time that you run *mip configure*, the **mipadmin** user will be created. Then, anytime you need to operate the **ui** node, you should use this user.  
-If you don't know the *mipadmin* password, you can use the "sudoer" user to become *mipadmin*
+## Global installation
+On a running Ubuntu (we recommend 22.04) distribution, install microk8s (we **HIGHLY** recommend to **NOT** install Docker on your Kubernetes cluster!):
 ```
-sudo su - mipadmin
+sudo snap install microk8s
+```
+```
+sudo adduser mipadmin
+```
+```
+sudo adduser mipadmin sudo
+```
+```
+sudo adduser mipadmin microk8s
 ```
 
-### Consolidating the data
-As **mipadmin**, you can run
+As *mipadmin* user:
 ```
-mip data consolidate
+microk8s enable dns helm3 ingress
 ```
-For each pathology, this will list the different available datasets in the pathology's Common Data Elements (CDE) file, and then, from all the CDEs, it will generate the *pathologies.json* file, used by the MIP Web interface to display the different variables.  
-Alternatively, you can ask to **re**-label the pathologies and/or the datasets by using the flag *--review-dataset-labels*.
-
-### Compiling the data
-As **mipadmin**, run
 ```
-mip data compile
+sudo mkdir -p /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
 ```
-At any time, you can **re**-compile by using the *--force* flag.  
-You can also specify the pathology(ies) to compile, with the *--pathology* flag.
-
-As usual, to get more details, use *mip --help*
-
-### Running the MIP
-Still as **mipadmin** user, you can then launch the MIP with:
 ```
-mip start
+sudo chown -R mipadmin.mipadmin /data
 ```
 
-After launching, you should be able to browse the MIP on the URL which will be displayed. Note that once the command ends, it may still take up to one minute until the MIP is really operational.  
-Of course, you can also do other actions here:
-* Stopping the MIP
+For a "federated" deployment, you may want to add nodes to your cluster. "microk8s add-node" will give you a **one-time usage** token, which you can use on a worker node to actually "join" the cluster. This process must be repeated on all the worker nodes.  
+
+## Exareme
+* Install the repository content
   ```
-  mip stop
+  sudo git clone https://github.com/madgik/exareme /opt/exareme
   ```
-* Restarting the MIP
   ```
-  mip restart
+  sudo chown -R mipadmin.mipadmin /opt/exareme
   ```
-  Note that a *restart* is actually different from a "*stop* *start*" cycle. See the Docker documentation.
-
-At anytime, you can learn more about the *mip* commands with *mip --help*
-
-## Upgrading the **local** MIP
-### Check-list
-* Make sure you're connected as *mipadmin* user
-* Make sure you're not in the *mip-deployment* folder
+* Set the variables in /opt/exareme/Federated-Deployment/kubernetes/values.yaml
+  * data_path: /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
+  * exareme.convert_csvs: FALSE
+  * workers: 0 for a "local" deployment, or more for a "federated" deployment
+* Label the nodes  
+  For all the worker nodes (even on a "local" deployment where the master and the worker are the **same** machine), add a *worker* label:
   ```
-  cd
+  microk8s kubectl label node <WORKER_HOSTNAME> worker=true
+  ```
+* Deploy the Helm chart
+  ```
+  microk8s helm3 install exareme /opt/exareme/Federated-Deployment/kubernetes
   ```
 
-### Installing the new version of the *mip* script
-```
-git clone https://github.com/HBPMedical/mip-deployment
-```
-```
-sudo mip-deployment/mip --self --force install
-```
-As it was already explained in the installation section, there are other parameters you can use here to install another specific version of the *MIP* (and they can be used in the case of the *mip script* install as well).
+## MIP-Engine (Exareme 2)
+* Install the repository content
+  ```
+  sudo git clone https://github.com/madgik/MIP-Engine /opt/mipengine
+  ```
+  ```
+  sudo chown -R mipadmin.mipadmin /opt/mipengine
+  ```
+* Set the variables in /opt/mipengine/kubernetes/values.yaml
+  * localnodes: 1 for a "local" deployment (yes, even if it's the same machine for master and worker), or more (the number of workers, not counting the master node) for a "federated" deployment
+  * db.storage_location: /opt/mipengine/.stored_data/db
+  * db.csvs_location: /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
+  * controller.cleanup_file_folder: /opt/mipengine/.stored_data/cleanup
+  * smpc.enabled: true (if you want, and **ONLY** in case of a federated deployment, and also **ONLY** if you have at least 3 worker nodes!)
+* Label the nodes  
+  For all the worker nodes (even on a "local" deployment where the master and the worker are the **same** machine), add *worker* and (if you want) *smpc_player* labels:
+  ```
+  microk8s kubectl label node <WORKER_HOSTNAME> worker=true
+  ```
+  ```
+  microk8s kubectl label node <WORKER_HOSTNAME> smpc_player=true
+  ```
+* Deploy the Helm chart
+  ```
+  microk8s helm3 install mipengine /opt/mipengine/kubernetes
+  ```
 
-#### Cleanup
-```
-rm -rf mip-deployment
-```
-
-### Installing the new *MIP* version
-```
-sudo mip install
-```
-Again, as explained in the installation section, if you have to install a specific version, use the documented parameters, and don't hesitate to call *mip --help*.
+## MIP UI
+* Install the repository content
+  ```
+  sudo git clone https://github.com/HBPMedical/mip-deployment /opt/mip-deployment
+  ```
+  ```
+  sudo chown -R mipadmin.mipadmin /opt/mip-deployment
+  ```
+* Set the different profiles in /opt/mip-deployment/kubernetes as explained before
+* Deploy the Helm chart with a specific profile
+  ```
+  microk8s helm3 install mip -f /opt/mip-deployment/kubernetes/<PROFILE_CONFIGURATION_FILE> /opt/mip-deployment/kubernetes
+  ```

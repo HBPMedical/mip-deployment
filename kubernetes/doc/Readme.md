@@ -62,6 +62,9 @@ sudo snap install microk8s
 sudo adduser mipadmin
 ```
 ```
+sudo adduser mipadmin sudo
+```
+```
 sudo adduser mipadmin microk8s
 ```
 
