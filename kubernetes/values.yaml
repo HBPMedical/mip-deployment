@@ -9,10 +9,10 @@ engines:
   exareme2:
     URL: ""
     image:
-      version: 0.15.0
+      version: 0.16.1
 
 mip:
-  version: 7.0.0
+  version: 7.1.0
   LINK: ""
   EXTERNAL_PROTOCOL: ""
   PUBLIC_PROTOCOL: ""
@@ -44,7 +44,7 @@ portalbackend:
   ALGORITHM_UPDATE_INTERVAL: 60   # seconds
   image:
     name: hbpmip/portal-backend
-    version: 7.7.1
+    version: 7.8.0
   storage:
     storage0:
       data_path: /opt/mip-deployment/config
@@ -71,7 +71,7 @@ gateway:
   CACHE_MAX_ITEMS: 100
   image:
     name: hbpmip/gateway
-    version: 1.4.0-rc.1
+    version: 1.4.0
 
 frontend:
   ERROR_LOG_LEVEL: info
@@ -83,7 +83,7 @@ frontend:
   EXTERNAL_IP: "{{ .Values.engines.exareme.IP }}"
   image:
     name: hbpmip/portal-frontend
-    version: 9.3.0-rc.1
+    version: 9.3.0
   storage:
     storage0:
       data_path: /opt/mip-deployment/config/caddy
