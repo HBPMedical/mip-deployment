@@ -102,7 +102,7 @@ def setup_dbs(c):
 
     for port in datasets_per_location.keys():
         message(f"Initializing MonetDB with mipdb in port: {port}...", Level.HEADER)
-        cmd = f"""poetry run mipdb init --ip 127.0.0.1 --port {port}"""
+        cmd = f"""poetry run mipdb init --ip 127.0.0.1 --port {port}  --username admin --password admin --db_name db"""
         run(c, cmd)
 
         data_model_folders = [
@@ -125,7 +125,7 @@ def setup_dbs(c):
                 f"Loading data model '{data_model_code}:{data_model_version}' metadata to database (127.0.0.1:{port})",
                 Level.HEADER,
             )
-            cmd = f"mipdb add-data-model {cdes_file} --ip 127.0.0.1 --port {port} "
+            cmd = f"mipdb add-data-model {cdes_file} --ip 127.0.0.1 --port {port} --username admin --password admin --db_name db"
             run(c, cmd)
 
             csvs = sorted(
@@ -137,7 +137,7 @@ def setup_dbs(c):
             )
 
             for csv in csvs:
-                cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file false --ip 127.0.0.1 --port {port} "
+                cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file false --ip 127.0.0.1 --port {port} --username admin --password admin --db_name db"
                 run(c, cmd)
 
                 message(
