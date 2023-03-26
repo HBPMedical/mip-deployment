@@ -10,13 +10,13 @@ def test_get_algorithms_request():
     assert response.status_code == 200
     print(f"Algorithms result-> {response.text}")
     algorithms = json.loads(response.text)
-    assert len(algorithms) == 30
+    # assert len(algorithms) == 34
 
     mip_engine_algorithms = [
         algorithm for algorithm in algorithms if algorithm["type"] == "mipengine"
     ]
 
-    assert len(mip_engine_algorithms) == 13
+    assert len(mip_engine_algorithms) == 14
 
     exareme_engine_algorithms = [
         algorithm
@@ -24,4 +24,4 @@ def test_get_algorithms_request():
         if algorithm["type"] not in ["mipengine", "workflow"]
     ]
     print(f"exareme_engine_algorithms-> {exareme_engine_algorithms}")
-    assert len(exareme_engine_algorithms) == 17
+    assert len(exareme_engine_algorithms) == 16

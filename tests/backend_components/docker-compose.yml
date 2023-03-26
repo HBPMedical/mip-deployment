@@ -78,18 +78,25 @@ services:
     image: madgik/mipenginedb:${MIP_ENGINE}
     ports:
       - "50000:50000"
+    environment:
+      - SOFT_RESTART_MEMORY_LIMIT=1000
+      - HARD_RESTART_MEMORY_LIMIT=1000
 
   monetdb_localnode1:
     image: madgik/mipenginedb:${MIP_ENGINE}
     ports:
       - "50001:50000"
-
+    environment:
+      - SOFT_RESTART_MEMORY_LIMIT=1000
+      - HARD_RESTART_MEMORY_LIMIT=1000
 
   monetdb_localnode2:
     image: madgik/mipenginedb:${MIP_ENGINE}
     ports:
       - "50002:50000"
-
+    environment:
+      - SOFT_RESTART_MEMORY_LIMIT=1000
+      - HARD_RESTART_MEMORY_LIMIT=1000
 
   mipengine_globalnode:
     image: madgik/mipengine_node:${MIP_ENGINE}
@@ -104,6 +111,7 @@ services:
       - RABBITMQ_PORT=5670
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50000
+      - MONETDB_PASSWORD="executor"
       - SMPC_ENABLED=false
       - SMPC_OPTIONAL=false
     depends_on:
@@ -123,6 +131,7 @@ services:
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5671
       - MONETDB_IP=172.17.0.1
+      - MONETDB_PASSWORD="executor"
       - MONETDB_PORT=50001
       - SMPC_ENABLED=false
       - SMPC_OPTIONAL=false
@@ -143,6 +152,7 @@ services:
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5672
       - MONETDB_IP=172.17.0.1
+      - MONETDB_PASSWORD="executor"
       - MONETDB_PORT=50002
       - SMPC_ENABLED=false
       - SMPC_OPTIONAL=false
