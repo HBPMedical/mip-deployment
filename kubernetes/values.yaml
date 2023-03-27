@@ -9,7 +9,7 @@ engines:
   exareme2:
     URL: ""
     image:
-      version: 0.16.1
+      version: 0.16.3
 
 mip:
   version: 7.1.0
