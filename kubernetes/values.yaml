@@ -44,7 +44,7 @@ portalbackend:
   ALGORITHM_UPDATE_INTERVAL: 60   # seconds
   image:
     name: hbpmip/portal-backend
-    version: 7.8.0
+    version: 7.8.1
   storage:
     storage0:
       data_path: /opt/mip-deployment/config
@@ -71,7 +71,7 @@ gateway:
   CACHE_MAX_ITEMS: 100
   image:
     name: hbpmip/gateway
-    version: 1.4.0
+    version: 1.4.1
 
 frontend:
   ERROR_LOG_LEVEL: info
