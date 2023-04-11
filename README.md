@@ -41,3 +41,7 @@ The *federated* MIP is designed to run on multiple machines.
 In this context, and as we usually use an external KeyCloak service, the components which run on the same machine are less than for the *local* deployment.
 
 [Here](Federation/doc/Readme.md), you can find details about deploying and operating the *federated* MIP.
+
+
+# Acknowledgement
+This project/research received funding from the European Union’s Horizon 2020 Framework Programme for Research and Innovation under the Framework Partnership Agreement No. 650003 (HBP FPA).
