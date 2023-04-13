@@ -182,6 +182,18 @@ As an example, the following structure will represent 3 datasets in the *mentalh
         "label": "SYNTH_MH_WK3"
       }
     ]
+  },
+  {
+    "isCategorical": false,
+    "code": "sstartdate",
+    "label": "Startdate (Ignore)",
+    "sql_type": "int",
+    "description": "",
+    "units": "",
+    "type": "integer",
+    "methodology": ""
   }
-]
+],
+"code": "mentalhealth",
+...
 ```
