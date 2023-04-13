@@ -104,7 +104,6 @@ services:
       - create_dbs
     volumes:
       - ./config:/opt/portal/api
-      - ./logs:/opt/portal/logs
     restart: unless-stopped
 
   gateway:
