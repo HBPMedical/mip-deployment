@@ -143,3 +143,45 @@ For a "federated" deployment, you may want to add nodes to your cluster. "microk
   ```
   microk8s helm3 install mip -f /opt/mip-deployment/kubernetes/<PROFILE_CONFIGURATION_FILE> /opt/mip-deployment/kubernetes
   ```
+
+## Taking care of the medical data
+### Deploying the data
+On each **worker** node, in */data/<MIP_INSTANCE_OR_FEDERATION_NAME>*, a *<PATHOLOGY_NAME>* folder must be created for every pathology for which we will have at least one dataset on this node. 
+Then, the corresponding dataset CSV files have to be placed in this folder.
+
+### Data consolidation
+What we call data consolidation is the preparation of the CDE files.
+On each node, including the **master**, for each pathology folders, it's mandatory to have a corresponding CDE (Common Data Elements) file, named *CDEsMetadata.json*. In the whole federation, on every worker node which "shares" the same pathology, the **exact** same CDE file must be present in the corresponding folder. 
+In this file, in the *variables* list variable, the *enumerations* list variable must be filled with elements representing each dataset name, independently of the node on which the dataset is present. These elements must have two variables:
+* code: exact name of the dataset (case sensitive)
+* label: Arbitrary label for the dataset. This will be displayed in the UI. Usually, it's the capitalized dataset name
+
+As an example, the following structure will represent 3 datasets in the *mentalhealth* pathology:
+```
+"variables": [
+  {
+    "isCategorical": true,
+    "code": "dataset",
+    "label": "dataset",
+    "sql_type": "text",
+    "description": "",
+    "units": "",
+    "type": "multinominal",
+    "methodology": "",
+    "enumerations": [
+      {
+        "code": "synth_mh_wk1",
+        "label": "SYNTH_MH_WK1"
+      },
+      {
+        "code": "synth_mh_wk2",
+        "label": "SYNTH_MH_WK2"
+      },
+      {
+        "code": "synth_mh_wk3",
+        "label": "SYNTH_MH_WK3"
+      }
+    ]
+  }
+]
+```
