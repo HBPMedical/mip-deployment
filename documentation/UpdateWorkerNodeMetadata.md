@@ -1,30 +1,27 @@
-# Update of the worker node metadata file
+# Data consolidation of the CDEs Metadata file
 
-:warning: This readme will only focus on the case where the CDE remained the same and a new dataset has been added to the nodes
+:warning: This readme will only focus on the case where the CDEs remained the same but a new dataset has been added to the pathology.
 
 ## Context
 
-Eachworker nodes inside a federation needs to share the same metadata file.
-This file describes the shape of the datasets as well as a list of datasets available to the node.
+Each node inside a federation. workers and master, need to have the same metadata file.
+This file contains information about the CDEs and about all the available datasets.
 
 A example of the file is availabe in this repository [here](https://github.com/HBPMedical/mip-deployment/blob/master/data/dementia/CDEsMetadata.json)
 
-There is two cases in which we need to update the metadata file (both can happen at the same time):
-- The CDE has changed meaning that the shape of the datasets is not the same.
-- A new dataset is added, and the list of datasets needs to be updated
+In the case where one or more datasets are added we need to update the metadata file, across all nodes.
 
 In Exareme 2 this process is automated, in Exareme 1 the task has to be performed manually / programatically through a script. 
 
-:warning: Up to version 7.1, the MIP relies on Exareme 1. This dependency will be removed in the next release (version 8).
+:warning: Up to version 7.1, the MIP relies on Exareme 1. This dependency will be removed in the next major release (version 8).
 
-## Upgrading manually
+## Updating manually
 
+In a node, there are as many metadata files as there are pathologies, in that node.
 
-In a worker node, there is as many metadata files as their is federation.
+If a new dataset is added to the `dementia` pathology then the relevant file will be located under `/data/dementia/CDEsMetadata.json`
 
-If a new dataset is added to the `dementia` federation then the relevent file will be located under `/data/dementia/CDEsMetadata.json`
-
-Concider this snippet of metadatafile:
+Concider this snippet of metadata file:
 
 ```json
     {
@@ -61,10 +58,10 @@ Concider this snippet of metadatafile:
 ```
 
 This block represents the variable where the list of dataset is specified:
-- the code of the variable is  `dataset`
-- the list of datasets is available inside the `enumeration` key
+- the code of the variable is `dataset`
+- the list of datasets is available inside the `enumerations` key
 
-Given a new dataset of `code` demo and `label` demo-dataset, the updated metadata file needs to look as such:
+Given a new dataset of code `demo` and label `demo-dataset`, the updated metadata file needs to look as such:
 
 ```json
     {
