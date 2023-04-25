@@ -1,4 +1,4 @@
-# Data consolidation of the CDEs Metadata file
+# Data consolidation of the CDEs Metadata files
 
 :warning: This readme will only focus on the case where the CDEs remained the same but a new dataset has been added to the pathology.
 
