@@ -45,11 +45,6 @@ jobs:
         working-directory: ./tests/
         run: bash start.sh
 
-      - name: Wait for services to be up
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '60s'
-
       - name: Get deployment status
         run: docker ps
 
