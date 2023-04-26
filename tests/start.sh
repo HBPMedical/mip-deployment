@@ -8,6 +8,7 @@ docker-compose --env-file ../.env_with_versions down
 docker-compose --env-file ../.env_with_versions up -d
 echo "Installing dependencies..."
 poetry install
+sleep 60
 poetry run inv setup-dbs
 
 cd ../
