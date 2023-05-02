@@ -170,7 +170,7 @@ all_success_cases = [
                 {
                     "name": "x",
                     "label": "x",
-                    "value": "rightcuncuneus",
+                    "value": "dataset",
                 },
                 {"name": "pathology", "label": "pathology", "value": "dementia:0.1"},
                 {
@@ -189,9 +189,19 @@ all_success_cases = [
                     "value": "less",
                 },
                 {
-                    "name": "confidence_lvl",
-                    "label": "confidence_lvl",
+                    "name": "alpha",
+                    "label": "alpha",
                     "value": 0.5727207100545569,
+                },
+                {
+                    "name": "groupA",
+                    "label": "groupA",
+                    "value": "edsd",
+                },
+                {
+                    "name": "groupB",
+                    "label": "groupB",
+                    "value": "ppmi",
                 },
             ],
             "type": "mipengine",
