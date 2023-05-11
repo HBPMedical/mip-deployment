@@ -68,7 +68,7 @@ gateway:
   CACHE_MAX_ITEMS: 100
   image:
     name: hbpmip/gateway
-    version: 1.4.1
+    version: 1.5.0
 
 frontend:
   ERROR_LOG_LEVEL: info
@@ -80,7 +80,7 @@ frontend:
   EXTERNAL_IP: "{{ .Values.engines.exareme.IP }}"
   image:
     name: hbpmip/portal-frontend
-    version: 9.3.0
+    version: 9.3.1
   storage:
     storage0:
       data_path: /opt/mip-deployment/config/caddy
