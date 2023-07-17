@@ -12,16 +12,16 @@ def test_get_algorithms_request():
     algorithms = json.loads(response.text)
     # assert len(algorithms) == 34
 
-    mip_engine_algorithms = [
-        algorithm for algorithm in algorithms if algorithm["type"] == "mipengine"
+    EXAREME2_algorithms = [
+        algorithm for algorithm in algorithms if algorithm["type"] == "exareme2"
     ]
 
-    assert len(mip_engine_algorithms) == 14
+    assert len(EXAREME2_algorithms) == 14
 
     exareme_engine_algorithms = [
         algorithm
         for algorithm in algorithms
-        if algorithm["type"] not in ["mipengine", "workflow"]
+        if algorithm["type"] not in ["exareme2", "workflow"]
     ]
     print(f"exareme_engine_algorithms-> {exareme_engine_algorithms}")
     assert len(exareme_engine_algorithms) == 16

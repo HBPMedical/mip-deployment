@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
 
   rabbitmq_globalnode:
-    image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
+    image: madgik/exareme2_rabbitmq:${EXAREME2}
     ports:
       - "5670:5672"
     environment:
@@ -45,7 +45,7 @@ services:
       retries: 3
 
   rabbitmq_localnode1:
-    image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
+    image: madgik/exareme2_rabbitmq:${EXAREME2}
     ports:
       - "5671:5672"
     environment:
@@ -60,7 +60,7 @@ services:
       retries: 3
 
   rabbitmq_localnode2:
-    image: madgik/mipengine_rabbitmq:${MIP_ENGINE}
+    image: madgik/exareme2_rabbitmq:${EXAREME2}
     ports:
       - "5672:5672"
     environment:
@@ -75,7 +75,7 @@ services:
       retries: 3
 
   monetdb_globalnode:
-    image: madgik/mipenginedb:${MIP_ENGINE}
+    image: madgik/exareme2_db:${EXAREME2}
     ports:
       - "50000:50000"
     environment:
@@ -83,7 +83,7 @@ services:
       - HARD_RESTART_MEMORY_LIMIT=1000
 
   monetdb_localnode1:
-    image: madgik/mipenginedb:${MIP_ENGINE}
+    image: madgik/exareme2_db:${EXAREME2}
     ports:
       - "50001:50000"
     environment:
@@ -91,15 +91,15 @@ services:
       - HARD_RESTART_MEMORY_LIMIT=1000
 
   monetdb_localnode2:
-    image: madgik/mipenginedb:${MIP_ENGINE}
+    image: madgik/exareme2_db:${EXAREME2}
     ports:
       - "50002:50000"
     environment:
       - SOFT_RESTART_MEMORY_LIMIT=1000
       - HARD_RESTART_MEMORY_LIMIT=1000
 
-  mipengine_globalnode:
-    image: madgik/mipengine_node:${MIP_ENGINE}
+  exareme2_globalnode:
+    image: madgik/exareme2_node:${EXAREME2}
     environment:
       - NODE_IDENTIFIER=globalnode
       - NODE_ROLE=GLOBALNODE
@@ -119,8 +119,8 @@ services:
       - monetdb_globalnode
     restart: unless-stopped
 
-  mipengine_localnode1:
-    image: madgik/mipengine_node:${MIP_ENGINE}
+  exareme2_localnode1:
+    image: madgik/exareme2_node:${EXAREME2}
     environment:
       - NODE_IDENTIFIER=localnode1
       - NODE_ROLE=LOCALNODE
@@ -140,8 +140,8 @@ services:
       - monetdb_localnode1
     restart: unless-stopped
 
-  mipengine_localnode2:
-    image: madgik/mipengine_node:${MIP_ENGINE}
+  exareme2_localnode2:
+    image: madgik/exareme2_node:${EXAREME2}
     environment:
       - NODE_IDENTIFIER=localnode2
       - NODE_ROLE=LOCALNODE
@@ -161,8 +161,8 @@ services:
       - monetdb_localnode2
     restart: unless-stopped
 
-  mipengine_controller:
-    image: madgik/mipengine_controller:${MIP_ENGINE}
+  exareme2_controller:
+    image: madgik/exareme2_controller:${EXAREME2}
     ports:
       - '5000:5000'
     environment:
@@ -170,7 +170,7 @@ services:
       - FRAMEWORK_LOG_LEVEL=INFO
       - DEPLOYMENT_TYPE=LOCAL
       - NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL=30
-      - CLEANUP_FOLDER=/tmp/mipengine
+      - CLEANUP_FOLDER=/tmp/exareme2
       - NODES_CLEANUP_INTERVAL=60
       - NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT=3600
       - LOCALNODES_CONFIG_FILE=/opt/config/localnodes_config.json
@@ -224,8 +224,8 @@ services:
       PORTAL_DB_SERVER: portalbackend_db:5433
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
-      ### MIP-Engine ###
-      MIPENGINE_URL: ${MIP_ENGINE_URL}
+      ### Exareme2 ###
+      EXAREME2_URL: ${EXAREME2_URL}
       ### Exareme ###
       EXAREME_URL: http://exareme_master:9090
       ### Galaxy ###

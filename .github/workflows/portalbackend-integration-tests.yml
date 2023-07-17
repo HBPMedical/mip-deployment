@@ -41,7 +41,7 @@ jobs:
         working-directory: ./tests/backend_components/
         run: poetry install --no-interaction
 
-      - name: Deploy portalbackend, exareme and mip-engine
+      - name: Deploy portalbackend, exareme and exareme2
         working-directory: ./tests/
         run: bash start.sh
 

@@ -26,19 +26,19 @@ Now, with the Kubernetes (K8s) deployment, we have 3 main, big components, which
 * [exareme](https://github.com/madgik/exareme/tree/master/Exareme-Docker): The "Analysis Engine" offers the federated (also used by the *local* MIP) analysis capabilities
 * [exareme_keystore](https://github.com/bitnami/bitnami-docker-consul): A "Key-Value" storage service used by the different nodes (the workers and the master in a *federated* MIP, or the same machine in a *local* MIP) to store/exchange variables
 
-### [MIP-Engine](https://github.com/madgik/MIP-Engine/tree/master/kubernetes) (Exareme 2)
-* [controller](https://github.com/madgik/MIP-Engine/tree/master/mipengine/controller)
+### [Exareme2](https://github.com/madgik/Exareme2/tree/master/kubernetes) (Exareme 2)
+* [controller](https://github.com/madgik/Exareme2/tree/master/exareme2/controller)
 
-* [monetdb](https://github.com/madgik/MIP-Engine/tree/master/monetdb)
-* [rabbitmq](https://github.com/madgik/MIP-Engine/tree/master/rabbitmq)
-* [node](https://github.com/madgik/MIP-Engine/tree/master/mipengine/node)
-* [db-importer](https://github.com/madgik/MIP-Engine/tree/master/mipdb)
+* [monetdb](https://github.com/madgik/Exareme2/tree/master/monetdb)
+* [rabbitmq](https://github.com/madgik/Exareme2/tree/master/rabbitmq)
+* [node](https://github.com/madgik/Exareme2/tree/master/exareme2/node)
+* [db-importer](https://github.com/madgik/Exareme2/tree/master/mipdb)
 
 * [smpc-db](https://github.com/docker-library/mongo)
 * [smpc-queue](https://github.com/docker-library/redis)
-* [smpc-coordinator](https://github.com/MIP-Engine/tree/master/mipengine)
-* [smpc_player](https://github.com/MIP-Engine/tree/master/mipengine)
-* [smpc-client](https://github.com/madgik/MIP-Engine/tree/master/mipengine)
+* [smpc-coordinator](https://github.com/Exareme2/tree/master/exareme2)
+* [smpc_player](https://github.com/Exareme2/tree/master/exareme2)
+* [smpc-client](https://github.com/madgik/Exareme2/tree/master/exareme2)
 
 <a id="UI"></a>
 ### [UI](doc/Readme.md)

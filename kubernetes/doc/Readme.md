@@ -51,7 +51,7 @@ Normally, these tree settings (repeated in several profile files) are the main t
 
 # Deployment
 **ONLY** after you have prepared all the profiles you may want to use, you can easily deploy the UI Helm chart.  
-Also, we recommend that you deploy the engines (*exareme* and *mipengine*) Helm charts, prior to run the UI.
+Also, we recommend that you deploy the engines (*exareme* and *exareme2*) Helm charts, prior to run the UI.
 
 ## Global installation
 On a running Ubuntu (we recommend 22.04) distribution, install microk8s (we **HIGHLY** recommend to **NOT** install Docker on your Kubernetes cluster!):
@@ -100,19 +100,19 @@ For a "federated" deployment, you may want to add nodes to your cluster. "microk
   microk8s helm3 install exareme /opt/exareme/Federated-Deployment/kubernetes
   ```
 
-## MIP-Engine (Exareme 2)
+## Exareme2
 * Install the repository content
   ```
-  sudo git clone https://github.com/madgik/MIP-Engine /opt/mipengine
+  sudo git clone https://github.com/madgik/Exareme2 /opt/exareme2
   ```
   ```
-  sudo chown -R mipadmin.mipadmin /opt/mipengine
+  sudo chown -R mipadmin.mipadmin /opt/exareme2
   ```
-* Set the variables in /opt/mipengine/kubernetes/values.yaml
+* Set the variables in /opt/exareme2/kubernetes/values.yaml
   * localnodes: 1 for a "local" deployment (yes, even if it's the same machine for master and worker), or more (the number of workers, not counting the master node) for a "federated" deployment
-  * db.storage_location: /opt/mipengine/.stored_data/db
+  * db.storage_location: /opt/exareme2/.stored_data/db
   * db.csvs_location: /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
-  * controller.cleanup_file_folder: /opt/mipengine/.stored_data/cleanup
+  * controller.cleanup_file_folder: /opt/exareme2/.stored_data/cleanup
   * smpc.enabled: true (if you want, and **ONLY** in case of a federated deployment, and also **ONLY** if you have at least 3 worker nodes!)
 * Label the nodes  
   For all the worker nodes (even on a "local" deployment where the master and the worker are the **same** machine), add *worker* and (if you want) *smpc_player* labels:
@@ -124,7 +124,7 @@ For a "federated" deployment, you may want to add nodes to your cluster. "microk
   ```
 * Deploy the Helm chart
   ```
-  microk8s helm3 install mipengine /opt/mipengine/kubernetes
+  microk8s helm3 install exareme2 /opt/exareme2/kubernetes
   ```
 
 ## MIP UI

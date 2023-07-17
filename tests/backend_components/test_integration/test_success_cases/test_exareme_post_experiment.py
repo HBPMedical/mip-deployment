@@ -57,7 +57,7 @@ def test_post_request_exareme(test_input):
         if status != "pending":
             assert status == "success"
             assert logistic_current_state["result"] is not None
-            assert algorithm["algorithm"]["type"] != "mipengine"
+            assert algorithm["algorithm"]["type"] != "exareme2"
             assert algorithm["algorithm"]["type"] != "workflow"
             break
         time.sleep(2)

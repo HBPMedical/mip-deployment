@@ -18,7 +18,7 @@ mip:
   PUBLIC_PROTOCOL: ""
   PUBLIC_HOST: ""
   NAME: "MIP {{ .Values.mip.version }}"
-  VERSION_STRING: "Frontend: {{ .Values.frontend.image.version }}, Gateway: {{ .Values.gateway.image.version }}, Backend: {{ .Values.portalbackend.image.version }}, Engine1 (Exareme): {{ .Values.engines.exareme.image.version }}, Engine2 (MIP-ENGINE): {{ .Values.engines.exareme2.image.version }}, Galaxy: {{ .Values.galaxy.image.version }}"
+  VERSION_STRING: "Frontend: {{ .Values.frontend.image.version }}, Gateway: {{ .Values.gateway.image.version }}, Backend: {{ .Values.portalbackend.image.version }}, Engine1 (Exareme): {{ .Values.engines.exareme.image.version }}, Engine2 (Exareme2): {{ .Values.engines.exareme2.image.version }}, Galaxy: {{ .Values.galaxy.image.version }}"
 
 datacatalogue:
   PROTOCOL: https

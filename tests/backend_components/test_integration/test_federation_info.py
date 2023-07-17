@@ -21,4 +21,3 @@ def test_federation_info():
     )
 
     assert re.match(SPECIFIC_EXPERIMENT_PATTERN, str_output)
-
