@@ -55,8 +55,8 @@ services:
       PORTAL_DB_SERVER: portalbackend_db:5433
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
-      ### MIP-Engine ###
-      MIPENGINE_URL: ${MIP_ENGINE_URL}
+      ### Exareme2 ###
+      EXAREME2_URL: ${EXAREME2_URL}
       ### Exareme ###
       EXAREME_URL: http://${EXAREME_IP}:9090
       ### Galaxy ###

@@ -52,7 +52,7 @@ all_success_cases = [
                 },
                 {"name": "filter", "label": "filter", "value": None},
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "Principal component algorithm",
     },
@@ -75,7 +75,7 @@ all_success_cases = [
                 {"name": "filter", "label": "filter", "value": ""},
                 {"name": "alpha", "label": "alpha", "value": "0.9529895484370635"},
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "Pearson Correlation",
     },
@@ -98,7 +98,7 @@ all_success_cases = [
                     "value": '{"condition": "AND", "rules": [{"id": "dataset", "type": "string", "value": ["desd-synthdata", "ppmi"], "operator": "in"}, {"condition": "AND", "rules": [{"id": "neurodegenerativescategories", "type": "string", "operator": "is_not_null", "value": null}, {"id": "leftententorhinalarea", "type": "string", "operator": "is_not_null", "value": null}]}], "valid": true}',
                 },
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "One Way Anova",
     },
@@ -125,7 +125,7 @@ all_success_cases = [
                     "value": '{"condition": "AND", "rules": [{"id": "dataset", "type": "string", "value": ["desd-synthdata", "ppmi", "edsd"], "operator": "in"}, {"condition": "AND", "rules": [{"id": "rightcuncuneus", "type": "string", "operator": "is_not_null", "value": null}, {"id": "rightioginferioroccipitalgyrus", "type": "string", "operator": "is_not_null", "value": null}, {"id": "leftententorhinalarea", "type": "string", "operator": "is_not_null", "value": null}, {"id": "rightamygdala", "type": "string", "operator": "is_not_null", "value": null}, {"id": "leftmpogpostcentralgyrusmedialsegment", "type": "string", "operator": "is_not_null", "value": null}, {"id": "rightporgposteriororbitalgyrus", "type": "string", "operator": "is_not_null", "value": null}, {"id": "leftpoparietaloperculum", "type": "string", "operator": "is_not_null", "value": null}, {"id": "righttrifgtriangularpartoftheinferiorfrontalgyrus", "type": "string", "operator": "is_not_null", "value": null}, {"id": "rightmpogpostcentralgyrusmedialsegment", "type": "string", "operator": "is_not_null", "value": null}, {"id": "rightlateralventricle", "type": "string", "operator": "is_not_null", "value": null}, {"id": "rightmfcmedialfrontalcortex", "type": "string", "operator": "is_not_null", "value": null}, {"id": "rightorifgorbitalpartoftheinferiorfrontalgyrus", "type": "string", "operator": "is_not_null", "value": null}, {"id": "opticchiasm", "type": "string", "operator": "is_not_null", "value": null}, {"id": "neurodegenerativescategories", "type": "string", "operator": "is_not_null", "value": null}, {"id": "rightpcggposteriorcingulategyrus", "type": "string", "operator": "is_not_null", "value": null}]}], "valid": True}',
                 },
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "Linear Regression",
     },
@@ -157,9 +157,68 @@ all_success_cases = [
                     "value": 4,
                 },
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "Linear Regression CV",
+    },
+    {
+        "algorithm": {
+            "name": "linear_regression_cv",
+            "label": "Linear Regression CV",
+            "parameters": [
+                {"name": "y", "label": "y", "value": "righthippocampus"},
+                {
+                    "name": "x",
+                    "label": "x",
+                    "value": "lefthippocampus",
+                },
+                {
+                    "name": "pathology",
+                    "label": "pathology",
+                    "value": "longitudinal_dementia:0.1",
+                },
+                {
+                    "name": "dataset",
+                    "label": "dataset",
+                    "value": "longitudinal_dementia",
+                },
+                {
+                    "name": "filter",
+                    "label": "filter",
+                    "value": "",
+                },
+                {
+                    "name": "n_splits",
+                    "label": "n_splits",
+                    "value": 4,
+                },
+            ],
+            "preprocessing": [
+                {
+                    "name": "longitudinal_transformer",
+                    "label": "longitudinal_transformer",
+                    "parameters": [
+                        {
+                            "name": "visit1",
+                            "label": "visit1",
+                            "value": "BL",
+                        },
+                        {
+                            "name": "visit2",
+                            "label": "visit2",
+                            "value": "FL1",
+                        },
+                        {
+                            "name": "strategies",
+                            "label": "strategies",
+                            "value": '{"righthippocampus": "first", "lefthippocampus": "diff"}',
+                        },
+                    ],
+                }
+            ],
+            "type": "exareme2",
+        },
+        "name": "Linear Regression CV Longitudinal",
     },
     {
         "algorithm": {
@@ -204,7 +263,7 @@ all_success_cases = [
                     "value": "ppmi",
                 },
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "T-Test Independent",
     },
@@ -236,7 +295,7 @@ all_success_cases = [
                     "value": "Other",
                 },
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "Logistic Regression",
     },
@@ -273,7 +332,7 @@ all_success_cases = [
                     "value": 3,
                 },
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "Logistic Regression CV",
     },
@@ -310,7 +369,7 @@ all_success_cases = [
                     "value": 0.06109997172168302,
                 },
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "Paired t-test",
     },
@@ -352,7 +411,7 @@ all_success_cases = [
                     "value": -1.7510563394418988,
                 },
             ],
-            "type": "mipengine",
+            "type": "exareme2",
         },
         "name": "T-Test One-Sample",
     },
@@ -386,7 +445,7 @@ all_success_cases = [
 
 
 @pytest.mark.parametrize("test_input", all_success_cases)
-def test_post_request_mip_engine(test_input):
+def test_post_request_EXAREME2(test_input):
 
     url = "http://127.0.0.1:8080/services/experiments"
 
@@ -396,7 +455,7 @@ def test_post_request_mip_engine(test_input):
     headers = {"Content-type": "application/json", "Accept": "application/json"}
     response = requests.post(url, data=request_json, headers=headers)
 
-    print(f"POST MIP-ENGINE result-> {response.text}")
+    print(f"POST Exareme2 result-> {response.text}")
     algorithm = json.loads(response.text)
     assert not algorithm["shared"]
     assert algorithm["status"] == "pending"
@@ -414,13 +473,15 @@ def test_post_request_mip_engine(test_input):
         time.sleep(2)
 
 
-def count_experiments_run_on_mipengine():
+def count_experiments_run_on_exareme2():
     cmd = f"docker logs backend_components_portalbackend_1"
     res = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    return len(re.findall("Starting MIP-Engine algorithm execution", res.stdout.decode()))
+    return len(
+        re.findall("Starting Exareme2 algorithm execution", res.stdout.decode())
+    )
 
 
 def test_algorithms_runs_on_proper_engine():
-    assert 12 == count_experiments_run_on_mipengine()
+    assert 12 == count_experiments_run_on_exareme2()

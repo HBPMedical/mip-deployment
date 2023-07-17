@@ -120,6 +120,7 @@ def test_post_request_exareme_invalid_parameter_type():
     response = requests.post(url, data=request_json, headers=headers)
     assert response.text == ""
 
+
 def test_post_request_exareme_invalid_parameter_type():
     url = "http://127.0.0.1:8080/services/experiments"
 

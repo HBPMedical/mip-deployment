@@ -182,7 +182,7 @@ spec:
             configMapKeyRef:
               name: mip-config
               key: engines.exareme.URL
-        - name: MIPENGINE_URL
+        - name: EXAREME2_URL
           valueFrom:
             configMapKeyRef:
               name: mip-config

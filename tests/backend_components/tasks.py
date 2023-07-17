@@ -91,6 +91,7 @@ def setup_dbs(c):
 
     datasets_per_location = {
         50001: {
+            "longitudinal_dementia": ["longitudinal_dementia"],
             "dementia": ["desd-synthdata.csv", "ppmi.csv"],
             "tbi": ["dummy_tbi.csv"],
         },

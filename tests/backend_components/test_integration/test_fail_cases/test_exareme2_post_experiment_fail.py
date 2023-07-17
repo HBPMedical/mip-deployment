@@ -31,9 +31,9 @@ all_error_cases = [
                     {"name": "filter", "label": "filter", "value": ""},
                     {"name": "classes", "label": "classes", "value": "AD,CN"},
                 ],
-                "type": "mipengine",
+                "type": "exareme2",
             },
-            "name": "MIP-Engine Invalid parameter name",
+            "name": "Exareme2 Invalid parameter name",
         },
         "text/plain+user_error",
     ),
@@ -51,9 +51,9 @@ all_error_cases = [
                     {"name": "filter", "label": "filter", "value": ""},
                     {"name": "classes", "label": "classes", "value": "AD,CN"},
                 ],
-                "type": "mipengine",
+                "type": "exareme2",
             },
-            "name": "MIP-Engine Invalid parameter value",
+            "name": "Exareme2 Invalid parameter value",
         },
         "text/plain+user_error",
     ),
@@ -61,7 +61,7 @@ all_error_cases = [
 
 
 @pytest.mark.parametrize("test_case,test_input,expected_error_type", all_error_cases)
-def test_post_request_mip_engine(test_case, test_input, expected_error_type):
+def test_post_request_EXAREME2(test_case, test_input, expected_error_type):
     url = "http://127.0.0.1:8080/services/experiments"
 
     request_json = json.dumps(test_input)
@@ -86,7 +86,7 @@ def test_post_request_mip_engine(test_case, test_input, expected_error_type):
         time.sleep(2)
 
 
-def test_post_request_mip_engine_invalid_parameter_type():
+def test_post_request_EXAREME2_invalid_parameter_type():
     url = "http://127.0.0.1:8080/services/experiments"
 
     request_json = json.dumps(
@@ -95,7 +95,7 @@ def test_post_request_mip_engine_invalid_parameter_type():
                 "name": "LOGISTIC_REGRESSION",
                 "label": "Logistic Regression",
                 "parameters": "xyz",
-                "type": "mipengine",
+                "type": "exareme2",
             },
             "name": "Error_Logistic_Regression",
         }
@@ -106,7 +106,7 @@ def test_post_request_mip_engine_invalid_parameter_type():
     assert "Algorithm: LOGISTIC_REGRESSIO does not exist." in response.text
 
 
-def test_post_request_mip_engine_invalid_parameter_type():
+def test_post_request_EXAREME2_invalid_parameter_type():
     url = "http://127.0.0.1:8080/services/experiments"
 
     request_json = json.dumps(
@@ -126,9 +126,9 @@ def test_post_request_mip_engine_invalid_parameter_type():
                     {"name": "filter", "label": "filter", "value": ""},
                     {"name": "classes", "label": "classes", "value": "AD,CN"},
                 ],
-                "type": "mipengine",
+                "type": "exareme2",
             },
-            "name": "MIP-Engine Invalid name",
+            "name": "Exareme2 Invalid name",
         },
     )
 

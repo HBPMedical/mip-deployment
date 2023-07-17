@@ -60,4 +60,4 @@ If you want to add a new pathology on MIP then you need to create a new folder i
 
 # Loading data on Exareme2
 
-There is more detailed documentation on adding data to exareme2 [here](https://github.com/madgik/MIP-Engine/blob/master/kubernetes/docs/ImportNodeData.md).
+There is more detailed documentation on adding data to exareme2 [here](https://github.com/madgik/Exareme2/blob/master/kubernetes/docs/ImportNodeData.md).
