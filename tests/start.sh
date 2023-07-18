@@ -27,7 +27,7 @@ do
   if [[ "$PATHOLOGIES" == *"desd-synthdata"* &&
         "$PATHOLOGIES" == *"ppmi"* &&
         "$PATHOLOGIES" == *"edsd"* &&
-        "$PATHOLOGIES" == *"fake_longitudinal"* &&
+        "$PATHOLOGIES" == *"longitudinal_dementia"* &&
         "$PATHOLOGIES" == *"demo"* &&
         "$PATHOLOGIES" == *"dummy_tbi"*
   ]];

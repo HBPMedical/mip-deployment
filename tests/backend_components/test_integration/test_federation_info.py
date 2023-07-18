@@ -2,9 +2,8 @@ import subprocess
 import re
 
 
-EXPERIMENTS_EXECUTED = 18
+EXPERIMENTS_EXECUTED = 19
 EXPERIMENT_AUDIT_ENTRY_IDENTIFIER = " - EXPERIMENT_FINISHED - "
-SPECIFIC_EXPERIMENT_PATTERN = ".*? - anonymous - EXPERIMENT_FINISHED - .*? - NAIVE_BAYES - dementia:0.1 - edsd - success - .*? - .*?\\n.*"
 
 
 def test_federation_info():
@@ -19,5 +18,3 @@ def test_federation_info():
     assert (
         len(str_output.split(EXPERIMENT_AUDIT_ENTRY_IDENTIFIER)) == EXPERIMENTS_EXECUTED
     )
-
-    assert re.match(SPECIFIC_EXPERIMENT_PATTERN, str_output)

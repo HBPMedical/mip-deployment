@@ -7,16 +7,8 @@
             "description": "Variable used to differentiate datasets",
             "enumerations": [
                 {
-                    "code": "longitudinal_dementia0",
-                    "label": "longitudinal_dementia0"
-                },
-                {
-                    "code": "longitudinal_dementia1",
-                    "label": "longitudinal_dementia1"
-                },
-                {
-                    "code": "longitudinal_dementia2",
-                    "label": "longitudinal_dementia2"
+                    "code": "longitudinal_dementia",
+                    "label": "longitudinal_dementia"
                 }
             ],
             "label": "Dataset",

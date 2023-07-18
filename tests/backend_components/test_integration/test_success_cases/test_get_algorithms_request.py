@@ -16,7 +16,7 @@ def test_get_algorithms_request():
         algorithm for algorithm in algorithms if algorithm["type"] == "exareme2"
     ]
 
-    assert len(EXAREME2_algorithms) == 14
+    assert len(EXAREME2_algorithms) == 16
 
     exareme_engine_algorithms = [
         algorithm

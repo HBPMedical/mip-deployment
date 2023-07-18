@@ -445,7 +445,7 @@ all_success_cases = [
 
 
 @pytest.mark.parametrize("test_input", all_success_cases)
-def test_post_request_EXAREME2(test_input):
+def test_post_request_exareme2(test_input):
 
     url = "http://127.0.0.1:8080/services/experiments"
 
@@ -484,4 +484,5 @@ def count_experiments_run_on_exareme2():
 
 
 def test_algorithms_runs_on_proper_engine():
-    assert 12 == count_experiments_run_on_exareme2()
+    assert len(all_success_cases) == count_experiments_run_on_exareme2()
+
