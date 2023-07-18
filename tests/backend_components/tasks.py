@@ -87,16 +87,17 @@ def setup_dbs(c):
     message("Installing dependencies...", Level.HEADER)
     cmd = "poetry install"
     run(c, cmd)
-    datasets_per_data_model = {}
-
+    
+    # TODO Should be refactored in order not to require change here
+    # for each new dataset that is added.
     datasets_per_location = {
         50001: {
-            "longitudinal_dementia": ["longitudinal_dementia"],
+            "longitudinal_dementia": ["longitudinal_dementia.csv"],
             "dementia": ["desd-synthdata.csv", "ppmi.csv"],
             "tbi": ["dummy_tbi.csv"],
         },
         50002: {
-            "dementia": ["edsd.csv", "fake_longitudinal.csv"],
+            "dementia": ["edsd.csv"],
             "mentalhealth": ["demo.csv"],
         },
     }
@@ -145,5 +146,5 @@ def setup_dbs(c):
                     f"Loading dataset {pathlib.PurePath(csv).name} to database (127.0.0.1:{port})",
                     Level.HEADER,
                 )
-                datasets_per_data_model[data_model] = pathlib.PurePath(csv).name
+
         message(f"Data loaded to database (127.0.0.1:{port})", Level.HEADER)
