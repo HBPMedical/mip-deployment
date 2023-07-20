@@ -1,19 +1,6 @@
 version: '3.7'
 
 services:
-  galaxy:
-    image: hbpmip/galaxy:${GALAXY}
-    environment:
-      - EXAREME_IP=${EXAREME_IP}
-      - EXAREME_PORT=9090
-      - PASSWORD=password
-    command: bash -c "htpasswd -bc /etc/apache2/htpasswd admin $$PASSWORD && ./createExaremeVariables.sh && /etc/init.d/apache2 restart && ./run.sh"
-    expose:
-      - '80'
-    ports:
-      - '8090:80'
-    restart: unless-stopped
-
   portalbackend_db:
     image: postgres:11.3-alpine
     volumes:
@@ -59,11 +46,6 @@ services:
       EXAREME2_URL: ${EXAREME2_URL}
       ### Exareme ###
       EXAREME_URL: http://${EXAREME_IP}:9090
-      ### Galaxy ###
-      GALAXY_URL: http://galaxy
-      GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
-      GALAXY_USERNAME: admin
-      GALAXY_PASSWORD: password
       ### Keycloak ###
       KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
@@ -104,10 +86,8 @@ services:
       PORTAL_BACKEND_CONTEXT: services
       GATEWAY_SERVER: gateway:8081
       INSTANCE_NAME: 'MIP ${MIP}'
-      VERSION: 'Frontend: ${FRONTEND}, Gateway: ${GATEWAY}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}, Galaxy: ${GALAXY}'
+      VERSION: 'Frontend: ${FRONTEND}, Gateway: ${GATEWAY}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME}'
       TRACKER_ID: UA-80660232-5
-      GALAXY_HOST: http://galaxy
-      GALAXY_PATH: /nativeGalaxy
       DATACATALOGUE_SERVER: ${DATACATALOGUE_PROTOCOL}://${DATACATALOGUE_HOST}
       PUBLIC_MIP_HOST: ${PUBLIC_MIP_HOST}
       PUBLIC_MIP_PROTOCOL: ${PUBLIC_MIP_PROTOCOL}

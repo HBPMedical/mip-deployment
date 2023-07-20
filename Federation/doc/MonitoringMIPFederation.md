@@ -43,7 +43,6 @@ In order for you to have a better understanding of the different available compo
 ||*gateway*|
 ||*portalbackend*|
 ||*portalbackend_db*|
-||*galaxy*|
 ||*create_dbs*|
 
 You can see here that *exareme-master* and *exareme-keystore* contains a dash ( **-** ) character, and not an underscore ( **_** ), as it was indicated in the [components](../../README.md#Components) guide.  

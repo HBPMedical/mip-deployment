@@ -187,23 +187,6 @@ spec:
             configMapKeyRef:
               name: mip-config
               key: engines.exareme2.URL
-        - name: GALAXY_URL
-          value: http://galaxy-service
-        - name: GALAXY_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mip-secret
-              key: galaxy.API_KEY
-        - name: GALAXY_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: mip-secret
-              key: galaxy.USER
-        - name: GALAXY_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mip-secret
-              key: galaxy.PASSWORD
         - name: KEYCLOAK_AUTH_URL
           valueFrom:
             configMapKeyRef:
