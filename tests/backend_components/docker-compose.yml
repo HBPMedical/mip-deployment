@@ -227,11 +227,6 @@ services:
       EXAREME2_URL: http://172.17.0.1:5000
       ### Exareme ###
       EXAREME_URL: http://exareme_master:9090
-      ### Galaxy ###
-      #GALAXY_URL: http://galaxy
-      #GALAXY_API_KEY: d14a4cc5eebf805eb2ff261374ed08a2
-      #GALAXY_USERNAME: admin
-      #GALAXY_PASSWORD: password
       ### Keycloak ###
       AUTHENTICATION: 0     # Should be enabled for keycloak
       KEYCLOAK_AUTH_URL: http://172.17.0.1/auth/
