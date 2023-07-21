@@ -217,15 +217,14 @@ services:
       ### API ###
       LOG_LEVEL: INFO
       LOG_LEVEL_FRAMEWORK: INFO
-      AUTHENTICATION: ${KEYCLOAK_AUTHENTICATION}
-      ALGORITHM_UPDATE_INTERVAL: 200     # seconds
+      ALGORITHM_UPDATE_INTERVAL: 30     # seconds
       ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
       PORTAL_DB_SERVER: portalbackend_db:5433
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       ### Exareme2 ###
-      EXAREME2_URL: ${EXAREME2_URL}
+      EXAREME2_URL: http://172.17.0.1:5000
       ### Exareme ###
       EXAREME_URL: http://exareme_master:9090
       ### Galaxy ###
@@ -234,11 +233,12 @@ services:
       #GALAXY_USERNAME: admin
       #GALAXY_PASSWORD: password
       ### Keycloak ###
-      KEYCLOAK_AUTH_URL: ${KEYCLOAK_PROTOCOL}://${KEYCLOAK_URL}/auth/
-      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
-      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-      KEYCLOAK_SSL_REQUIRED: ${KEYCLOAK_SSL_REQUIRED}
+      AUTHENTICATION: 0     # Should be enabled for keycloak
+      KEYCLOAK_AUTH_URL: http://172.17.0.1/auth/
+      KEYCLOAK_REALM: MIP
+      KEYCLOAK_CLIENT_ID: MIP
+      KEYCLOAK_CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
+      KEYCLOAK_SSL_REQUIRED: none
     depends_on:
       - create_dbs
     volumes:

@@ -1,26 +1,20 @@
 #!/bin/env bash
 
-cat .env >> .env_with_versions
-cat  ../.versions_env >> .env_with_versions
-
 cd backend_components/
-docker-compose --env-file ../.env_with_versions down
-docker-compose --env-file ../.env_with_versions up -d
+docker-compose --env-file ../../.versions_env down
+docker-compose --env-file ../../.versions_env up -d
 echo "Installing dependencies..."
 poetry install
 sleep 60
 poetry run inv setup-dbs
 
-cd ../
-cd frontend_components/
-docker-compose --env-file ../.env_with_versions down
-docker-compose --env-file ../.env_with_versions up -d
-
-cd ../
-rm .env_with_versions
+cd ../frontend_components/
+docker-compose --env-file ../../.versions_env down
+docker-compose --env-file ../../.versions_env  up -d
 
 echo -n "Waiting for the containers to be ready..."
 
+# TODO Replace never ending loop with limited attempts
 while true
 do
   PATHOLOGIES=$(curl -s 172.17.0.1:8080/services/pathologies)
@@ -35,6 +29,7 @@ do
 	    break
   fi
   echo -n "."
-  sleep 1
+  sleep 2
 done
+
 echo -e "\nEnter MIP at http://172.17.0.1/"
