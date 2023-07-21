@@ -38,11 +38,6 @@
 		file_server
 	}
 
-	redir {$GALAXY_PATH} {$GALAXY_PATH}/
-	handle {$GALAXY_PATH}/* {
-		import rp-{$MIP_LINK:direct} {$GALAXY_HOST}
-	}
-
 	redir {$KEYCLOAK_AUTH_PATH:/dummyauth} {$KEYCLOAK_AUTH_PATH:/dummyauth}/
 	handle {$KEYCLOAK_AUTH_PATH:/dummyauth}/* {
 		redir /dummyauth/* /
