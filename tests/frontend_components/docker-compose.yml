@@ -18,7 +18,8 @@ services:
       - ENGINE_TYPE=exareme
       - ENGINE_BASE_URL=http://172.17.0.1:8080/services/
       - AUTH_SKIP=true
-#      - AUTH_ENABLE_SSO=true         # Should be enabled for Keycloak
+#      - AUTH_ENABLE_SSO=false
+      - AUTH_ENABLE_SSO=true         # Should be enabled for Keycloak
       - BASE_URL_CONTEXT=services
       - GATEWAY_PORT=8081
       - CACHE_ENABLED=false
@@ -43,51 +44,50 @@ services:
     environment:
       INSTANCE_NAME: 'MIP ${MIP}'
       VERSION: 'Frontend: ${FRONTEND}, Gateway: ${GATEWAY}, Backend: ${PORTALBACKEND}, Exareme1: ${EXAREME}, Exareme2: ${EXAREME2}'
-      ERROR_LOG_LEVEL: info
+      ERROR_LOG_LEVEL: INFO
       PORTAL_BACKEND_SERVER: 172.17.0.1:8080
       PORTAL_BACKEND_CONTEXT: services
       GATEWAY_SERVER: gateway:8081
       PUBLIC_MIP_HOST: 172.17.0.1
       PUBLIC_MIP_PROTOCOL: http
       EXTERNAL_MIP_PROTOCOL: http
-      KEYCLOAK_HOST: http://keycloak:8095
+      KEYCLOAK_SERVER: keycloak:8095
       KEYCLOAK_AUTH_PATH: /auth
       MIP_LINK: direct
     restart: unless-stopped
 
+  keycloak_db:
+    image: postgres:12.15
+    volumes:
+      - ./.stored_data/keycloak:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+    restart: unless-stopped
 
-#  keycloak_db:
-#    image: postgres:12.2
-#    volumes:
-#      - ./.stored_data/keycloak:/var/lib/postgresql/data
-#    environment:
-#      POSTGRES_DB: keycloak
-#      POSTGRES_USER: keycloak
-#      POSTGRES_PASSWORD: password
-#    restart: unless-stopped
-#
-#  keycloak:
-#    image: jboss/keycloak:15.0.2
-#    command: -Djboss.http.port=8095
-#    volumes:
-#      - ../../config/keycloak/keycloak.json:/tmp/mip.json
-#      - ../../config/keycloak/HBPTheme:/opt/jboss/keycloak/themes/HBPTheme
-#    environment:
-#      DB_VENDOR: POSTGRES
-#      DB_ADDR: keycloak_db
-#      DB_PORT: 5432
-#      DB_DATABASE: keycloak
-#      DB_USER: keycloak
-#      DB_SCHEMA: public
-#      DB_PASSWORD: password
-#      KEYCLOAK_USER: admin
-#      KEYCLOAK_PASSWORD: Pa55w0rd
-#      KEYCLOAK_IMPORT: /tmp/mip.json
-#      KEYCLOAK_HOSTNAME: 172.17.0.1
-#      PROXY_ADDRESS_FORWARDING: 'true'  #important for reverse proxy
-#    ports:
-#      - '8095:8095'
-#      - '8443:8443'
-#    depends_on:
-#      - keycloak_db
-#    restart: unless-stopped
+  keycloak:
+    image: bitnami/keycloak:21.1.2
+    volumes:
+      - ../../config/keycloak/keycloak.json:/opt/keycloak/data/import/mip.json
+      - ../../config/keycloak/HBPTheme:/opt/bitnami/keycloak/themes/HBPTheme
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - /opt/bitnami/keycloak/bin/kc.sh import --file /opt/keycloak/data/import/mip.json && /opt/bitnami/scripts/keycloak/run.sh
+    environment:
+      KEYCLOAK_DATABASE_VENDOR: postgresql
+      KEYCLOAK_DATABASE_HOST: keycloak_db
+      KEYCLOAK_DATABASE_PORT: 5432
+      KEYCLOAK_DATABASE_NAME: keycloak
+      KEYCLOAK_DATABASE_USER: keycloak
+      KEYCLOAK_DATABASE_PASSWORD: password
+      KEYCLOAK_DATABASE_SCHEMA: public
+      KEYCLOAK_ADMIN_USER: admin
+      KEYCLOAK_ADMIN_PASSWORD: Pa55w0rd
+      KEYCLOAK_EXTRA_ARGS: " --proxy edge"
+    ports:
+      - '8095:8080'   # Default keycloak port is 8080
+      - '8443:8443'
+    depends_on:
+      - keycloak_db
+    restart: unless-stopped

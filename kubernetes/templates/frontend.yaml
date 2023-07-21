@@ -170,7 +170,7 @@ spec:
             configMapKeyRef:
               name: mip-config
               key: mip.PUBLIC_HOST
-        - name: KEYCLOAK_HOST                           # Only used with internal Keycloak auth
+        - name: KEYCLOAK_SERVER                           # Only used with internal Keycloak auth
           value: http://keycloak-service:8095
         - name: KEYCLOAK_AUTH_PATH                      # Only used with internal Keycloak auth
           value: /auth

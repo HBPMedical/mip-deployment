@@ -233,7 +233,8 @@ services:
       #GALAXY_USERNAME: admin
       #GALAXY_PASSWORD: password
       ### Keycloak ###
-      AUTHENTICATION: 0     # Should be enabled for keycloak
+#      AUTHENTICATION: 0
+      AUTHENTICATION: 1     # Should be enabled for keycloak
       KEYCLOAK_AUTH_URL: http://172.17.0.1/auth/
       KEYCLOAK_REALM: MIP
       KEYCLOAK_CLIENT_ID: MIP

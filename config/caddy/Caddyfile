@@ -38,10 +38,9 @@
 		file_server
 	}
 
-	redir {$KEYCLOAK_AUTH_PATH:/dummyauth} {$KEYCLOAK_AUTH_PATH:/dummyauth}/
-	handle {$KEYCLOAK_AUTH_PATH:/dummyauth}/* {
-		redir /dummyauth/* /
-		import rp-{$MIP_LINK:direct} {$KEYCLOAK_HOST}
+	redir {$KEYCLOAK_AUTH_PATH} {$KEYCLOAK_AUTH_PATH}/
+	handle_path {$KEYCLOAK_AUTH_PATH}/* {
+		import rp-{$MIP_LINK:direct} {$KEYCLOAK_SERVER}
 	}
 
 	handle /services/sso/* {
