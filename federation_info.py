@@ -21,7 +21,7 @@ def cli():
 
 LOG_FILE_CHUNK_SIZE = 1024  # Will read the logfile in chunks
 TIMESTAMP_REGEX = (
-    r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}"  # 2022-04-13 18:25:22.875
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z"  # 2022-04-13T18:25:22.875Z
 )
 EXPERIMENT_FINISHED_PATTERN = rf"({TIMESTAMP_REGEX})  INFO .*? User -> (.*?) ,Endpoint.*?Finished the experiment: .*?uuid=(.*?), name.*?, status=(.*?), result.*?, finished=(.*?), algorithm=(.*?), algorithmId.*? created=(.*?), updated.*?"
 EXPERIMENT_TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S.%f"

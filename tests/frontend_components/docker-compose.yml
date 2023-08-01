@@ -18,10 +18,12 @@ services:
       - ENGINE_TYPE=exareme
       - ENGINE_BASE_URL=http://172.17.0.1:8080/services/
       - AUTH_SKIP=true
+      - AUTH_ENABLE_SSO=false
 #      - AUTH_ENABLE_SSO=true         # Should be enabled for Keycloak
       - BASE_URL_CONTEXT=services
       - GATEWAY_PORT=8081
       - CACHE_ENABLED=false
+      - NODE_ENV=development
     links:
       - gateway-db
     depends_on:
@@ -52,9 +54,9 @@ services:
       EXTERNAL_MIP_PROTOCOL: http
       KEYCLOAK_HOST: http://keycloak:8095
       KEYCLOAK_AUTH_PATH: /auth
+      PORTALBACKEND_AUTH_URL: /oauth2/authorization/keycloak
       MIP_LINK: direct
     restart: unless-stopped
-
 
 #  keycloak_db:
 #    image: postgres:12.2
