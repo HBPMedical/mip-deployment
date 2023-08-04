@@ -177,11 +177,6 @@ spec:
             secretKeyRef:
               name: mip-secret
               key: portalbackend-db.PORTAL_DB_PASSWORD
-        - name: EXAREME_URL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: engines.exareme.URL
         - name: EXAREME2_URL
           valueFrom:
             configMapKeyRef:

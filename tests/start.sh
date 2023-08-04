@@ -1,18 +1,19 @@
 #!/bin/env bash
 
-cd backend_components/
-docker-compose --env-file ../../.versions_env down
-docker-compose --env-file ../../.versions_env up -d
-echo "Installing dependencies..."
-poetry install
-sleep 60
-poetry run inv setup-dbs
+docker-compose --env-file ../.versions_env down
+docker-compose --env-file ../.versions_env up -d
 
-cd ../frontend_components/
-docker-compose --env-file ../../.versions_env down
-docker-compose --env-file ../../.versions_env  up -d
+echo -n "Installing pip requirements ..."
+pip install -r requirements.txt
 
-echo -n "Waiting for the containers to be ready..."
+echo -n "Waiting for containers to start ..."
+sleep 10
+
+echo -n "Loading data into exareme2 db ..."
+docker exec tests_exareme2_mipdb_1 mipdb init
+docker exec tests_exareme2_mipdb_1 mipdb load-folder /opt/data
+
+echo -n "Waiting for exareme2 to see the data ..."
 
 # TODO Replace never ending loop with limited attempts
 while true

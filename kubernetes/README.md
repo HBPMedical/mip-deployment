@@ -22,10 +22,6 @@ From now on, most of our deployments will be done with Ubuntu Server 22.04, but 
 ## <a id="Components">MIP Components</a>
 Now, with the Kubernetes (K8s) deployment, we have 3 main, big components, which come as Helm charts:
 
-### [Exareme](https://github.com/madgik/exareme/tree/master/Federated-Deployment/kubernetes)
-* [exareme](https://github.com/madgik/exareme/tree/master/Exareme-Docker): The "Analysis Engine" offers the federated (also used by the *local* MIP) analysis capabilities
-* [exareme_keystore](https://github.com/bitnami/bitnami-docker-consul): A "Key-Value" storage service used by the different nodes (the workers and the master in a *federated* MIP, or the same machine in a *local* MIP) to store/exchange variables
-
 ### [Exareme2](https://github.com/madgik/Exareme2/tree/master/kubernetes) (Exareme 2)
 * [controller](https://github.com/madgik/Exareme2/tree/master/exareme2/controller)
 
