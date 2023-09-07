@@ -4,8 +4,6 @@ metadata:
   name: mip-config
   namespace: {{ .Values.namespace }}
 data:
-  engines.exareme.IP: {{ .Values.engines.exareme.IP }}
-  engines.exareme.URL: {{ tpl .Values.engines.exareme.URL . }}
   engines.exareme2.URL: {{ .Values.engines.exareme2.URL }}
 
   mip.INSTANCE_NAME: "{{ tpl .Values.mip.NAME . }}"

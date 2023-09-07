@@ -35,13 +35,13 @@ DOCKERHUB_APP_TOKEN="p5BLk2iEmpkJoJINBl2lIL2DmpnKmChGBlLkk22CAHLNKJ2Kpl2lK3ApmHn
 
 DOCKER_PROJECT_NAME="mip"
 DOCKER_FEDERATION_PROJECT_NAME="mipfederation"
-MIP_COMPONENTS="frontend gateway portalbackend portalbackend_db galaxy keycloak keycloak_db create_dbs exareme_master exareme_keystore"
-MIP_COMPONENT_LABELS="Portal Frontend,Gateway,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,KeyCloak,KeyCloak DB,Create DBs,Exareme Master,Exareme Keystore"
-MIP_COMPONENT_IMAGES=("portainer/portainer" "bitnami/consul" "hbpmip/exareme" "hbpmip/galaxy" "postgres" "hbpmip/create-databases" "hbpmip/portal-backend" "hbpmip/gateway" "hbpmip/portal-frontend" "jboss/keycloak")
+MIP_COMPONENTS="frontend gateway portalbackend portalbackend_db keycloak keycloak_db create_dbs exareme_master exareme_keystore"
+MIP_COMPONENT_LABELS="Portal Frontend,Gateway,Portal Backend,Portal Backend PostgreSQL DB,KeyCloak,KeyCloak DB,Create DBs,Exareme Master,Exareme Keystore"
+MIP_COMPONENT_IMAGES=("portainer/portainer" "bitnami/consul" "hbpmip/exareme" "postgres" "hbpmip/create-databases" "hbpmip/portal-backend" "hbpmip/gateway" "hbpmip/portal-frontend" "jboss/keycloak")
 MIP_FEDERATION_MS_COMPONENTS="exareme-master exareme-keystore"
 MIP_FEDERATION_MS_COMPONENT_LABELS="Exareme Master,Exareme Keystore"
-MIP_FEDERATION_UI_COMPONENTS="frontend gateway portalbackend portalbackend_db galaxy create_dbs"
-MIP_FEDERATION_UI_COMPONENT_LABELS="Portal Frontend,Gateway,Portal Backend,Portal Backend PostgreSQL DB,Galaxy,Create DBs"
+MIP_FEDERATION_UI_COMPONENTS="frontend gateway portalbackend portalbackend_db create_dbs"
+MIP_FEDERATION_UI_COMPONENT_LABELS="Portal Frontend,Gateway,Portal Backend,Portal Backend PostgreSQL DB,Create DBs"
 MIP_FEDERATION_WK_COMPONENTS="exareme"
 MIP_FEDERATION_WK_COMPONENT_LABELS="Exareme"
 CONFIGURE_PARTS="docker-mtu user ssh pusher pathologies link protocol host exareme-ip logs data keycloak dataset-compilation all"
@@ -1081,9 +1081,9 @@ Operate the Human Brain Project MIP, whether it's a local setup or a federation 
 		--host [PUBLIC_MIP_HOST]					Set the hostname/IP on which the MIP will listen. For "local" installation and "ui" federation node.
 		--component [MIP_COMPONENT]					Specific MIP component which can be targetted (in logs, install, version, pull, start, stop, restart action).
 			Typical MIP_COMPONENT for "local" MIP:
-				[frontend|gateway|portalbackend|portalbackend_db|galaxy|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
+				[frontend|gateway|portalbackend|portalbackend_db|keycloak|keycloak_db|create_dbs|exareme_master|exareme_keystore]
 			Typical MIP_COMPONENT for "ui" federation node:
-				[frontend|gateway|portalbackend|portalbackend_db|galaxy|create_dbs]
+				[frontend|gateway|portalbackend|portalbackend_db|create_dbs]
 		--pathology [DATASET_PATHOLOGY(IES)]				In case of data compile, specify the pathology or pathologies (comma-separated) to compile.
 
 		--with-keycloak-authentication					Use Keycloak authentication. Complementary keycloak parameters may be set, or they may be asked at

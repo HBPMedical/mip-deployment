@@ -234,7 +234,6 @@ class MIPKeycloakAdmin(KeycloakAdmin):
             {'name': 'RESEARCH_DATASET_ALL', 'composite': False, 'description': 'All datasets, without distinction'},
             {'name': 'RESEARCH_EXPERIMENT_ALL', 'composite': False},
             {'name': 'RESEARCH_PATHOLOGY_ALL', 'composite': False, 'description': 'All pathologies, without distinction'},
-            {'name': 'WORKFLOW_ADMIN', 'composite': False, 'description': 'Galaxy administrator'}
         ]
 
         full_role_list = []
