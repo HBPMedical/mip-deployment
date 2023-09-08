@@ -1,5 +1,7 @@
 namespace: default
 
+EXTERNAL_IP: ""
+
 engines:
   exareme2:
     URL: ""
@@ -72,6 +74,7 @@ frontend:
   MATOMO_ENABLED: false
   MATOMO_URL: https://stats.humanbrainproject.eu/
   MATOMO_SITE_ID: 29
+  EXTERNAL_IP: "{{ .Values.EXTERNAL_IP }}"
   image:
     name: hbpmip/portal-frontend
     version: 9.3.1
