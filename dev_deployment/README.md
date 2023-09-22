@@ -1,4 +1,4 @@
-# Medical Informatics Platform (MIP), testing deployment
+# Development deployment
 
 ## Requirements
 ### Hardware
