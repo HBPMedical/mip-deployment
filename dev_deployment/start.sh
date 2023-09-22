@@ -10,8 +10,8 @@ echo -n "Waiting for containers to start ..."
 sleep 10
 
 echo -n "Loading data into exareme2 db ..."
-docker exec tests_exareme2_mipdb_1 mipdb init
-docker exec tests_exareme2_mipdb_1 mipdb load-folder /opt/data
+docker exec dev_deployment_exareme2_mipdb_1 mipdb init
+docker exec dev_deployment_exareme2_mipdb_1 mipdb load-folder /opt/data
 
 echo -n "Waiting for exareme2 to see the data ..."
 

@@ -46,8 +46,11 @@ services:
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5672
       - MONETDB_IP=172.17.0.1
-      - MONETDB_PASSWORD="executor"
       - MONETDB_PORT=50000
+      - MONETDB_LOCAL_USERNAME="executor"
+      - MONETDB_LOCAL_PASSWORD="executor"
+      - MONETDB_PUBLIC_USERNAME="guest"
+      - MONETDB_PUBLIC_PASSWORD="guest"
       - SMPC_ENABLED=false
       - SMPC_OPTIONAL=false
     depends_on:
