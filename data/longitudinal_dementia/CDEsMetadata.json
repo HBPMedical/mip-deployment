@@ -84,7 +84,7 @@
         }
         
     ],
-    "code": "dementia",
+    "code": "longitudinal_dementia",
     "groups": [
         {
             "variables": [
@@ -2466,6 +2466,6 @@
         }
     ],
     "label": "Dementia",
-    "version": "v5",
+    "version": "v1",
     "longitudinal": true
 }
