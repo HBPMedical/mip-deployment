@@ -65,7 +65,7 @@ gateway:
   CACHE_MAX_ITEMS: 100
   image:
     name: hbpmip/gateway
-    version: 1.6.0-beta.2
+    version: 1.6.0-beta.5
 
 frontend:
   ERROR_LOG_LEVEL: info
