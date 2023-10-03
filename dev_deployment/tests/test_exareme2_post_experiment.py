@@ -27,13 +27,13 @@ all_success_cases = [
                     "value": "pupil_reactivity_right_eye_result",
                 },
             ],
-            "name": "DESCRIPTIVE_STATS",
+            "name": "descriptive_stats",
         },
         "name": "Descriptive analysis",
     },
     {
         "algorithm": {
-            "name": "PCA",
+            "name": "pca",
             "parameters": [
                 {
                     "name": "y",
@@ -147,11 +147,11 @@ all_success_cases = [
                 },
                 {
                     "name": "pathology",
-                    "value": "longitudinal_dementia:0.1",
+                    "value": "longitudinal_dementia:v1",
                 },
                 {
                     "name": "dataset",
-                    "value": "longitudinal_dementia",
+                    "value": "desd-synthdata",
                 },
                 {
                     "name": "filter",
@@ -344,7 +344,7 @@ all_success_cases = [
     },
     {
         "algorithm": {
-            "name": "DESCRIPTIVE_STATS",
+            "name": "descriptive_stats",
             "parameters": [
                 {
                     "name": "y",

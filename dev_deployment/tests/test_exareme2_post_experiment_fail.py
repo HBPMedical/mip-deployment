@@ -17,7 +17,7 @@ all_error_cases = [
         "Invalid parameter name",
         {
             "algorithm": {
-                "name": "LOGISTIC_REGRESSION",
+                "name": "logistic_regression",
                 "parameters": [
                     {
                         "name": "xyz",
@@ -35,10 +35,31 @@ all_error_cases = [
         "text/plain+user_error",
     ),
     (
-        "Invalid parameter value",
+        "Invalid algorithm name",
         {
             "algorithm": {
                 "name": "LOGISTIC_REGRESSION",
+                "parameters": [
+                    {
+                        "name": "xyz",
+                        "value": "rightppplanumpolare,righthippocampus,lefthippocampus,rightamygdala,leftamygdala",
+                    },
+                    {"name": "y", "value": "alzheimerbroadcategory"},
+                    {"name": "pathology", "value": "dementia"},
+                    {"name": "dataset", "value": "edsd,ppmi"},
+                    {"name": "filter", "value": ""},
+                    {"name": "classes", "value": "AD,CN"},
+                ],
+            },
+            "name": "Exareme2 Invalid parameter name",
+        },
+        "text/plain+error",
+    ),
+    (
+        "Invalid parameter value",
+        {
+            "algorithm": {
+                "name": "logistic_regression",
                 "parameters": [
                     {"name": "x", "value": "xyz"},
                     {"name": "y", "value": "alzheimerbroadcategory"},

@@ -10,4 +10,4 @@ def test_get_algorithms_request():
     assert response.status_code == 200
     print(f"Algorithms result-> {response.text}")
     algorithms = json.loads(response.text)
-    assert len(algorithms) == 16
+    assert len(algorithms) == 19

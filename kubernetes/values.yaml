@@ -41,7 +41,7 @@ portalbackend:
   ALGORITHM_UPDATE_INTERVAL: 60   # seconds
   image:
     name: hbpmip/portal-backend
-    version: 8.0.1
+    version: 8.0.2-candidate
   storage:
     storage0:
       data_path: /opt/mip-deployment/config
@@ -65,7 +65,7 @@ gateway:
   CACHE_MAX_ITEMS: 100
   image:
     name: hbpmip/gateway
-    version: 1.6.0-beta.5
+    version: 1.6.0-beta.7
 
 frontend:
   ERROR_LOG_LEVEL: info
@@ -77,7 +77,7 @@ frontend:
   EXTERNAL_IP: "{{ .Values.EXTERNAL_IP }}"
   image:
     name: hbpmip/portal-frontend
-    version: 9.4.0-beta.2
+    version: 9.4.0-beta.3
   storage:
     storage0:
       data_path: /opt/mip-deployment/config/caddy
