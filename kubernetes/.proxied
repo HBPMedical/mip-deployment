@@ -1,6 +1,6 @@
+EXTERNAL_IP: <MACHINE_MAIN_IP>
+
 engines:
-  exareme:
-    IP: <MACHINE_MAIN_IP>
   exareme2:
     URL: http://<MACHINE_MAIN_IP>:30000
 

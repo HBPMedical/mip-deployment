@@ -78,28 +78,6 @@ sudo chown -R mipadmin.mipadmin /data
 
 For a "federated" deployment, you may want to add nodes to your cluster. "microk8s add-node" will give you a **one-time usage** token, which you can use on a worker node to actually "join" the cluster. This process must be repeated on all the worker nodes.  
 
-## Exareme
-* Install the repository content
-  ```
-  sudo git clone https://github.com/madgik/exareme /opt/exareme
-  ```
-  ```
-  sudo chown -R mipadmin.mipadmin /opt/exareme
-  ```
-* Set the variables in /opt/exareme/Federated-Deployment/kubernetes/values.yaml
-  * data_path: /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
-  * exareme.convert_csvs: FALSE
-  * workers: 0 for a "local" deployment, or more for a "federated" deployment
-* Label the nodes  
-  For all the worker nodes (even on a "local" deployment where the master and the worker are the **same** machine), add a *worker* label:
-  ```
-  microk8s kubectl label node <WORKER_HOSTNAME> worker=true
-  ```
-* Deploy the Helm chart
-  ```
-  microk8s helm3 install exareme /opt/exareme/Federated-Deployment/kubernetes
-  ```
-
 ## Exareme2
 * Install the repository content
   ```

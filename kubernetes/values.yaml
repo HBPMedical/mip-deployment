@@ -1,24 +1,21 @@
 namespace: default
 
+EXTERNAL_IP: ""
+
 engines:
-  exareme:
-    IP: ""
-    URL: "http://{{ .Values.engines.exareme.IP }}:31000"
-    image:
-      version: 24.5.1
   exareme2:
     URL: ""
     image:
-      version: 0.17.1
+      version: 0.20.0
 
 mip:
-  version: 7.1.0
+  version: 8.0.0
   LINK: ""
   EXTERNAL_PROTOCOL: ""
   PUBLIC_PROTOCOL: ""
   PUBLIC_HOST: ""
   NAME: "MIP {{ .Values.mip.version }}"
-  VERSION_STRING: "Frontend: {{ .Values.frontend.image.version }}, Gateway: {{ .Values.gateway.image.version }}, Backend: {{ .Values.portalbackend.image.version }}, Engine1 (Exareme): {{ .Values.engines.exareme.image.version }}, Engine2 (Exareme2): {{ .Values.engines.exareme2.image.version }}, Galaxy: {{ .Values.galaxy.image.version }}"
+  VERSION_STRING: "Frontend: {{ .Values.frontend.image.version }}, Gateway: {{ .Values.gateway.image.version }}, Backend: {{ .Values.portalbackend.image.version }}, Exareme: {{ .Values.engines.exareme2.image.version }}"
 
 datacatalogue:
   PROTOCOL: https
@@ -44,7 +41,7 @@ portalbackend:
   ALGORITHM_UPDATE_INTERVAL: 60   # seconds
   image:
     name: hbpmip/portal-backend
-    version: 7.8.1
+    version: 8.0.2
   storage:
     storage0:
       data_path: /opt/mip-deployment/config
@@ -68,7 +65,7 @@ gateway:
   CACHE_MAX_ITEMS: 100
   image:
     name: hbpmip/gateway
-    version: 1.5.0
+    version: 1.6.0
 
 frontend:
   ERROR_LOG_LEVEL: info
@@ -77,10 +74,10 @@ frontend:
   MATOMO_ENABLED: false
   MATOMO_URL: https://stats.humanbrainproject.eu/
   MATOMO_SITE_ID: 29
-  EXTERNAL_IP: "{{ .Values.engines.exareme.IP }}"
+  EXTERNAL_IP: "{{ .Values.EXTERNAL_IP }}"
   image:
     name: hbpmip/portal-frontend
-    version: 9.3.1
+    version: 9.4.0
   storage:
     storage0:
       data_path: /opt/mip-deployment/config/caddy
@@ -117,8 +114,3 @@ keycloak:
     storage1:
       data_path: /opt/mip-deployment/config/keycloak/HBPTheme
       data_size: 100Mi
-
-galaxy:
-  image:
-    name: hbpmip/galaxy
-    version: 1.3.4

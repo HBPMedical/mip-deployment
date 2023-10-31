@@ -7,8 +7,20 @@
             "description": "Variable used to differentiate datasets",
             "enumerations": [
                 {
-                    "code": "longitudinal_dementia",
-                    "label": "longitudinal_dementia"
+                    "code": "desd-synthdata",
+                    "label": "DESD-SYNTHDATA"
+                },
+                {
+                    "code": "edsd",
+                    "label": "EDSD"
+                },
+                {
+                    "code": "fake_longitudinal",
+                    "label": "FAKE_LONGITUDINAL"
+                },
+                {
+                    "code": "ppmi",
+                    "label": "PPMI"
                 }
             ],
             "label": "Dataset",
@@ -70,10 +82,9 @@
             "type": "integer",
             "methodology": ""
         }
-
+        
     ],
     "code": "longitudinal_dementia",
-    "version": "0.1",
     "groups": [
         {
             "variables": [
@@ -2454,6 +2465,7 @@
             "label": "Proteome"
         }
     ],
-    "label": "Dementia longitudinal",
+    "label": "Dementia",
+    "version": "v1",
     "longitudinal": true
 }

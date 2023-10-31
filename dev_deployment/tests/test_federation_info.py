@@ -1,13 +1,12 @@
 import subprocess
-import re
 
 
-EXPERIMENTS_EXECUTED = 19
+EXPERIMENTS_EXECUTED = 17
 EXPERIMENT_AUDIT_ENTRY_IDENTIFIER = " - EXPERIMENT_FINISHED - "
 
 
 def test_federation_info():
-    cmd = f"docker logs backend_components_portalbackend_1 | python3 ../../../federation_info.py show-portal-backend-audit-entries"
+    cmd = f"docker logs dev_deployment_portalbackend_1 | python3 ../federation_info.py show-portal-backend-audit-entries"
     res = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )

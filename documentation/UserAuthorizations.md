@@ -32,7 +32,6 @@ The following ROLES should exist:
   - One role (RESEARCH_DATASET_ALL) with which the user gets access to all datasets.
   - One role (RESEARCH_PATHOLOGY_ALL) with which the user gets access to all pathologies.
   - One role (RESEARCH_EXPERIMENT_ALL) with which the user gets access to all experiments.
-  - One role (WORKFLOW_ADMIN) with which the user is given the authorization to edit existing and create new workflows through the galaxy workflow engine editor.
 
 ### Adding a new dataset
 

@@ -179,10 +179,6 @@ spec:
             configMapKeyRef:
               name: mip-config
               key: mip.LINK
-        - name: GALAXY_HOST
-          value: http://galaxy-service
-        - name: GALAXY_PATH
-          value: /nativeGalaxy
         - name: DATACATALOGUE_SERVER                    # Only used in federated installation
           valueFrom:
             configMapKeyRef:
