@@ -13,6 +13,7 @@ The metadata file **must** follow these rules:
   * **code** (Variable name)
   * **isCategorical** (true/false)
   * **sql_type** (TEXT, REAL, INT)
+  * **type** (nominal, real, integer, text)
 * It can also contain:
   * **min** (Integer)
   * **max** (Integer)
@@ -42,16 +43,6 @@ A csv file **must** follow these rules:
 * All the column names that exist in the csvs **must** also exist in the CDEsMetadata.json file. The csv can have less columns than the CDEs in the metadata but **NOT** more.
 * The `dataset` CDE is **required** to exist in the CDEsMetadata.json and as a column in the csvs.
 
-# Loading Data on Exareme1
-
-## New Data on existing Pathology
-
-If you don't want to create a new pathology with **custom variables** then you just need to add your data, in csv format, inside the pathology folder in the `data` directory, for example in the `data/dementia` directory.
-
-There can be many csv files in a pathology. 
-
-If your data do not match the specifications of MIP, a message will be shown when installing the software.
-
 ## New Pathology
 
 If you want to add a new pathology on MIP then you need to create a new folder inside the `data` directory with the name of your pathology. Inside that folder you need to add:
@@ -61,3 +52,7 @@ If you want to add a new pathology on MIP then you need to create a new folder i
 # Loading data on Exareme2
 
 There is more detailed documentation on adding data to exareme2 [here](https://github.com/madgik/Exareme2/blob/master/kubernetes/docs/ImportNodeData.md).
+
+# Validation Script
+
+Comprehensive documentation for validating the CDEsMetadata.json file and the CSV files you are working with can be found [here](https://github.com/madgik/mipdb/blob/2.4.6/README.md).
