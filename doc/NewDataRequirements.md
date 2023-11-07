@@ -49,10 +49,10 @@ If you want to add a new pathology on MIP then you need to create a new folder i
 * The CDEsMetadata.json file
 * and the CSVs containing the data.
 
+# Local Validation of New Data
+
+Comprehensive documentation for validating the `CDEsMetadata.json` file and the CSV files you are working with, can be found [here](https://github.com/madgik/mipdb/).
+
 # Loading data on Exareme2
 
-There is more detailed documentation on adding data to exareme2 [here](https://github.com/madgik/Exareme2/blob/master/kubernetes/docs/ImportNodeData.md).
-
-# Validation Script
-
-Comprehensive documentation for validating the CDEsMetadata.json file and the CSV files you are working with can be found [here](https://github.com/madgik/mipdb/blob/2.4.6/README.md).
+There is a more detailed documentation on adding data to exareme2 [here](https://github.com/madgik/Exareme2/blob/master/kubernetes/docs/ImportNodeData.md).

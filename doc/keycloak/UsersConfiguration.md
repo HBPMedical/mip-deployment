@@ -1,7 +1,5 @@
-[MIP Deployment](../../../README.md#UsersConfiguration) -> `Users Configuration`
-
 ## Users Configuration
-By default MIP has 2 users, one is an administrator and one is a mip user.
+By default, MIP has 2 users, one is an administrator and one is a mip user.
 
 First of all, you should change the administrator credentials, from this url: http://{MIP_IP}/auth/realms/master/account/password
 
