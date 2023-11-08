@@ -1,5 +1,3 @@
-[Users Configuration](UsersConfiguration.md#UserAuthorizations) -> `User Authorizations`
-
 ## User Authorizations
 
 A user can be authorized on two different aspects:

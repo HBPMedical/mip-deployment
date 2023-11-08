@@ -21,7 +21,7 @@ The metadata file **must** follow these rules:
 * The `dataset` CDE is required.
 * In the parent dictionary there will be a `version` property, of string format.
 
-An example can be seen [here](../data/dementia/CDEsMetadata.json).
+An example can be seen at [CDEs Medatadata](../data/dementia/CDEsMetadata.json).
 
 After adding the CDEsMetadata file you can add your data the same way as adding **New Data on existing Pathology**.
 
@@ -49,10 +49,10 @@ If you want to add a new pathology on MIP then you need to create a new folder i
 * The CDEsMetadata.json file
 * and the CSVs containing the data.
 
+# Local Validation of New Data
+
+For detailed instructions on validating the `CDEsMetadata.json` file and the CSV files you are working with, please refer to the comprehensive documentation available on the [MIPDB GitHub repository](https://github.com/madgik/mipdb/).
+
 # Loading data on Exareme2
 
-There is more detailed documentation on adding data to exareme2 [here](https://github.com/madgik/Exareme2/blob/master/kubernetes/docs/ImportNodeData.md).
-
-# Validation Script
-
-Comprehensive documentation for validating the CDEsMetadata.json file and the CSV files you are working with can be found [here](https://github.com/madgik/mipdb/blob/2.4.6/README.md).
+For detailed instructions on adding data to Exareme2, please consult the [Exareme2 documentation on importing node data](https://github.com/madgik/Exareme2/blob/master/kubernetes/docs/ImportNodeData.md).

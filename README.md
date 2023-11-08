@@ -1,45 +1,14 @@
-# Medical Informatics Platform (MIP), deployment
+# Medical Informatics Platform (MIP)
 
-This is the MIP main repository.
+## Deployment Documentation Contents
+1. [Requirements for new data, to join the federation](doc/NewDataRequirements.md)
+1. [Deployment Requirements](kubernetes/README.md#requirements)
+1. [Deployment Components](kubernetes/README.md#components)
+1. [Setting up the data](kubernetes/README.md#taking-care-of-the-medical-data)
+1. [Deploying the stack](kubernetes/README.md#configuration)
+1. [Configuring new users](doc/keycloak/UsersConfiguration.md)
+1. [Authorization for new user](doc/keycloak/UserAuthorizations.md)
+1. [Backup and Recovery](doc/BackupAndRecovery.md)
 
-Here, you have everything to deploy and operate a *local* or a *federated* MIP.  
-As this repository can be used to deploy any type of MIP, it can also just be used as an "installer", and be deleted once the MIP is installed. i.e. for a *local* installation, using the *mip* script to install the MIP will clone this repository in /opt/mip-deployment for the operating purpose, and the *mip* script will also be callable from /usr/local/bin.  
-Then, if you cloned this repository in your home for the installation purpose, you don't need it any further when the install process is done.
-
-## Requirements
-### Hardware
-* 40 GB HDD
-* 8 GB RAM
-* 2 CPU Cores
-
-### Software
-* Ubuntu Server 20.04 (minimal installation, without GUI)
-
-## <a id="Components">MIP Components</a>
-The "short names" listed here represent the different MIP components, as well as recognized component names by the *mip* script.
-* [frontend](https://github.com/HBPMedical/portal-frontend): The "Web App"
-* [gateway](https://github.com/HBPMedical/gateway): "Middleware" layer between the MIP Frontend and a federated analytic engine
-* [portalbackend](https://github.com/HBPMedical/portal-backend): The "Backend API" supports the Web App
-* [portalbackend_db](https://github.com/docker-library/postgres): The portal backend's database
-* [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some <a id="UsersConfiguration">details</a>, which you can find [here](documentation/UsersConfiguration.md)
-* [keycloak_db](https://github.com/docker-library/postgres): The KeyCloak's database, required only if the *keycloak* component needs to be used
-* [create_dbs](https://github.com/HBPMedical/docker-create-databases): The *one shot* container which creates and populates the DBs when required
-* [exareme2](https://github.com/madgik/exareme2): The "Analysis Engine" offers the federated (also used by the *local* MIP) analysis capabilities
-
-## Deployment
-### <a id="LocalDeployment">Local</a>
-The *local* MIP is designed to run on a single machine.  
-In this context, all the MIP components (understand: containers) run on the same hypervisor.  
-For the security (AuthN/AuthZ), Keycloak comes as a MIP component.
-
-[Here](doc/Readme.md), you can find details about deploying and operating the *local* MIP.
-
-### <a id="FederatedDeployment">Federated</a>
-The *federated* MIP is designed to run on multiple machines.  
-In this context, and as we usually use an external KeyCloak service, the components which run on the same machine are less than for the *local* deployment.
-
-[Here](Federation/doc/Readme.md), you can find details about deploying and operating the *federated* MIP.
-
-
-# Acknowledgement
+## Acknowledgement
 This project/research received funding from the European Union’s Horizon 2020 Framework Programme for Research and Innovation under the Framework Partnership Agreement No. 650003 (HBP FPA).
