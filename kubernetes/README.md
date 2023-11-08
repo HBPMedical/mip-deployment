@@ -38,7 +38,7 @@ Now, with the Kubernetes (K8s) deployment, we have 2 main component packs, that 
 * [gateway_db](https://github.com/docker-library/postgres): The gateway's database
 * [portalbackend](https://github.com/HBPMedical/portal-backend): The "Backend API" which supports the Web App
 * [portalbackend_db](https://github.com/docker-library/postgres): The portal backend's database
-* [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some <a id="UsersConfiguration">details</a>, which you can find [here](documentation/UsersConfiguration.md)
+* [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some details, which you can find [documentation of users configuration](documentation/UsersConfiguration.md)
 * [keycloak_db](https://github.com/docker-library/postgres): The KeyCloak's database, required only if the *keycloak* component needs to be used
 * [create_dbs](https://github.com/HBPMedical/docker-create-databases): The *one shot* container which creates and populates the DBs when required
 
@@ -139,6 +139,7 @@ For a "federated" deployment, you may want to add nodes to your cluster. "microk
   ```
 * Set the variables in /opt/exareme2/kubernetes/values.yaml
     * localnodes: 1 for a "local" deployment (yes, even if it's the same machine for master and worker), or more (the number of workers, not counting the master node) for a "federated" deployment
+    * credentials_location: /opt/exareme2/credentials
     * db.storage_location: /opt/exareme2/.stored_data/db
     * db.csvs_location: /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
     * controller.cleanup_file_folder: /opt/exareme2/.stored_data/cleanup
@@ -156,7 +157,7 @@ For a "federated" deployment, you may want to add nodes to your cluster. "microk
   microk8s helm3 install exareme2 /opt/exareme2/kubernetes
   ```
 
-For more detailed information on the exareme2 deployment, check [here](https://github.com/madgik/Exareme2/blob/master/kubernetes).
+For a more in-depth guide on deploying Exareme2, please refer to the documentation available on the [Exareme2 Kubernetes repository](https://github.com/madgik/Exareme2/blob/master/kubernetes).
 
 
 

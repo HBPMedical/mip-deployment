@@ -10,7 +10,7 @@ password: Pa55w0rd
 ```
 
 ### Create a New User
-<a id="CreateLocalUser">Follow</a> this [guide](CreateLocalUser.md).
+Follow this [guide](CreateLocalUser.md).
 
 ### User Authorizations
-<a id="UserAuthorizations">Follow</a> this [guide](UserAuthorizations.md).
+Follow this [guide](UserAuthorizations.md).
