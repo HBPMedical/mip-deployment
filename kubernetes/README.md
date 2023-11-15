@@ -1,4 +1,4 @@
-# Kubernetes Deployment
+**# Kubernetes Deployment
 
 ## Requirements
 ### Hardware
@@ -174,3 +174,29 @@ For a more in-depth guide on deploying Exareme2, please refer to the documentati
   ```
   microk8s helm3 install mip -f /opt/mip-deployment/kubernetes/<PROFILE_CONFIGURATION_FILE> /opt/mip-deployment/kubernetes
   ```
+
+# MicroK8s Automatic Recoverability
+
+## Overview
+MicroK8s is designed for simplicity and resilience. One of its key features is the automatic recoverability of both federated clusters and individual local nodes.
+
+## Automatic Recoverability in Federation
+In a federated cluster setup, MicroK8s ensures high availability and fault tolerance. If the master node in a federation faces downtime or operational issues, MicroK8s is designed to automatically recover its state and functionality.
+
+### Key Points:
+- **Self-healing Mechanism**: MicroK8s employs a self-healing mechanism that triggers upon detecting issues with the master node.
+- **State Restoration**: Automatically restores the master node to its last known healthy state without manual intervention.
+
+## Local Node Recoverability
+For individual local nodes, MicroK8s offers a robust recovery process. This process is vital in scenarios where local nodes experience disruptions.
+
+### Key Points:
+- **Node Health Monitoring**: Continuous monitoring of node health to quickly identify any disruptions.
+- **Automatic Restoration**: On reboot or reconnection, the local node automatically synchronizes and restores its state to align with the federation's current status.
+
+## Recovery Time Frame
+The recovery process in MicroK8s, whether for a federation or a local node, typically completes within a brief period.
+
+### Expected Timeline:
+- **Minimum Recovery Time**: Approximately 1 minute.
+- **Maximum Recovery Time**: Up to 5 minutes, depending on the complexity and scale of the cluster.
