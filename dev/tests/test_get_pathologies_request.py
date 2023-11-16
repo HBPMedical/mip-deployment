@@ -13,7 +13,7 @@ def test_get_pathologies_request():
     assert len(pathologies) == 4
 
     assert all(
-        pathology["code"] in ["dementia", "longitudinal_dementia", "mentalhealth", "tbi"]
+        pathology["code"] in ["dementia", "dementia", "mentalhealth", "tbi"]
         for pathology in pathologies
     )
 

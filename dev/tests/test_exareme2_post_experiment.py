@@ -1,6 +1,3 @@
-import re
-import subprocess
-
 import pytest
 import json
 import time
@@ -147,7 +144,7 @@ all_success_cases = [
                 },
                 {
                     "name": "pathology",
-                    "value": "longitudinal_dementia:v1",
+                    "value": "dementia:v1",
                 },
                 {
                     "name": "dataset",
