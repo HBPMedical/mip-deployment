@@ -19,12 +19,12 @@ jobs:
           python-version: 3.8
 
       - name: Deploy portalbackend and exareme2
-        working-directory: ./dev_deployment/
+        working-directory: ./dev/
         run: bash start.sh
 
       - name: Get deployment status
         run: docker ps
 
-      - name: Run the dev_deployment tests
-        working-directory: ./dev_deployment/
+      - name: Run the dev tests
+        working-directory: ./dev/
         run: bash test.sh
