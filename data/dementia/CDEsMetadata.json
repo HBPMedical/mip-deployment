@@ -35,6 +35,7 @@
             "code": "subjectcode",
             "sql_type": "text",
             "description": "",
+            "type": "text",
             "methodology": ""
         },
         {
@@ -45,16 +46,6 @@
             "label": "Visit ID",
             "units": "",
             "type": "text",
-            "methodology": ""
-        },
-        {
-            "isCategorical": false,
-            "code": "subjectvisitdate",
-            "sql_type": "text",
-            "description": "The date of the Patient’s Visit",
-            "label": "Visit Date",
-            "units": "",
-            "type": "date",
             "methodology": ""
         }
     ],
