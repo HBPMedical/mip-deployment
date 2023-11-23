@@ -1,4 +1,4 @@
-**# Kubernetes Deployment
+# Kubernetes Deployment
 
 ## Requirements
 ### Hardware
