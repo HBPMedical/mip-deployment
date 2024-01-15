@@ -144,7 +144,12 @@ For a "federated" deployment, you may want to add nodes to your cluster. "microk
     * db.csvs_location: /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
     * controller.cleanup_file_folder: /opt/exareme2/.stored_data/cleanup
     * smpc.enabled: true (if you want, and **ONLY** in case of a federated deployment, and also **ONLY** if you have at least 3 worker nodes!)
-* Label the nodes  
+* Label the nodes
+
+  For the master node:
+  ```
+  microk8s kubectl label node <MASTER_HOSTNAME> master=true
+  ```
   For all the worker nodes (even on a "local" deployment where the master and the worker are the **same** machine), add *worker* and (if you want) *smpc_player* labels:
   ```
   microk8s kubectl label node <WORKER_HOSTNAME> worker=true
