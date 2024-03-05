@@ -41,7 +41,7 @@ portalbackend:
   ALGORITHM_UPDATE_INTERVAL: 60   # seconds
   image:
     name: hbpmip/portal-backend
-    version: 8.0.2
+    version: 8.0.3
   storage:
     storage0:
       data_path: /opt/mip-deployment/config
