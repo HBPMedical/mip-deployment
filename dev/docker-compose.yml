@@ -34,11 +34,11 @@ services:
     volumes:
       - ../data:/opt/data
 
-  exareme2_node:
-    image: madgik/exareme2_node:${EXAREME2}
+  exareme2_worker:
+    image: madgik/exareme2_worker:${EXAREME2}
     environment:
-      - NODE_IDENTIFIER=localnode1
-      - NODE_ROLE=LOCALNODE
+      - WORKER_IDENTIFIER=localworker1
+      - WORKER_ROLE=LOCALWORKER
       - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
       - CELERY_TASKS_TIMEOUT=20
@@ -62,11 +62,11 @@ services:
       - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
       - DEPLOYMENT_TYPE=LOCAL
-      - NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL=10
+      - WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL=10
       - CLEANUP_FOLDER=/tmp/exareme2
-      - NODES_CLEANUP_INTERVAL=60
-      - NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT=3600
-      - LOCALNODES_CONFIG_FILE=/opt/config/localnodes_config.json
+      - WORKERS_CLEANUP_INTERVAL=60
+      - WORKERS_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT=3600
+      - LOCALWORKERS_CONFIG_FILE=/opt/config/localworkers_config.json
       - CELERY_TASKS_TIMEOUT=20
       - CELERY_RUN_UDF_TASK_TIMEOUT=120
       - SMPC_ENABLED=false
