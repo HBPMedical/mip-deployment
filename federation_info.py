@@ -14,6 +14,7 @@ EXPERIMENT_FINISHED_PATTERN = (
     rf"result.*?, finished=(.*?), algorithm=(.*?), algorithmId.*? created=(.*?), updated.*?"
 )
 USER_LOGGED_IN_PATTERN = rf"({TIMESTAMP_REGEX})  INFO .*? User -> (.*?) , Endpoint -> \(GET\) /activeUser , Info ->  User details returned."
+TRANSIENT_EXPERIMENT_PATTERN = rf"({TIMESTAMP_REGEX})  INFO .*? User -> (.*?) , Endpoint -> \(POST\) /experiments/transient , Info ->  Request for transient experiment creation\. RequestBody: (.*)"
 EXPERIMENT_TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
 
@@ -32,6 +33,7 @@ def cli():
 
 
 def print_audit_entry(log_line):
+    log_line = log_line.strip()  # Remove leading/trailing whitespace
     if pattern_groups := re.search(EXPERIMENT_FINISHED_PATTERN, log_line):
         log_timestamp = pattern_groups[1]
         user = pattern_groups[2]
@@ -59,6 +61,19 @@ def print_audit_entry(log_line):
         log_timestamp = pattern_groups[1]
         user = pattern_groups[2]
         print(f"{log_timestamp} - {user} - USER LOGGED IN")
+    elif pattern_groups := re.search(TRANSIENT_EXPERIMENT_PATTERN, log_line):
+        log_timestamp = pattern_groups[1]
+        user = pattern_groups[2]
+        request_body_str = pattern_groups[3]
+        request_body = json.loads(request_body_str)
+        name = request_body["name"]
+        algorithm = request_body["algorithm"]["name"]
+        parameters = {
+            par["name"]: par["value"] for par in request_body["algorithm"]["parameters"]
+        }
+        print(
+            f"{log_timestamp} - {user} - EXPERIMENT_FINISHED - {name} - {algorithm} - {parameters['pathology']} - {parameters['dataset']} - {parameters} - {request_body['algorithm']['preprocessing']}"
+        )
 
 
 @cli.command()
