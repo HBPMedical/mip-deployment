@@ -9,6 +9,10 @@
                 {
                     "code": "demo",
                     "label": "Demo"
+                },
+                {
+                    "code": "demo_test",
+                    "label": "Demo Test"
                 }
             ],
             "label": "dataset",

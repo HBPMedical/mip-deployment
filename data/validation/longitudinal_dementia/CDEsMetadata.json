@@ -1,4 +1,3 @@
-
 {
     "variables": [
         {
@@ -8,20 +7,20 @@
             "description": "Variable used to differentiate datasets",
             "enumerations": [
                 {
-                    "code": "ppmi",
-                    "label": "PPMI"
+                    "code": "desd-synthdata",
+                    "label": "DESD-SYNTHDATA"
+                },
+                {
+                    "code": "desd-synthdata_test",
+                    "label": "DESD-SYNTHDATA TEST"
                 },
                 {
                     "code": "edsd",
                     "label": "EDSD"
                 },
                 {
-                    "code": "desd-synthdata",
-                    "label": "DESD-synthdata"
-                },
-                {
-                    "code": "fake_longitudinal",
-                    "label": "Longitudinal"
+                    "code": "ppmi",
+                    "label": "PPMI"
                 }
             ],
             "label": "Dataset",
@@ -31,26 +30,61 @@
         },
         {
             "isCategorical": false,
-            "label": "subjectcode",
-            "code": "subjectcode",
+            "code": "subjectid",
             "sql_type": "text",
-            "description": "",
+            "description": "The ID of the Patient",
+            "label": "Subject ID",
+            "units": "",
             "type": "text",
             "methodology": ""
         },
         {
-            "isCategorical": false,
-            "code": "subjectvisitid",
+            "isCategorical": true,
+            "code": "visitid",
             "sql_type": "text",
-            "description": "The ID of the Patient’s Visit",
+            "description": "The Visit ID",
+			"enumerations": [
+				{
+					"code": "BL",
+					"label": "Baseline"
+				},
+				{
+					"code": "FL1",
+					"label": "Follow-up 1"
+				},
+				{
+					"code": "FL2",
+					"label": "Follow-up 2"
+				},
+				{
+					"code": "FL3",
+					"label": "Follow-up 3"
+				},
+				{
+					"code": "FL4",
+					"label": "Follow-up 4"
+				}
+			],
             "label": "Visit ID",
             "units": "",
-            "type": "text",
+            "type": "nominal",
+            "methodology": ""
+        },
+		{
+            "isCategorical": false,
+            "minValue": 0,
+            "code": "timesincebaseline",
+            "maxValue": 130,
+            "sql_type": "int",
+            "description": "Number of months since the baseline visit",
+            "label": "Time since baseline (month)",
+            "units": "months",
+            "type": "integer",
             "methodology": ""
         }
+        
     ],
     "code": "dementia",
-    "version": "0.1",
     "groups": [
         {
             "variables": [
@@ -111,7 +145,7 @@
                     "methodology": "mip-cde"
                 }
             ],
-            "code": "brain_anatomy",
+            "code": "brain anatomy",
             "groups": [
                 {
                     "variables": [
@@ -186,11 +220,11 @@
                             "methodology": "mip-cde"
                         }
                     ],
-                    "code": "csf_volume",
-                    "label": "Csf_volume"
+                    "code": "csf volume",
+                    "label": "Csf volume"
                 },
                 {
-                    "code": "grey_matter_volume",
+                    "code": "grey matter volume",
                     "groups": [
                         {
                             "variables": [
@@ -249,7 +283,7 @@
                             "label": "Cerebellum"
                         },
                         {
-                            "code": "cerebral_nuclei",
+                            "code": "cerebral nuclei",
                             "groups": [
                                 {
                                     "variables": [
@@ -380,11 +414,11 @@
                                             "methodology": "mip-cde"
                                         }
                                     ],
-                                    "code": "basal_ganglia",
-                                    "label": "Basal_ganglia"
+                                    "code": "basal ganglia",
+                                    "label": "Basal ganglia"
                                 }
                             ],
-                            "label": "Cerebral_nuclei"
+                            "label": "Cerebral nuclei"
                         },
                         {
                             "variables": [
@@ -1469,7 +1503,7 @@
                             "label": "Temporal"
                         }
                     ],
-                    "label": "Grey_matter_volume"
+                    "label": "Grey matter volume"
                 },
                 {
                     "variables": [
@@ -1524,11 +1558,11 @@
                             "methodology": "mip-cde"
                         }
                     ],
-                    "code": "white_matter_volume",
-                    "label": "White_matter_volume"
+                    "code": "white matter volume",
+                    "label": "White matter volume"
                 }
             ],
-            "label": "Brain_anatomy"
+            "label": "Brain anatomy"
         },
         {
             "variables": [
@@ -1540,7 +1574,7 @@
                     "enumerations": [
                         {
                             "code": "AD",
-                            "label": "Alzheimer’s disease"
+                            "label": "Alzheimer\u2019s disease"
                         },
                         {
                             "code": "CN",
@@ -1568,15 +1602,15 @@
                     "enumerations": [
                         {
                             "code": "PD",
-                            "label": "Parkinson’s disease"
+                            "label": "Parkinson\u2019s disease"
                         },
                         {
                             "code": "AD",
-                            "label": "Alzheimer’s disease"
+                            "label": "Alzheimer\u2019s disease"
                         },
                         {
                             "code": "HD",
-                            "label": "Huntington’s disease\""
+                            "label": "Huntington\u2019s disease\""
                         },
                         {
                             "code": "ALS",
@@ -1653,7 +1687,7 @@
                             "enumerations": [
                                 {
                                     "code": "AD",
-                                    "label": "Alzheimer’s Disease"
+                                    "label": "Alzheimer\u2019s Disease"
                                 },
                                 {
                                     "code": "MCI",
@@ -1677,7 +1711,7 @@
                             "enumerations": [
                                 {
                                     "code": "AD",
-                                    "label": "Alzheimer’s Disease"
+                                    "label": "Alzheimer\u2019s Disease"
                                 },
                                 {
                                     "code": "MCI",
@@ -1730,8 +1764,8 @@
                             "methodology": "mip-cde"
                         }
                     ],
-                    "code": "dataset_specific_diagnosis",
-                    "label": "Dataset_specific_diagnosis"
+                    "code": "dataset specific diagnosis",
+                    "label": "Dataset specific diagnosis"
                 },
                 {
                     "variables": [
@@ -1877,7 +1911,7 @@
                             "isCategorical": true,
                             "code": "updrshy",
                             "sql_type": "text",
-                            "description": "The Hoehn and Yahr scale (HY) is a widely used clinical rating scale  which defines broad categories of motor function in Parkinson\\u2019s disease (PD). It captures typical patterns of progressive motor impairment.",
+                            "description": "The Hoehn and Yahr scale (HY) is a widely used clinical rating scale  which defines broad categories of motor function in Parkinson\u2019s disease (PD). It captures typical patterns of progressive motor impairment.",
                             "enumerations": [
                                 {
                                     "code": "1",
@@ -2387,7 +2421,7 @@
                             "isCategorical": false,
                             "code": "ab1_42",
                             "sql_type": "real",
-                            "description": "A\\u03b2 is the main component of amyloid plaques (extracellular deposits found in the brains of patients with Alzheimer’s disease). Similar plaques appear in some variants of Lewy body dementia and in inclusion body myositis (a muscle disease), while A\\u03b2 can also form the aggregates that coat cerebral blood vessels in cerebral amyloid angiopathy. The plaques are composed of a tangle of regularly ordered fibrillar aggregates called amyloid fibers, a protein fold shared by other peptides such as the prions associated with protein misfolding diseases.",
+                            "description": "A\u03b2 is the main component of amyloid plaques (extracellular deposits found in the brains of patients with Alzheimer\u2019s disease). Similar plaques appear in some variants of Lewy body dementia and in inclusion body myositis (a muscle disease), while A\u03b2 can also form the aggregates that coat cerebral blood vessels in cerebral amyloid angiopathy. The plaques are composed of a tangle of regularly ordered fibrillar aggregates called amyloid fibers, a protein fold shared by other peptides such as the prions associated with protein misfolding diseases.",
                             "label": "Level of amyloid beta 1-42 peptides in cerebrospinal fluid",
                             "units": "",
                             "type": "real",
@@ -2397,7 +2431,7 @@
                             "isCategorical": false,
                             "code": "ab1_40",
                             "sql_type": "real",
-                            "description": "A\\u03b2 is the main component of amyloid plaques (extracellular deposits found in the brains of patients with Alzheimer's disease). Similar plaques appear in some variants of Lewy body dementia and in inclusion body myositis (a muscle disease), while A\\u03b2 can also form the aggregates that coat cerebral blood vessels in cerebral amyloid angiopathy. The plaques are composed of a tangle of regularly ordered fibrillar aggregates called amyloid fibers, a protein fold shared by other peptides such as the prions associated with protein misfolding diseases.",
+                            "description": "A\u03b2 is the main component of amyloid plaques (extracellular deposits found in the brains of patients with Alzheimer's disease). Similar plaques appear in some variants of Lewy body dementia and in inclusion body myositis (a muscle disease), while A\u03b2 can also form the aggregates that coat cerebral blood vessels in cerebral amyloid angiopathy. The plaques are composed of a tangle of regularly ordered fibrillar aggregates called amyloid fibers, a protein fold shared by other peptides such as the prions associated with protein misfolding diseases.",
                             "label": "Level od amyloid beta 1-40 peptides ion cerebrospinal fluid",
                             "units": "",
                             "type": "real",
@@ -2407,7 +2441,7 @@
                             "isCategorical": false,
                             "code": "t_tau",
                             "sql_type": "real",
-                            "description": "Tau proteins (or \\u03c4 proteins) are proteins that stabilize microtubules. They are abundant in neurons of the central nervous system and are less common elsewhere, but are also expressed at very low levels in CNS astrocytes and oligodendrocytes. Pathologies and dementias of the nervous system such as Alzheimer’s disease and Parkinson’s disease are associated with tau proteins that have become defective and no longer stabilize microtubules properly.",
+                            "description": "Tau proteins (or \u03c4 proteins) are proteins that stabilize microtubules. They are abundant in neurons of the central nervous system and are less common elsewhere, but are also expressed at very low levels in CNS astrocytes and oligodendrocytes. Pathologies and dementias of the nervous system such as Alzheimer\u2019s disease and Parkinson\u2019s disease are associated with tau proteins that have become defective and no longer stabilize microtubules properly.",
                             "label": "Total level of tau proteins in cerebrospinal fluid",
                             "units": "",
                             "type": "real",
@@ -2424,12 +2458,14 @@
                             "methodology": "mip-cde"
                         }
                     ],
-                    "code": "csf_proteome",
-                    "label": "Csf_proteome"
+                    "code": "csf proteome",
+                    "label": "Csf proteome"
                 }
             ],
             "label": "Proteome"
         }
     ],
-    "label": "Dementia"
+    "label": "Dementia",
+    "version": "v1",
+    "longitudinal": true
 }

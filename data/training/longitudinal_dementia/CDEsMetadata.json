@@ -11,12 +11,12 @@
                     "label": "DESD-SYNTHDATA"
                 },
                 {
-                    "code": "edsd",
-                    "label": "EDSD"
+                    "code": "desd-synthdata_test",
+                    "label": "DESD-SYNTHDATA TEST"
                 },
                 {
-                    "code": "fake_longitudinal",
-                    "label": "FAKE_LONGITUDINAL"
+                    "code": "edsd",
+                    "label": "EDSD"
                 },
                 {
                     "code": "ppmi",

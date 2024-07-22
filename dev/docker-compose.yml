@@ -1,7 +1,21 @@
 version: '3.7'
 
 services:
-  exareme2_rabbitmq:
+  exareme2_local_rabbitmq:
+    image: madgik/exareme2_rabbitmq:${EXAREME2}
+    ports:
+      - "5673:5672"
+    environment:
+      - RABBITMQ_ADMIN_USER=user
+      - RABBITMQ_ADMIN_PASSWORD=password
+      - RABBITMQ_ADMIN_VHOST=user_vhost
+      - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  exareme2_global_rabbitmq:
     image: madgik/exareme2_rabbitmq:${EXAREME2}
     ports:
       - "5672:5672"
@@ -16,7 +30,17 @@ services:
       timeout: 30s
       retries: 3
 
-  exareme2_monetdb:
+  exareme2_local_monetdb:
+    image: madgik/exareme2_db:${EXAREME2}
+    ports:
+      - "50001:50000"
+    environment:
+      - SOFT_RESTART_MEMORY_LIMIT=1000
+      - HARD_RESTART_MEMORY_LIMIT=1000
+    volumes:
+      - ../data/training:/opt/data
+
+  exareme2_global_monetdb:
     image: madgik/exareme2_db:${EXAREME2}
     ports:
       - "50000:50000"
@@ -24,34 +48,79 @@ services:
       - SOFT_RESTART_MEMORY_LIMIT=1000
       - HARD_RESTART_MEMORY_LIMIT=1000
     volumes:
-      - ../data:/opt/data
+      - ../data/validation:/opt/data
 
-  exareme2_mipdb:
+  exareme2_local_mipdb:
     image: madgik/exareme2_mipdb:${EXAREME2}
     environment:
       - DB_IP=172.17.0.1
-      - DB_PORT=50000
+      - DB_PORT=50001
+      - DATA_PATH=/opt/data
+      - SQLITE_DB_NAME=local
     volumes:
-      - ../data:/opt/data
+      - ../data/training:/opt/data
 
-  exareme2_worker:
-    image: madgik/exareme2_worker:${EXAREME2}
+
+  exareme2_global_mipdb:
+    image: madgik/exareme2_mipdb:${EXAREME2}
     environment:
-      - WORKER_IDENTIFIER=localworker1
+      - DB_IP=172.17.0.1
+      - DB_PORT=50001
+      - DATA_PATH=/opt/data
+      - SQLITE_DB_NAME=global
+    volumes:
+      - ../data/validation:/opt/data
+
+  exareme2_local:
+    image: madgik/exareme2_worker:${EXAREME2}
+    volumes:
+      - ../data/training:/opt/data
+    environment:
+      - WORKER_IDENTIFIER=local
       - WORKER_ROLE=LOCALWORKER
+      - DATA_PATH=/opt/data
       - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
+      - CONTROLLER_IP=172.17.0.1
+      - CONTROLLER_PORT=5000
+      - CELERY_TASKS_TIMEOUT=20
+      - CELERY_RUN_UDF_TASK_TIMEOUT=120
+      - RABBITMQ_IP=172.17.0.1
+      - RABBITMQ_PORT=5673
+      - MONETDB_IP=172.17.0.1
+      - MONETDB_PORT=50001
+      - SQLITE_DB_NAME=local
+      - SMPC_ENABLED=false
+      - SMPC_OPTIONAL=false
+    depends_on:
+      - exareme2_local_monetdb
+      - exareme2_local_rabbitmq
+    restart: unless-stopped
+
+  exareme2_global:
+    image: madgik/exareme2_worker:${EXAREME2}
+    volumes:
+      - ../data/validation:/opt/data
+    environment:
+      - WORKER_IDENTIFIER=global
+      - WORKER_ROLE=GLOBALWORKER
+      - DATA_PATH=/opt/data
+      - LOG_LEVEL=DEBUG
+      - FRAMEWORK_LOG_LEVEL=INFO
+      - CONTROLLER_IP=172.17.0.1
+      - CONTROLLER_PORT=5000
       - CELERY_TASKS_TIMEOUT=20
       - CELERY_RUN_UDF_TASK_TIMEOUT=120
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5672
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50000
+      - SQLITE_DB_NAME=global
       - SMPC_ENABLED=false
       - SMPC_OPTIONAL=false
     depends_on:
-      - exareme2_monetdb
-      - exareme2_rabbitmq
+      - exareme2_global_monetdb
+      - exareme2_global_rabbitmq
     restart: unless-stopped
 
   exareme2_controller:
@@ -62,6 +131,7 @@ services:
       - LOG_LEVEL=DEBUG
       - FRAMEWORK_LOG_LEVEL=INFO
       - DEPLOYMENT_TYPE=LOCAL
+      - FLOWER_EXECUTION_TIMEOUT=30
       - WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL=10
       - CLEANUP_FOLDER=/tmp/exareme2
       - WORKERS_CLEANUP_INTERVAL=60
@@ -101,36 +171,36 @@ services:
       PASSWORD4: portalpwd
     restart: on-failure
 
-  portalbackend:
-    image: hbpmip/portal-backend:${PORTALBACKEND}
-    ports:
-      - '8080:8080'
-      - '8089:8089'
-    environment:
-      ### API ###
-      LOG_LEVEL: INFO
-      LOG_LEVEL_FRAMEWORK: INFO
-      ALGORITHM_UPDATE_INTERVAL: 30     # seconds
-      ### Database ###
-      PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
-      PORTAL_DB_SERVER: portalbackend_db:5433
-      PORTAL_DB_USER: portal
-      PORTAL_DB_PASSWORD: portalpwd
-      ### Exareme2 ###
-      EXAREME2_URL: http://172.17.0.1:5000
-      ### Keycloak ###
-      AUTHENTICATION: 0
-#      AUTHENTICATION: 1     # Should be enabled for keycloak
-      KEYCLOAK_AUTH_URL: http://172.17.0.1/auth/
-      KEYCLOAK_REALM: MIP
-      KEYCLOAK_CLIENT_ID: MIP
-      KEYCLOAK_CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
-      KEYCLOAK_SSL_REQUIRED: none
-    depends_on:
-      - create_dbs
-    volumes:
-      - ./config:/opt/portal/api
-    restart: unless-stopped
+#  portalbackend:
+#    image: hbpmip/portal-backend:${PORTALBACKEND}
+#    ports:
+#      - '8080:8080'
+#      - '8089:8089'
+#    environment:
+#      ### API ###
+#      LOG_LEVEL: INFO
+#      LOG_LEVEL_FRAMEWORK: INFO
+#      ALGORITHM_UPDATE_INTERVAL: 30     # seconds
+#      ### Database ###
+#      PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
+#      PORTAL_DB_SERVER: portalbackend_db:5433
+#      PORTAL_DB_USER: portal
+#      PORTAL_DB_PASSWORD: portalpwd
+#      ### Exareme2 ###
+#      EXAREME2_URL: http://172.17.0.1:5000
+#      ### Keycloak ###
+#      AUTHENTICATION: 0
+##      AUTHENTICATION: 1     # Should be enabled for keycloak
+#      KEYCLOAK_AUTH_URL: http://172.17.0.1/auth/
+#      KEYCLOAK_REALM: MIP
+#      KEYCLOAK_CLIENT_ID: MIP
+#      KEYCLOAK_CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
+#      KEYCLOAK_SSL_REQUIRED: none
+#    depends_on:
+#      - create_dbs
+#    volumes:
+#      - ./config:/opt/portal/api
+#    restart: unless-stopped
 
   gateway-db:
     image: postgres

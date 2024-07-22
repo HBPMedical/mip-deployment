@@ -9,9 +9,13 @@ pip install -r requirements.txt
 echo -n "Waiting for containers to start ..."
 sleep 10
 
-echo -n "Loading data into exareme2 db ..."
-docker exec dev_exareme2_mipdb_1 mipdb init
-docker exec dev_exareme2_mipdb_1 mipdb load-folder /opt/data
+echo -n "Loading data into global db ..."
+docker exec dev_exareme2_global_mipdb_1 mipdb init
+docker exec dev_exareme2_global_mipdb_1 mipdb load-folder /opt/data
+
+echo -n "Loading data into local db ..."
+docker exec dev_exareme2_local_mipdb_1 mipdb init
+docker exec dev_exareme2_local_mipdb_1 mipdb load-folder /opt/data
 
 echo -n "Waiting for exareme2 to see the data ..."
 
