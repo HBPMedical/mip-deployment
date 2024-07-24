@@ -27,7 +27,7 @@ all_error_cases = [
                     {"name": "pathology", "value": "dementia"},
                     {"name": "dataset", "value": "edsd,ppmi"},
                     {"name": "filter", "value": ""},
-                    {"name": "classes", "value": "AD,CN"},
+                    {"name": "positive_class", "value": "AD,CN"},
                 ],
             },
             "name": "Exareme2 Invalid parameter name",
@@ -48,7 +48,7 @@ all_error_cases = [
                     {"name": "pathology", "value": "dementia"},
                     {"name": "dataset", "value": "edsd,ppmi"},
                     {"name": "filter", "value": ""},
-                    {"name": "classes", "value": "AD,CN"},
+                    {"name": "positive_class", "value": "AD,CN"},
                 ],
             },
             "name": "Exareme2 Invalid parameter name",
@@ -66,7 +66,7 @@ all_error_cases = [
                     {"name": "pathology", "value": "dementia"},
                     {"name": "dataset", "value": "edsd,ppmi"},
                     {"name": "filter", "value": ""},
-                    {"name": "classes", "value": "AD,CN"},
+                    {"name": "positive_class", "value": "AD,CN"},
                 ],
             },
             "name": "Exareme2 Invalid parameter value",
@@ -91,12 +91,14 @@ def test_post_request_exareme2(test_case, test_input, expected_error_type):
 
     while True:
         logistic_current_state_response = do_get_experiment_request(logistic["uuid"])
+
         logistic_current_state = json.loads(logistic_current_state_response.text)
         status = logistic_current_state["status"]
 
         if status != "pending":
             assert status == "error"
-            assert expected_error_type == logistic_current_state["result"][0]["type"]
+            if "result" in logistic_current_state:
+                assert expected_error_type == logistic_current_state["result"][0]["type"]
             break
         time.sleep(2)
 

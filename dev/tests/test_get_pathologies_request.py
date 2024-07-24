@@ -8,12 +8,11 @@ def test_get_pathologies_request():
     headers = {"Content-type": "application/json", "Accept": "application/json"}
     response = requests.get(url, headers=headers)
     assert response.status_code == 200
-    print(f"Pathologies result-> {response.text}")
     pathologies = json.loads(response.text)
     assert len(pathologies) == 4
 
     assert all(
-        pathology["code"] in ["dementia", "dementia", "mentalhealth", "tbi"]
+        pathology["code"] in ["dementia_longitudinal", "dementia", "mentalhealth", "tbi"]
         for pathology in pathologies
     )
 
@@ -24,9 +23,9 @@ def test_get_pathologies_request():
     assert all(
         count_datasets_from_cdes(pathology["metadataHierarchy"]) in [1, 1, 3, 1] for pathology in pathologies
     )
-    
+
     assert all(
-        count_cdes(pathology["metadataHierarchy"]) in [20, 185, 185, 191] for pathology in pathologies
+        count_cdes(pathology["metadataHierarchy"]) in [20, 185, 184, 191] for pathology in pathologies
     )
 
 

@@ -144,7 +144,7 @@ all_success_cases = [
                 },
                 {
                     "name": "pathology",
-                    "value": "dementia:v1",
+                    "value": "dementia_longitudinal:v1",
                 },
                 {
                     "name": "dataset",

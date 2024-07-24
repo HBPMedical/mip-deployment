@@ -27,4 +27,10 @@ jobs:
 
       - name: Run the dev tests
         working-directory: ./dev/
-        run: bash test.sh
+        run: pytest -k "not test_federation_info.py"
+
+      - name: Run the federation info tests
+        working-directory: ./dev/
+        run: pytest tests/test_federation_info.py
+
+
