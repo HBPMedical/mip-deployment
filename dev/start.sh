@@ -10,36 +10,26 @@ echo -n "Waiting for containers to start ..."
 sleep 10
 
 echo -n "Loading data into exareme2 db ..."
-docker exec dev_exareme2_mipdb_1 mipdb init
-docker exec dev_exareme2_mipdb_1 mipdb load-folder /opt/data
+docker exec dev_exareme2_global_mipdb_1 mipdb init
+docker exec dev_exareme2_local_mipdb_1 /bin/bash -c "mipdb init && mipdb load-folder /opt/data"
 
-echo -n "Waiting for exareme2 to see the data ..."
+sleep 10
 
-counter=0
+echo -n "Triggering engine to see the added pathologies ..."
+curl -X POST 172.17.0.1:5000/wla
 
-while [ $counter -lt 20 ]
-do
-  PATHOLOGIES=$(curl -s 172.17.0.1:8080/services/pathologies)
-  if [[ "$PATHOLOGIES" == *"desd-synthdata"* &&
-        "$PATHOLOGIES" == *"ppmi"* &&
-        "$PATHOLOGIES" == *"edsd"* &&
-        "$PATHOLOGIES" == *"dementia"* &&
-        "$PATHOLOGIES" == *"demo"* &&
-        "$PATHOLOGIES" == *"dummy_tbi"*
-  ]];
-  then
-    echo "Data found!"
-    break
-  fi
-
-  echo -n "."
-  sleep 2
-  ((counter++))
-done
-
-if [ $counter -eq 20 ]; then
-    echo "Reached maximum number of attempts, data not found."
+PATHOLOGIES=$(curl -s 172.17.0.1:8080/services/pathologies)
+if [[ "$PATHOLOGIES" == *"desd-synthdata"* &&
+      "$PATHOLOGIES" == *"ppmi"* &&
+      "$PATHOLOGIES" == *"edsd"* &&
+      "$PATHOLOGIES" == *"dementia"* &&
+      "$PATHOLOGIES" == *"demo"* &&
+      "$PATHOLOGIES" == *"dummy_tbi"*
+]];
+then
+  echo "Data found!"
+  echo -e "\nEnter MIP at http://172.17.0.1/"
+else
+  echo "Data not found! Data importation failed!"
 fi
 
-
-echo -e "\nEnter MIP at http://172.17.0.1/"
