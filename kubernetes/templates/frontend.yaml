@@ -1,34 +1,4 @@
 apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: frontend-vol0
-  namespace: {{ .Values.namespace }}
-  labels:
-    storage: frontend-storage0
-  annotations:
-    config.kubernetes.io/depends-on: apps/namespaces/{{ .Values.namespace }}/PersistentVolume/portalbackend-vol0
-spec:
-  capacity:
-    storage: {{ .Values.frontend.storage.storage0.data_size }}
-  volumeMode: Filesystem
-  accessModes:
-  - ReadOnlyMany
-  persistentVolumeReclaimPolicy: Delete
-  storageClassName: ceph-corbo-cephfs
-  hostPath:
-    path: {{ .Values.frontend.storage.storage0.data_path }}
-    type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
-
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: frontend-claim0
@@ -45,34 +15,6 @@ spec:
   resources:
     requests:
       storage: {{ .Values.frontend.storage.storage0.data_size }}
-
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: frontend-vol1
-  namespace: {{ .Values.namespace }}
-  labels:
-    storage: frontend-storage1
-spec:
-  capacity:
-    storage: {{ .Values.frontend.storage.storage1.data_size }}
-  volumeMode: Filesystem
-  accessModes:
-  - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Delete
-  storageClassName: ceph-corbo-cephfs
-  hostPath:
-    path: {{ .Values.frontend.storage.storage1.data_path }}
-    type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
 
 ---
 apiVersion: v1

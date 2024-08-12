@@ -1,32 +1,4 @@
 apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: gateway-db-vol0
-  namespace: {{ .Values.namespace }}
-  labels:
-    storage: gateway-db-storage0
-spec:
-  capacity:
-    storage: {{ .Values.gateway_db.storage.storage0.data_size }}
-  volumeMode: Filesystem
-  accessModes:
-  - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Delete
-  storageClassName: ceph-corbo-cephfs
-  hostPath:
-    path: {{ .Values.gateway_db.storage.storage0.data_path }}
-    type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
-
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: gateway-db-claim0
