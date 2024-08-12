@@ -49,7 +49,7 @@ portalbackend:
   logs:
     storage0:
       data_path: /opt/mip-deployment/logs
-      data_size: 100Mi
+      data_size: 1Gi
 
 gateway_db:
   image:
