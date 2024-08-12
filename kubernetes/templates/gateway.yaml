@@ -32,7 +32,7 @@ spec:
         app: gateway
     spec:
       nodeSelector:
-        master: "true"
+        deployment: "true"
       hostname: gateway
       volumes:
       - name: gateway-db-claim0

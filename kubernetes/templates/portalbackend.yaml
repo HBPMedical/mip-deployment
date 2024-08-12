@@ -45,7 +45,7 @@ spec:
         app: portalbackend
     spec:
       nodeSelector:
-        master: "true"
+        deployment: "true"
       hostname: portalbackend
       volumes:
       - name: portalbackend-db-claim0

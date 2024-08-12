@@ -162,7 +162,7 @@ spec:
         app: keycloak
     spec:
       nodeSelector:
-        master: "true"
+        deployment: "true"
       hostname: keycloak
       volumes:
       - name: keycloak-db-claim0
