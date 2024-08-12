@@ -3,12 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: gateway-db-claim0
   namespace: {{ .Values.namespace }}
-  labels:
-    storage: gateway-db-storage0
 spec:
-  selector:
-    matchLabels:
-      storage: gateway-db-storage0
   storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadWriteOnce

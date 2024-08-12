@@ -3,12 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: frontend-claim0
   namespace: {{ .Values.namespace }}
-  labels:
-    storage: frontend-storage0
 spec:
-  selector:
-    matchLabels:
-      storage: frontend-storage0
   storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadOnlyMany
@@ -22,12 +17,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: frontend-claim1
   namespace: {{ .Values.namespace }}
-  labels:
-    storage: frontend-storage1
 spec:
-  selector:
-    matchLabels:
-      storage: frontend-storage1
   storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadWriteOnce

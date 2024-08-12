@@ -3,12 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: portalbackend-db-claim0
   namespace: {{ .Values.namespace }}
-  labels:
-    storage: portalbackend-db-storage0
 spec:
-  selector:
-    matchLabels:
-      storage: portalbackend-db-storage0
   storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadWriteOnce
@@ -21,12 +16,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: portalbackend-claim0
   namespace: {{ .Values.namespace }}
-  labels:
-    storage: portalbackend-storage0
 spec:
-  selector:
-    matchLabels:
-      storage: portalbackend-storage0
   storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadOnlyMany
