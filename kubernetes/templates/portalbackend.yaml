@@ -105,7 +105,7 @@ spec:
   volumeMode: Filesystem
   accessModes:
   - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Delete
+  persistentVolumeReclaimPolicy: Retain
   storageClassName: k8s-local-storage
   hostPath:
     path: {{ .Values.portalbackend.logs.storage0.data_path }}
