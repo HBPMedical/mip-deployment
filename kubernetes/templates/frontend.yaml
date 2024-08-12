@@ -6,7 +6,7 @@ metadata:
 spec:
   storageClassName: ceph-corbo-cephfs
   accessModes:
-  - ReadOnlyMany
+  - ReadWriteOnce
   resources:
     requests:
       storage: {{ .Values.frontend.storage.storage0.data_size }}

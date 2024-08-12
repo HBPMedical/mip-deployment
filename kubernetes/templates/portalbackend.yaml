@@ -19,7 +19,7 @@ metadata:
 spec:
   storageClassName: ceph-corbo-cephfs
   accessModes:
-  - ReadOnlyMany
+  - ReadWriteOnce
   resources:
     requests:
       storage: {{ .Values.portalbackend.storage.storage0.data_size }}
