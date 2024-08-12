@@ -12,7 +12,7 @@ spec:
   accessModes:
   - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   hostPath:
     path: {{ .Values.gateway_db.storage.storage0.data_path }}
     type: DirectoryOrCreate
@@ -37,7 +37,7 @@ spec:
   selector:
     matchLabels:
       storage: gateway-db-storage0
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadWriteOnce
   resources:

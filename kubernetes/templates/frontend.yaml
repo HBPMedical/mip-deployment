@@ -14,7 +14,7 @@ spec:
   accessModes:
   - ReadOnlyMany
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   hostPath:
     path: {{ .Values.frontend.storage.storage0.data_path }}
     type: DirectoryOrCreate
@@ -39,7 +39,7 @@ spec:
   selector:
     matchLabels:
       storage: frontend-storage0
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadOnlyMany
   resources:
@@ -61,7 +61,7 @@ spec:
   accessModes:
   - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   hostPath:
     path: {{ .Values.frontend.storage.storage1.data_path }}
     type: DirectoryOrCreate
@@ -86,7 +86,7 @@ spec:
   selector:
     matchLabels:
       storage: frontend-storage1
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadWriteOnce
   resources:

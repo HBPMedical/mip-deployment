@@ -13,7 +13,7 @@ spec:
   accessModes:
   - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   hostPath:
     path: {{ .Values.keycloak_db.storage.storage0.data_path }}
     type: DirectoryOrCreate
@@ -38,7 +38,7 @@ spec:
   selector:
     matchLabels:
       storage: keycloak-db-storage0
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadWriteOnce
   resources:
@@ -62,7 +62,7 @@ spec:
   accessModes:
   - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   hostPath:
     path: {{ .Values.keycloak.storage.storage0.data_path }}
     type: DirectoryOrCreate
@@ -87,7 +87,7 @@ spec:
   selector:
     matchLabels:
       storage: keycloak-storage0
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadWriteOnce
   resources:
@@ -109,7 +109,7 @@ spec:
   accessModes:
   - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   hostPath:
     path: {{ .Values.keycloak.storage.storage1.data_path }}
     type: DirectoryOrCreate
@@ -134,7 +134,7 @@ spec:
   selector:
     matchLabels:
       storage: keycloak-storage1
-  storageClassName: k8s-local-storage
+  storageClassName: ceph-corbo-cephfs
   accessModes:
   - ReadWriteOnce
   resources:
