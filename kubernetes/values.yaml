@@ -41,11 +41,15 @@ portalbackend:
   ALGORITHM_UPDATE_INTERVAL: 60   # seconds
   image:
     name: hbpmip/portal-backend
-    version: 8.0.4
+    version: 8.0.6
   storage:
     storage0:
       data_path: /opt/mip-deployment/config
       data_size: 100Mi
+  logs:
+    storage0:
+      data_path: /opt/mip-deployment/logs
+      data_size: 1Gi
 
 gateway_db:
   image:
