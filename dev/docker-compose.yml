@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
   exareme2_local_rabbitmq:
     image: madgik/exareme2_rabbitmq:${EXAREME2}
