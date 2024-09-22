@@ -13,6 +13,7 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
+     
   exareme2_global_rabbitmq:
     image: madgik/exareme2_rabbitmq:${EXAREME2}
     ports:
@@ -175,9 +176,11 @@ services:
       - '8080:8080'
       - '8089:8089'
     environment:
-      ### API ###
+      ### LOGGER ###
       LOG_LEVEL: INFO
       LOG_LEVEL_FRAMEWORK: INFO
+      SERVICE: portal-backend
+      FEDERATION: dementia
       ALGORITHM_UPDATE_INTERVAL: 30     # seconds
       ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
@@ -199,6 +202,10 @@ services:
     volumes:
       - ./config:/opt/portal/api
     restart: unless-stopped
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://localhost:5010"
 
   gateway-db:
     image: postgres
