@@ -13,6 +13,7 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
+     
   exareme2_global_rabbitmq:
     image: madgik/exareme2_rabbitmq:${EXAREME2}
     ports:
@@ -170,7 +171,7 @@ services:
     restart: on-failure
 
   portalbackend:
-    image: hbpmip/portal-backend:${PORTALBACKEND}
+    image: hbpmip/portal-backend:testing
     ports:
       - '8080:8080'
       - '8089:8089'
@@ -199,6 +200,11 @@ services:
     volumes:
       - ./config:/opt/portal/api
     restart: unless-stopped
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://localhost:5010"
+        tag: "portal-backend"
 
   gateway-db:
     image: postgres
@@ -292,3 +298,5 @@ services:
 #    depends_on:
 #      - keycloak_db
 #    restart: unless-stopped
+
+
