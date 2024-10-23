@@ -6,19 +6,19 @@ from sys import stdin
 import click
 
 LOG_FILE_CHUNK_SIZE = 1024  # Will read the logfile in chunks
-TIMESTAMP_REGEX = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z"  # 2022-04-13T18:25:22.875Z
+TIMESTAMP_REGEX = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}"  # 2022-04-13 18:25:22.875
 EXPERIMENT_FINISHED_PATTERN = (
-    rf"({TIMESTAMP_REGEX})  INFO .*? User -> (.*?) , Endpoint.*?Experiment finished: .*?uuid=(.*?), name.*?, status=(.*?), "
+    rf"({TIMESTAMP_REGEX}) - INFO .*? User -> (.*?) , Endpoint.*?Experiment finished: .*?uuid=(.*?), name.*?, status=(.*?), "
     rf"result.*?, finished=(.*?), algorithm=(.*?), algorithmId.*? created=(.*?), updated.*?"
 )
 USER_LOGGING_IN_PATTERN = (
-    rf"({TIMESTAMP_REGEX})  INFO .*? User -> (.*?) , Endpoint -> LOGGING IN , Info ->  User (.*?) has logged in successfully"
+    rf"({TIMESTAMP_REGEX}) - INFO .*? User -> (.*?) , Endpoint -> LOGGING IN , Info ->  User (.*?) has logged in successfully"
 )
 USER_AUTHORITY_PATTERN = (
-    rf"({TIMESTAMP_REGEX})  INFO .*? User -> (.*?) , Endpoint -> LOGGING IN , Info ->  User (.*?) has authority (.*?)"
+    rf"({TIMESTAMP_REGEX}) - INFO .*? User -> (.*?) , Endpoint -> LOGGING IN , Info ->  User (.*?) has authority (.*?)"
 )
 TRANSIENT_EXPERIMENT_PATTERN = (
-    rf"({TIMESTAMP_REGEX})  INFO .*? User -> (.*?) , Endpoint -> \(POST\) /experiments/transient , Info ->  Request for transient experiment creation\. RequestBody: (.*)"
+    rf"({TIMESTAMP_REGEX}) - INFO .*? User -> (.*?) , Endpoint -> \(POST\) /experiments/transient , Info ->  Request for transient experiment creation\. RequestBody: (.*)"
 )
 EXPERIMENT_TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
