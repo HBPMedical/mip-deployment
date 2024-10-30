@@ -58,7 +58,6 @@ services:
     volumes:
       - ../data:/opt/data
 
-
   exareme2_global_mipdb:
     image: madgik/exareme2_mipdb:${EXAREME2}
     environment:
@@ -74,11 +73,12 @@ services:
     volumes:
       - ../data:/opt/data
     environment:
+      - FEDERATION=dementia
       - WORKER_IDENTIFIER=local
       - WORKER_ROLE=LOCALWORKER
       - DATA_PATH=/opt/data
-      - LOG_LEVEL=DEBUG
-      - FRAMEWORK_LOG_LEVEL=INFO
+      - LOG_LEVEL=INFO
+      - FRAMEWORK_LOG_LEVEL=WARNING
       - CONTROLLER_IP=172.17.0.1
       - CONTROLLER_PORT=5000
       - CELERY_TASKS_TIMEOUT=20
@@ -94,17 +94,22 @@ services:
       - exareme2_local_monetdb
       - exareme2_local_rabbitmq
     restart: unless-stopped
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://localhost:5010"
 
   exareme2_global:
     image: madgik/exareme2_worker:${EXAREME2}
     volumes:
       - ../data:/opt/data
     environment:
+      - FEDERATION=dementia
       - WORKER_IDENTIFIER=global
       - WORKER_ROLE=GLOBALWORKER
       - DATA_PATH=/opt/data
-      - LOG_LEVEL=DEBUG
-      - FRAMEWORK_LOG_LEVEL=INFO
+      - LOG_LEVEL=INFO
+      - FRAMEWORK_LOG_LEVEL=WARNING
       - CONTROLLER_IP=172.17.0.1
       - CONTROLLER_PORT=5000
       - CELERY_TASKS_TIMEOUT=20
@@ -120,14 +125,20 @@ services:
       - exareme2_global_monetdb
       - exareme2_global_rabbitmq
     restart: unless-stopped
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://localhost:5010"
 
   exareme2_controller:
     image: madgik/exareme2_controller:${EXAREME2}
     ports:
       - '5000:5000'
     environment:
-      - LOG_LEVEL=DEBUG
-      - FRAMEWORK_LOG_LEVEL=INFO
+      - FEDERATION=dementia
+      - NODE_IDENTIFIER=controller
+      - LOG_LEVEL=INFO
+      - FRAMEWORK_LOG_LEVEL=WARNING
       - DEPLOYMENT_TYPE=LOCAL
       - FLOWER_EXECUTION_TIMEOUT=30
       - WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL=500
@@ -142,6 +153,10 @@ services:
     volumes:
       - ./config/:/opt/config/
     restart: unless-stopped
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://localhost:5010"
 
   portalbackend_db:
     image: postgres:11.20-alpine
@@ -175,7 +190,7 @@ services:
       - '8080:8080'
       - '8089:8089'
     environment:
-      ### API ###
+      ### LOGGER ###
       LOG_LEVEL: INFO
       LOG_LEVEL_FRAMEWORK: INFO
       ALGORITHM_UPDATE_INTERVAL: 30     # seconds
@@ -199,6 +214,10 @@ services:
     volumes:
       - ./config:/opt/portal/api
     restart: unless-stopped
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://localhost:5010"
 
   gateway-db:
     image: postgres

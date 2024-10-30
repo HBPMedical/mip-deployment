@@ -29,7 +29,7 @@ services:
     ports:
       - "5044:5044"
       - "9600:9600"
-      - "5010:5010/udp"
+      - "5010:5010/tcp"
     networks:
       - elk
     depends_on:
