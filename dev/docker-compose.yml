@@ -94,10 +94,10 @@ services:
       - exareme2_local_monetdb
       - exareme2_local_rabbitmq
     restart: unless-stopped
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "tcp://localhost:5010"
+#    logging:   # Used for sending logs to ELK
+#      driver: "syslog"
+#      options:
+#        syslog-address: "tcp://localhost:5010"
 
   exareme2_global:
     image: madgik/exareme2_worker:${EXAREME2}
@@ -125,10 +125,10 @@ services:
       - exareme2_global_monetdb
       - exareme2_global_rabbitmq
     restart: unless-stopped
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "tcp://localhost:5010"
+#    logging:   # Used for sending logs to ELK
+#      driver: "syslog"
+#      options:
+#        syslog-address: "tcp://localhost:5010"
 
   exareme2_controller:
     image: madgik/exareme2_controller:${EXAREME2}
@@ -153,10 +153,10 @@ services:
     volumes:
       - ./config/:/opt/config/
     restart: unless-stopped
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "tcp://localhost:5010"
+#    logging:   # Used for sending logs to ELK
+#      driver: "syslog"
+#      options:
+#        syslog-address: "tcp://localhost:5010"
 
   portalbackend_db:
     image: postgres:11.20-alpine
@@ -214,10 +214,10 @@ services:
     volumes:
       - ./config:/opt/portal/api
     restart: unless-stopped
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "tcp://localhost:5010"
+#    logging:   # Used for sending logs to ELK
+#      driver: "syslog"
+#      options:
+#        syslog-address: "tcp://localhost:5010"
 
   gateway-db:
     image: postgres
