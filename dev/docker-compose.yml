@@ -13,6 +13,7 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
+
   exareme2_global_rabbitmq:
     image: madgik/exareme2_rabbitmq:${EXAREME2}
     ports:
@@ -193,13 +194,14 @@ services:
       ### LOGGER ###
       LOG_LEVEL: INFO
       LOG_LEVEL_FRAMEWORK: INFO
-      ALGORITHM_UPDATE_INTERVAL: 30     # seconds
+      FEDERATION: dementia
       ### Database ###
       PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
       PORTAL_DB_SERVER: portalbackend_db:5433
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
       ### Exareme2 ###
+      ALGORITHM_UPDATE_INTERVAL: 30     # seconds
       EXAREME2_URL: http://172.17.0.1:5000
       ### Keycloak ###
       AUTHENTICATION: 0
@@ -311,3 +313,4 @@ services:
 #    depends_on:
 #      - keycloak_db
 #    restart: unless-stopped
+
