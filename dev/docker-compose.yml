@@ -236,53 +236,6 @@ services:
     expose:
       - 5432
 
-  gateway:
-    image: hbpmip/gateway:${GATEWAY}
-    environment:
-      - DB_HOST=gateway-db
-      - ENGINE_TYPE=exareme
-      - ENGINE_BASE_URL=http://172.17.0.1:8080/services/
-      - AUTH_SKIP=true
-      - AUTH_ENABLE_SSO=false
-      #      - AUTH_ENABLE_SSO=true         # Should be enabled for Keycloak
-      - BASE_URL_CONTEXT=services
-      - GATEWAY_PORT=8081
-      - CACHE_ENABLED=false
-      - NODE_ENV=development
-    links:
-      - gateway-db
-    depends_on:
-      - gateway-db
-    expose:
-      - '8081'
-    restart: unless-stopped
-
-  frontend:
-    image: hbpmip/portal-frontend:${FRONTEND}
-    depends_on:
-      - gateway
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ../config/caddy/Caddyfile:/etc/caddy/Caddyfile
-      - ./.stored_data/caddy/caddy_data:/data
-    environment:
-      INSTANCE_NAME: 'MIP ${MIP}'
-      VERSION: 'Frontend: ${FRONTEND}, Gateway: ${GATEWAY}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME2}'
-      ERROR_LOG_LEVEL: info
-      PORTAL_BACKEND_SERVER: 172.17.0.1:8080
-      PORTAL_BACKEND_CONTEXT: services
-      GATEWAY_SERVER: gateway:8081
-      PUBLIC_MIP_HOST: 172.17.0.1
-      PUBLIC_MIP_PROTOCOL: http
-      EXTERNAL_MIP_PROTOCOL: http
-      KEYCLOAK_HOST: http://keycloak:8095
-      KEYCLOAK_AUTH_PATH: /auth
-      PORTALBACKEND_AUTH_URL: /oauth2/authorization/keycloak
-      MIP_LINK: direct
-    restart: unless-stopped
-
 #  keycloak_db:
 #    image: postgres:12.2
 #    volumes:
@@ -318,4 +271,3 @@ services:
 #    depends_on:
 #      - keycloak_db
 #    restart: unless-stopped
-
