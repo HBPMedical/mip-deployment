@@ -45,8 +45,6 @@ spec:
       labels:
         app: frontend
     spec:
-      nodeSelector:
-        deployment: "true"
       volumes:
       - name: frontend-claim0
         persistentVolumeClaim:

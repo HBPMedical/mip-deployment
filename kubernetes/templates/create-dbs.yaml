@@ -13,8 +13,6 @@ spec:
   #ttlSecondsAfterFinished: 30
   template:
     spec:
-      nodeSelector:
-        deployment: "true"
       restartPolicy: OnFailure
       containers:
       - name: create-dbs

@@ -17,14 +17,6 @@ spec:
   hostPath:
     path: {{ .Values.keycloak_db.storage.storage0.data_path }}
     type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
 
 ---
 apiVersion: v1
@@ -66,14 +58,6 @@ spec:
   hostPath:
     path: {{ .Values.keycloak.storage.storage0.data_path }}
     type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
 
 ---
 apiVersion: v1
@@ -113,14 +97,6 @@ spec:
   hostPath:
     path: {{ .Values.keycloak.storage.storage1.data_path }}
     type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
 
 ---
 apiVersion: v1
@@ -161,8 +137,6 @@ spec:
       labels:
         app: keycloak
     spec:
-      nodeSelector:
-        deployment: "true"
       hostname: keycloak
       volumes:
       - name: keycloak-db-claim0

@@ -31,8 +31,6 @@ spec:
       labels:
         app: gateway
     spec:
-      nodeSelector:
-        deployment: "true"
       hostname: gateway
       volumes:
       - name: gateway-db-claim0
