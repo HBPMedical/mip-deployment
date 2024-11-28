@@ -30,6 +30,7 @@ services:
       - "5044:5044"
       - "9600:9600"
       - "5010:5010/tcp"
+      - "5020:5020/tcp"
     networks:
       - elk
     depends_on:
