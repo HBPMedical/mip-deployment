@@ -6,7 +6,7 @@ engines:
   exareme2:
     URL: ""
     image:
-      version: 0.21.2
+      version: 0.23.1
 
 mip:
   version: 8.0.0
@@ -41,7 +41,7 @@ portalbackend:
   ALGORITHM_UPDATE_INTERVAL: 60   # seconds
   image:
     name: hbpmip/portal-backend
-    version: 8.0.6
+    version: 8.1.1
   storage:
     storage0:
       data_path: /opt/mip-deployment/config
@@ -118,3 +118,8 @@ keycloak:
     storage1:
       data_path: /opt/mip-deployment/config/keycloak/HBPTheme
       data_size: 100Mi
+
+elk:
+  enabled: false
+  logstash_host: 127.0.0.1
+  logstash_port: 30510
