@@ -98,7 +98,7 @@ services:
 #    logging:   # Used for sending logs to ELK
 #      driver: "syslog"
 #      options:
-#        syslog-address: "tcp://localhost:5020"
+#        syslog-address: "tcp://192.168.38.128:30520"
 
   exareme2_global:
     image: madgik/exareme2_worker:${EXAREME2}
@@ -129,7 +129,7 @@ services:
 #    logging:   # Used for sending logs to ELK
 #      driver: "syslog"
 #      options:
-#        syslog-address: "tcp://localhost:5020"
+#        syslog-address: "tcp://192.168.38.128:30520"
 
   exareme2_controller:
     image: madgik/exareme2_controller:${EXAREME2}
@@ -157,7 +157,7 @@ services:
 #    logging:   # Used for sending logs to ELK
 #      driver: "syslog"
 #      options:
-#        syslog-address: "tcp://localhost:5020"
+#        syslog-address: "tcp://192.168.38.128:30520"
 
   portalbackend_db:
     image: postgres:11.20-alpine
@@ -219,7 +219,7 @@ services:
 #    logging:   # Used for sending logs to ELK
 #      driver: "syslog"
 #      options:
-#        syslog-address: "tcp://localhost:5020"
+#        syslog-address: "tcp://192.168.38.128:30520"
 
   gateway-db:
     image: postgres
