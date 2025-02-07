@@ -77,7 +77,7 @@ For each of them, you have four different profiles:
 In each of these profile configuration files, there are different settings already filled (which you may want to change) to cover most of the use cases, and others (between **<>**), which are required to be filled.
 
 The following picture describes the different ways of reaching the MIP, and these specific required fields are present on it.
-![MIP Reachability Scheme](../doc/MIP_Configuration.png)
+![MIP Reachability Scheme](../../doc/MIP_Configuration.png)
 
 ### MACHINE_MAIN_IP
 This is the machine's main IP address. Generally, it's the IP address of the first NIC after the local one.  
