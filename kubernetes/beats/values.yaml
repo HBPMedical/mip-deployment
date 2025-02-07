@@ -1,0 +1,15 @@
+namespace: beats
+
+elk_version: 8.17.0
+
+elasticsearch:
+  host: https://192.168.38.128:31001
+  username: beats_writer
+  password: changeme
+  verification_mode: none  # 'full' or 'none' for local deployment 
+
+filebeat:
+  enabled: true
+
+metricbeat:
+  enabled: true
