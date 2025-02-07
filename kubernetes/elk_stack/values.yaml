@@ -1,0 +1,68 @@
+namespace: elk
+
+elk_version: 8.17.0
+
+# Security Enabled:
+certs_loaded_as_secrets: true
+
+elasticsearch:
+  java_opts: '-Xms1g -Xmx1g'    # Define memory for Elasticsearch JVM
+  storage:
+    data_path: /opt/mip-deployment/.stored_data/elasticsearch/data
+    data_size: 10Gi
+    config_path: /opt/mip-deployment/.stored_data/elasticsearch/config
+    config_size: 100Mi
+  certs_storage_path: /usr/share/elasticsearch/config/certs/
+  config:
+    cluster.name: "k8s-cluster"
+    network.host: 0.0.0.0
+    xpack.security.enabled: true
+    xpack.security.transport.ssl.enabled: false
+    xpack.security.http.ssl.enabled: true
+    xpack.security.http.ssl.key: /usr/share/elasticsearch/config/certs/tls.key
+    xpack.security.http.ssl.certificate: /usr/share/elasticsearch/config/certs/tls.crt
+    xpack.security.http.ssl.certificate_authorities: /usr/share/elasticsearch/config/certs/ca.crt
+  #   # Used for keycloak authentication
+  #   xpack.security.authc.realms.oidc.oidc1.order: 2
+  #   xpack.security.authc.realms.oidc.oidc1.rp.client_id: "datacatalogue"
+  #   xpack.security.authc.realms.oidc.oidc1.rp.response_type: "code"
+  #   xpack.security.authc.realms.oidc.oidc1.rp.redirect_uri: "https://127.0.0.1:5601/api/security/oidc/callback"
+  #   xpack.security.authc.realms.oidc.oidc1.rp.post_logout_redirect_uri: "https://kibana.example.com/logged_out"
+  #   xpack.security.authc.realms.oidc.oidc1.op.issuer: "https://iam.ebrains.eu/auth/realms/MIP"
+  #   xpack.security.authc.realms.oidc.oidc1.op.authorization_endpoint: "https://iam.ebrains.eu/auth/realms/MIP/protocol/openid-connect/auth"
+  #   xpack.security.authc.realms.oidc.oidc1.op.token_endpoint: "https://iam.ebrains.eu/auth/realms/MIP/protocol/openid-connect/token"
+  #   xpack.security.authc.realms.oidc.oidc1.op.userinfo_endpoint: "https://iam.ebrains.eu/auth/realms/MIP/protocol/openid-connect/userinfo"
+  #   xpack.security.authc.realms.oidc.oidc1.op.jwkset_path: "https://iam.ebrains.eu/auth/realms/MIP/protocol/openid-connect/certs"
+  #   xpack.security.authc.realms.oidc.oidc1.claims.principal: "email"
+  #   xpack.security.authc.realms.oidc.oidc1.claims.mail: "email"
+  #   xpack.security.authc.realms.oidc.oidc1.claims.name: "name"
+  #   xpack.security.authc.realms.oidc.oidc1.claims.groups: "mip_eck"
+  # keycloak_client_secret: "aQG4C7Ao22ll6zGfdut3uLVvHJdVl9et"
+
+kibana:
+  certs_storage_path: /usr/share/kibana/config/certs/
+  config:
+    elasticsearch.username: "kibana_system"
+    elasticsearch.password: "kibanapassword"
+    elasticsearch.hosts: https://elasticsearch:9200
+    elasticsearch.ssl.certificateAuthorities: /usr/share/kibana/config/certs/ca.crt
+    elasticsearch.ssl.verificationMode: certificate
+    server.host: 0.0.0.0
+    server.shutdownTimeout: 5s
+    server.ssl.enabled: true
+    server.ssl.key: /usr/share/kibana/config/certs/tls.key
+    server.ssl.certificate: /usr/share/kibana/config/certs/tls.crt
+    monitoring.ui.container.elasticsearch.enabled: true
+    # # Used for keycloak authentication
+    # xpack.security.authc.providers.oidc.oidc1.order: 0
+    # xpack.security.authc.providers.oidc.oidc1.realm: "oidc1"
+    # xpack.security.authc.providers.oidc.oidc1.description: "Login with EBRAINS account"
+    # xpack.security.authc.providers.basic.basic1.order: 1
+
+logstash:
+  enabled: false
+  security:
+    enabled: false
+  expose_monitoring_port: false   # Expose only for monitoring Logstash performance
+  k8s_logs_consumer_port: 30510
+  docker_logs_consumer_port: 30520

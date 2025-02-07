@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: {{ .Values.namespace }}
+data:
+  kibana.yml: |
+    {{- range $key, $value := .Values.kibana.config }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:{{ .Values.elk_version }}
+        ports:
+        - containerPort: 5601
+        volumeMounts:
+        - name: kibana-config
+          mountPath: /usr/share/kibana/config/
+        {{- if .Values.certs_loaded_as_secrets }}
+        - name: kibana-certs
+          mountPath: {{ .Values.kibana.certs_storage_path }}
+          readOnly: true
+        {{- end}}
+      volumes:
+      - name: kibana-config
+        configMap:
+          name: kibana-config
+          items:
+          - key: "kibana.yml"
+            path: "kibana.yml"
+      {{- if .Values.certs_loaded_as_secrets }}
+      - name: kibana-certs
+        secret:
+          secretName: kibana-certs
+      {{- end}}      
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: {{ .Values.namespace }}
+spec:
+  type: LoadBalancer
+  selector:
+    app: kibana
+  ports:
+  - protocol: TCP
+    port: 5601
+    targetPort: 5601
+    nodePort: 31000

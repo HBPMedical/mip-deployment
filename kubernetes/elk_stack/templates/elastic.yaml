@@ -1,0 +1,223 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: elasticsearch-data-vol
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: elasticsearch-data
+spec:
+  capacity:
+    storage: {{ .Values.elasticsearch.storage.data_size }}
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: k8s-local-storage
+  hostPath:
+    path: {{ .Values.elasticsearch.storage.data_path }}
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: master
+          operator: In
+          values:
+          - "true"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-data-claim
+  namespace: {{ .Values.namespace }}
+  labels:
+    storage: elasticsearch-data
+spec:
+  selector:
+    matchLabels:
+      storage: elasticsearch-data
+  storageClassName: k8s-local-storage
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.elasticsearch.storage.data_size }}
+
+---
+
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: elasticsearch-config-vol
+#   namespace: {{ .Values.namespace }}
+#   labels:
+#     storage: elasticsearch-config
+# spec:
+#   capacity:
+#     storage: {{ .Values.elasticsearch.storage.config_size }}
+#   volumeMode: Filesystem
+#   accessModes:
+#   - ReadWriteOnce
+#   persistentVolumeReclaimPolicy: Retain
+#   storageClassName: k8s-local-storage
+#   hostPath:
+#     path: {{ .Values.elasticsearch.storage.config_path }}
+#     type: DirectoryOrCreate
+#   nodeAffinity:
+#     required:
+#       nodeSelectorTerms:
+#       - matchExpressions:
+#         - key: master
+#           operator: In
+#           values:
+#           - "true"
+
+# ---
+
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: elasticsearch-config-claim
+#   namespace: {{ .Values.namespace }}
+#   labels:
+#     storage: elasticsearch-config
+# spec:
+#   selector:
+#     matchLabels:
+#       storage: elasticsearch-config
+#   storageClassName: k8s-local-storage
+#   accessModes:
+#   - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: {{ .Values.elasticsearch.storage.config_size }}
+# 
+# ---
+# 
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: oidc-client-secret
+#   namespace: {{ .Values.namespace }}
+# type: Opaque
+# stringData:
+#   xpack.security.authc.realms.oidc.oidc1.rp.client_secret: {{ .Values.elasticsearch.keycloak_client_secret | default "1234" }}
+# 
+# ---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-config-yml
+  namespace: {{ .Values.namespace }}
+data:
+  elasticsearch.yml: |
+    {{- range $key, $value := .Values.elasticsearch.config }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      initContainers:
+        - name: fix-permissions-data
+          image: busybox
+          securityContext:
+            runAsUser: 0  # Run as root to ensure permissions are changed correctly
+          command:
+            - "sh"
+            - "-c"
+            - "chown -R 1000:1000 /usr/share/elasticsearch/data && chmod -R 775 /usr/share/elasticsearch/data"
+          volumeMounts:
+            - name: elasticsearch-data
+              mountPath: /usr/share/elasticsearch/data
+
+        # - name: setup-oidc-client-secret
+        #   image: docker.elastic.co/elasticsearch/elasticsearch:{{ .Values.elk_version }}
+        #   command: ["/bin/sh", "-c"]
+        #   args:
+        #     - |
+        #       echo "Initializing Elasticsearch keystore..."
+        #       echo "$OIDC_CLIENT_SECRET" | /usr/share/elasticsearch/bin/elasticsearch-keystore add -f --stdin xpack.security.authc.realms.oidc.oidc1.rp.client_secret
+        #   env:
+        #   - name: OIDC_CLIENT_SECRET
+        #     valueFrom:
+        #       secretKeyRef:
+        #         name: oidc-client-secret
+        #         key: xpack.security.authc.realms.oidc.oidc1.rp.client_secret
+        #   volumeMounts:
+        #   - name: elasticsearch-config
+        #     mountPath: /usr/share/elasticsearch/config/
+
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:{{ .Values.elk_version }}
+        ports:
+        - containerPort: 9200
+        env:
+        - name: discovery.type
+          value: single-node
+        - name: ES_JAVA_OPTS
+          value: {{ .Values.elasticsearch.java_opts }}
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+        - name: elasticsearch-config-yml
+          mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          subPath: elasticsearch.yml
+        # - name: elasticsearch-config
+        #   mountPath: /usr/share/elasticsearch/config/elasticsearch.keystore
+        #   subPath: elasticsearch.keystore
+        {{- if .Values.certs_loaded_as_secrets }}
+        - name: elasticsearch-certs
+          mountPath: {{ .Values.elasticsearch.certs_storage_path }}
+          readOnly: true
+        {{- end }}
+      
+      volumes:
+      - name: elasticsearch-data
+        persistentVolumeClaim:
+          claimName: elasticsearch-data-claim
+      - name: elasticsearch-config-yml
+        configMap:
+          name: elasticsearch-config-yml
+      # - name: elasticsearch-config
+      #   emptyDir: {}
+      {{- if .Values.certs_loaded_as_secrets }}
+      - name: elasticsearch-certs
+        secret:
+          secretName: elasticsearch-certs
+      {{- end }}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: {{ .Values.namespace }}
+spec:
+  type: LoadBalancer
+  selector:
+    app: elasticsearch
+  ports:
+  - port: 9200
+    targetPort: 9200
+    nodePort: 31001
