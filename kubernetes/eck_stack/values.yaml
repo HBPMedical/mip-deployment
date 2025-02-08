@@ -1,0 +1,5 @@
+version: "8.17.0"
+namespace: "eck"
+
+logstash:
+  enabled: false

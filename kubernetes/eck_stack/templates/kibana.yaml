@@ -1,0 +1,21 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: kibana
+  namespace: {{ .Values.namespace }}
+spec:
+  version: {{ .Values.version }}
+  count: 1
+  elasticsearchRef:
+    name: elasticsearch
+    
+  # Authentication with Keycloak requires a paid license
+  # config:
+  #   xpack.security.authc.providers:
+  #     oidc.oidc1:
+  #       order: 0
+  #       realm: "oidc1"
+  #       description: "Login with EBRAINS account"
+
+  #     basic.basic1:
+  #       order: 1
