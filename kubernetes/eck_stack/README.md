@@ -5,7 +5,10 @@ kubectl create -f https://download.elastic.co/downloads/eck/2.12.0/crds.yaml
 kubectl apply -f https://download.elastic.co/downloads/eck/2.12.0/operator.yaml
 
 
-#### REPLACE WITH HELM
+#### Enable microk8s hostpath-storage
+microk8s enable hostpath-storage
+
+#### Deploy ECK
 
 helm install eck .
 
