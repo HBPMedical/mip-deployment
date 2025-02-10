@@ -10,6 +10,15 @@ spec:
       count: 1
       config:
         node.store.allow_mmap: false
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes: [ "ReadWriteOnce" ]
+            resources:
+              requests:
+                storage: 20Gi  # Adjust based on your needs
+            storageClassName: {{ .Values.storageClass | default "standard" }}
         
   # Authentication with Keycloak requires a paid license
   # secureSettings:
