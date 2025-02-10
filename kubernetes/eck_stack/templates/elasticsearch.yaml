@@ -17,8 +17,8 @@ spec:
             accessModes: [ "ReadWriteOnce" ]
             resources:
               requests:
-                storage: 20Gi  # Adjust based on your needs
-            storageClassName: {{ .Values.storageClass | default "microk8s-hostpath" }}
+                storage: {{ .Values.elasticsearch.storage_size }}
+            storageClassName: {{ .Values.storageClass }}
         
   # Authentication with Keycloak requires a paid license
   # secureSettings:
@@ -41,10 +41,8 @@ spec:
   #     claims.name: "name"
   #     claims.groups: "mip_eck"
 
---- 
+---  
 
-
----
 
 apiVersion: v1
 kind: Service
@@ -54,7 +52,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: elasticsearch
+    elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
   ports:
     - protocol: TCP
       port: 9200

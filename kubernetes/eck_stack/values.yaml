@@ -1,5 +1,10 @@
-version: "8.17.0"
-namespace: "eck"
+version: 8.17.0
+namespace: eck
+
+storageClass: microk8s-hostpath
+
+elasticsearch:
+  storage_size: 20Gi
 
 logstash:
   enabled: false
