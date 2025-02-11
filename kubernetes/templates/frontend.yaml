@@ -9,14 +9,14 @@ metadata:
     config.kubernetes.io/depends-on: apps/namespaces/{{ .Values.namespace }}/PersistentVolume/portalbackend-vol0
 spec:
   capacity:
-    storage: {{ .Values.frontend.storage.storage0.data_size }}
+    storage: {{ .Values.frontend.storage.storage.data_size }}
   volumeMode: Filesystem
   accessModes:
   - ReadOnlyMany
   persistentVolumeReclaimPolicy: Delete
   storageClassName: k8s-local-storage
   hostPath:
-    path: {{ .Values.frontend.storage.storage0.data_path }}
+    path: {{ .Values.frontend.storage.storage.data_path }}
     type: DirectoryOrCreate
   nodeAffinity:
     required:
@@ -26,25 +26,6 @@ spec:
           operator: In
           values:
           - "true"
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: frontend-claim0
-  namespace: {{ .Values.namespace }}
-  labels:
-    storage: frontend-storage0
-spec:
-  selector:
-    matchLabels:
-      storage: frontend-storage0
-  storageClassName: k8s-local-storage
-  accessModes:
-  - ReadOnlyMany
-  resources:
-    requests:
-      storage: {{ .Values.frontend.storage.storage0.data_size }}
 
 ---
 apiVersion: v1
@@ -53,17 +34,17 @@ metadata:
   name: frontend-vol1
   namespace: {{ .Values.namespace }}
   labels:
-    storage: frontend-storage1
+    storage: frontend-storage
 spec:
   capacity:
-    storage: {{ .Values.frontend.storage.storage1.data_size }}
+    storage: {{ .Values.frontend.storage.storage.data_size }}
   volumeMode: Filesystem
   accessModes:
   - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
   storageClassName: k8s-local-storage
   hostPath:
-    path: {{ .Values.frontend.storage.storage1.data_path }}
+    path: {{ .Values.frontend.storage.storage.data_path }}
     type: DirectoryOrCreate
   nodeAffinity:
     required:
@@ -78,20 +59,20 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: frontend-claim1
+  name: frontend-claim
   namespace: {{ .Values.namespace }}
   labels:
-    storage: frontend-storage1
+    storage: frontend-storage
 spec:
   selector:
     matchLabels:
-      storage: frontend-storage1
+      storage: frontend-storage
   storageClassName: k8s-local-storage
   accessModes:
   - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.frontend.storage.storage1.data_size }}
+      storage: {{ .Values.frontend.storage.storage.data_size }}
 
 ---
 apiVersion: apps/v1
@@ -116,12 +97,9 @@ spec:
       nodeSelector:
         master: "true"
       volumes:
-      - name: frontend-claim0
+      - name: frontend-claim
         persistentVolumeClaim:
-          claimName: frontend-claim0
-      - name: frontend-claim1
-        persistentVolumeClaim:
-          claimName: frontend-claim1
+          claimName: frontend-claim
       containers:
       - name: frontend
         image: {{ .Values.frontend.image.name }}:{{ .Values.frontend.image.version }}
@@ -129,9 +107,7 @@ spec:
         - containerPort: 80
         - containerPort: 443
         volumeMounts:
-        - name: frontend-claim0
-          mountPath: /etc/caddy
-        - name: frontend-claim1
+        - name: frontend-claim
           mountPath: /data
         env:
         - name: ERROR_LOG_LEVEL

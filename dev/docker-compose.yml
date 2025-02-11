@@ -260,7 +260,6 @@ services:
       - '80:80'
       - '443:443'
     volumes:
-      - ../config/caddy/Caddyfile:/etc/caddy/Caddyfile
       - ./.stored_data/caddy/caddy_data:/data
     environment:
       INSTANCE_NAME: 'MIP ${MIP}'
@@ -313,4 +312,3 @@ services:
 #    depends_on:
 #      - keycloak_db
 #    restart: unless-stopped
-
