@@ -210,56 +210,54 @@ spec:
             configMapKeyRef:
               name: mip-config
               key: portalbackend.LOG_LEVEL_FRAMEWORK
-        - name: AUTHENTICATION
+        - name: AUTHENTICATION_ENABLED
           valueFrom:
             configMapKeyRef:
               name: mip-config
               key: keycloak.AUTHENTICATION
-        - name: PORTAL_DB_URL
+        - name: SPRING_DATASOURCE_URL
           value: jdbc:postgresql://localhost:5432/portal
-        - name: PORTAL_DB_SERVER
-          value: localhost:5432
-        - name: PORTAL_DB_USER
+        - name: SPRING_DATASOURCE_USERNAME
           valueFrom:
             secretKeyRef:
               name: mip-secret
               key: portalbackend-db.PORTAL_DB_USER
-        - name: PORTAL_DB_PASSWORD
+        - name: SPRING_DATASOURCE_PASSWORD
           valueFrom:
             secretKeyRef:
               name: mip-secret
               key: portalbackend-db.PORTAL_DB_PASSWORD
-        - name: EXAREME2_URL
+        - name: SERVICES_EXAREME2_ALGORITHMSURL
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: engines.exareme2.URL
-        - name: KEYCLOAK_AUTH_URL
+              key: engines.exareme2.ALGORITHMSURL
+        - name: SERVICES_EXAREME2_ATTRIBUTESURL
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: keycloak.AUTH_URL
-        - name: KEYCLOAK_REALM
+              key: engines.exareme2.ATTRIBUTESURL
+        - name: SERVICES_EXAREME2_CDESMETADATAURL
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: keycloak.REALM
-        - name: KEYCLOAK_CLIENT_ID
+              key: engines.exareme2.CDESMETADATAURL
+        - name: SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_ISSUER_URI
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: keycloak.ISSUER_URI
+        - name: SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_ID
           valueFrom:
             configMapKeyRef:
               name: mip-config
               key: keycloak.CLIENT_ID
-        - name: KEYCLOAK_CLIENT_SECRET
+        - name: SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET
           valueFrom:
             configMapKeyRef:
               name: mip-config
               key: keycloak.CLIENT_SECRET
-#        - name: KEYCLOAK_SSL_REQUIRED
-#          valueFrom:
-#            configMapKeyRef:
-#              name: mip-config
-#              key: keycloak.SSL_REQUIRED
-        - name: ALGORITHM_UPDATE_INTERVAL
+        - name: SERVICES_ALGORITHMS_UPDATE_INTERVAL
           valueFrom:
             configMapKeyRef:
               name: mip-config

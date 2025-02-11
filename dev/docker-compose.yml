@@ -194,23 +194,22 @@ services:
       ### LOGGER ###
       LOG_LEVEL: INFO
       LOG_LEVEL_FRAMEWORK: INFO
-      FEDERATION: dementia
       ### Database ###
-      PORTAL_DB_URL: jdbc:postgresql://portalbackend_db:5433/portal
-      PORTAL_DB_SERVER: portalbackend_db:5433
-      PORTAL_DB_USER: portal
-      PORTAL_DB_PASSWORD: portalpwd
+      SPRING_DATASOURCE_URL: jdbc:postgresql://portalbackend_db:5433/portal
+      SPRING_DATASOURCE_USERNAME: portal
+      SPRING_DATASOURCE_PASSWORD: portalpwd
       ### Exareme2 ###
-      ALGORITHM_UPDATE_INTERVAL: 30     # seconds
-      EXAREME2_URL: http://172.17.0.1:5000
+      SERVICES_ALGORITHMS_UPDATE_INTERVAL: 30     # seconds
+      SERVICES_EXAREME2_ALGORITHMSURL: http://172.17.0.1:5000/algorithms
+      SERVICES_EXAREME2_ATTRIBUTESURL: http://172.17.0.1:5000/data_models_attributes
+      SERVICES_EXAREME2_CDESMETADATAURL: http://172.17.0.1:5000/cdes_metadata
+
       ### Keycloak ###
-      AUTHENTICATION: 0
-#      AUTHENTICATION: 1     # Should be enabled for keycloak
-      KEYCLOAK_AUTH_URL: http://172.17.0.1/auth/
-      KEYCLOAK_REALM: MIP
-      KEYCLOAK_CLIENT_ID: MIP
-      KEYCLOAK_CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
-      KEYCLOAK_SSL_REQUIRED: none
+      AUTHENTICATION_ENABLED: 0
+#      AUTHENTICATION_ENABLED: 1     # Should be enabled for keycloak
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_ID: MIP
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_ISSUER_URI: http://172.17.0.1/auth/realms/MIP
     depends_on:
       - create_dbs
     volumes:
@@ -260,7 +259,6 @@ services:
       - '80:80'
       - '443:443'
     volumes:
-      - ../config/caddy/Caddyfile:/etc/caddy/Caddyfile
       - ./.stored_data/caddy/caddy_data:/data
     environment:
       INSTANCE_NAME: 'MIP ${MIP}'
@@ -313,4 +311,3 @@ services:
 #    depends_on:
 #      - keycloak_db
 #    restart: unless-stopped
-

@@ -4,7 +4,10 @@ metadata:
   name: mip-config
   namespace: {{ .Values.namespace }}
 data:
-  engines.exareme2.URL: {{ .Values.engines.exareme2.URL }}
+  engines.exareme2.ALGORITHMSURL: {{ .Values.engines.exareme2.URL }}/algorithms
+  engines.exareme2.ATTRIBUTESURL: {{ .Values.engines.exareme2.URL }}/data_models_attributes
+  engines.exareme2.CDESMETADATAURL: {{ .Values.engines.exareme2.URL }}/cdes_metadata
+
 
   mip.INSTANCE_NAME: "{{ tpl .Values.mip.NAME . }}"
   mip.INSTANCE_VERSION: "{{ tpl .Values.mip.VERSION_STRING . }}"
@@ -36,5 +39,5 @@ data:
   keycloak.REALM: {{ .Values.keycloak.REALM }}
   keycloak.CLIENT_ID: {{ .Values.keycloak.CLIENT_ID }}
   keycloak.CLIENT_SECRET: {{ .Values.keycloak.CLIENT_SECRET }}
-  keycloak.SSL_REQUIRED: {{ .Values.keycloak.SSL_REQUIRED }}
+  keycloak.ISSUER_URI: {{ .Values.keycloak.PROTOCOL }}realms/{{ .Values.keycloak.REALM }}
   keycloak.PROXY_ADDRESS_FORWARDING: "{{ .Values.keycloak.PROXY_ADDRESS_FORWARDING }}"
