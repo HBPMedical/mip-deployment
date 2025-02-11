@@ -9,7 +9,7 @@ metadata:
     config.kubernetes.io/depends-on: apps/namespaces/{{ .Values.namespace }}/PersistentVolume/portalbackend-vol0
 spec:
   capacity:
-    storage: {{ .Values.frontend.storage.storage0.data_size }}
+    storage: {{ .Values.frontend.storage.storage.data_size }}
   volumeMode: Filesystem
   accessModes:
   - ReadOnlyMany
