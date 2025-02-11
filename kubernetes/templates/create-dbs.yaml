@@ -21,7 +21,7 @@ spec:
         image: {{ .Values.create_dbs.image.name }}:{{ .Values.create_dbs.image.version }}
         env:
         - name: DB_HOST
-          value: portalbackend-service
+          value: portalbackend-service.{{ .Values.namespace }}.svc.cluster.local
         - name: DB_PORT
           value: "5432"
         - name: DB_ADMIN_USER
