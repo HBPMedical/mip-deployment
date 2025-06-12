@@ -8,7 +8,7 @@ sleep 10
 
 echo -n "Loading data into exareme2 db ..."
 docker exec dev-exareme2_global_mipdb-1 mipdb init
-docker exec dev-exareme2_local_mipdb-1 /bin/bash -c "mipdb init && mipdb load-folder /opt/data"
+docker exec dev-exareme2_local_mipdb-1 /bin/bash -c "mipdb init && mipdb load-folder /opt/data/dementia"
 
 sleep 20
 
