@@ -19,8 +19,7 @@ spec:
         serviceAccountName: elastic-agent
         automountServiceAccountToken: true
         securityContext:
-          runAsUser: 0 
-
+          runAsUser: 0
 ---
 
 apiVersion: agent.k8s.elastic.co/v1alpha1
@@ -42,7 +41,7 @@ spec:
         serviceAccountName: elastic-agent
         automountServiceAccountToken: true
         securityContext:
-          runAsUser: 0 
+          runAsUser: 0
         volumes:
         - name: agent-data
           emptyDir: {}
@@ -60,8 +59,12 @@ spec:
   elasticsearchRef:
     name: elasticsearch
   config:
-    xpack.fleet.agents.elasticsearch.hosts: ["https://elasticsearch-es-http.default.svc:9200"]
-    xpack.fleet.agents.fleet_server.hosts: ["https://fleet-server-agent-http.default.svc:8220"]
+    server.basePath: "/eck"
+    server.rewriteBasePath: "true"
+    server.publicBaseUrl: "https://10.86.204.160:31000/eck"
+    xpack.fleet.agents.kibana.hosts: ["https://10.86.204.160:31000/eck"]
+    xpack.fleet.agents.elasticsearch.hosts: ["https://datacatalogue.mip.ebrains.eu/elastic"]
+    xpack.fleet.agents.fleet_server.hosts: ["https://10.86.204.160:31002"]
     xpack.fleet.packages:
       - name: system
         version: latest
@@ -96,7 +99,6 @@ spec:
             id: system-1
             package:
               name: system
-
 ---
 
 apiVersion: elasticsearch.k8s.elastic.co/v1
@@ -179,3 +181,51 @@ roleRef:
   kind: ClusterRole
   name: elastic-agent
   apiGroup: rbac.authorization.k8s.io
+---
+# Expose Kibana on NodePort 31000 (maps to target port 5601)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-nodeport
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    kibana.k8s.elastic.co/name: kibana
+  ports:
+    - name: http
+      port: 5601
+      targetPort: 5601
+      nodePort: 31000
+---
+# Expose Elasticsearch HTTP on NodePort 31001 (maps to target port 9200)
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-nodeport
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
+      nodePort: 31001
+---
+# Expose Fleet Server on NodePort 31002 (maps to target port 8220)
+apiVersion: v1
+kind: Service
+metadata:
+  name: fleet-server-nodeport
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    agent.k8s.elastic.co/name: fleet-server
+  ports:
+    - name: fleet-server
+      port: 8220
+      targetPort: 8220
+      nodePort: 31002
