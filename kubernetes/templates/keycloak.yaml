@@ -1,4 +1,7 @@
 {{- if and (eq .Values.keycloak.AUTHENTICATION 1.0) (eq .Values.keycloak.INTERNAL_AUTH 1.0) }}
+  {{- if not .Values.managed_cluster }}
+---
+# 1) Keycloak DB on hostPath
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -11,21 +14,20 @@ spec:
     storage: {{ .Values.keycloak_db.storage.storage0.data_size }}
   volumeMode: Filesystem
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: {{ .Values.storageClasses.local }}
   hostPath:
     path: {{ .Values.keycloak_db.storage.storage0.data_path }}
     type: DirectoryOrCreate
   nodeAffinity:
     required:
       nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
-
+        - matchExpressions:
+            - key: master
+              operator: In
+              values:
+                - "true"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -38,14 +40,15 @@ spec:
   selector:
     matchLabels:
       storage: keycloak-db-storage0
-  storageClassName: k8s-local-storage
+  storageClassName: {{ .Values.storageClasses.local }}
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
       storage: {{ .Values.keycloak_db.storage.storage0.data_size }}
 
 ---
+# 2) Keycloak config (tmp) on hostPath
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -53,28 +56,25 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     storage: keycloak-storage0
-  annotations:
-    config.kubernetes.io/depends-on: apps/namespaces/{{ .Values.namespace }}/PersistentVolume/portalbackend-vol0
 spec:
   capacity:
     storage: {{ .Values.keycloak.storage.storage0.data_size }}
   volumeMode: Filesystem
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: {{ .Values.storageClasses.local }}
   hostPath:
     path: {{ .Values.keycloak.storage.storage0.data_path }}
     type: DirectoryOrCreate
   nodeAffinity:
     required:
       nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
-
+        - matchExpressions:
+            - key: master
+              operator: In
+              values:
+                - "true"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -87,14 +87,15 @@ spec:
   selector:
     matchLabels:
       storage: keycloak-storage0
-  storageClassName: k8s-local-storage
+  storageClassName: {{ .Values.storageClasses.local }}
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
       storage: {{ .Values.keycloak.storage.storage0.data_size }}
 
 ---
+# 3) Keycloak themes on hostPath
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -107,21 +108,20 @@ spec:
     storage: {{ .Values.keycloak.storage.storage1.data_size }}
   volumeMode: Filesystem
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: {{ .Values.storageClasses.local }}
   hostPath:
     path: {{ .Values.keycloak.storage.storage1.data_path }}
     type: DirectoryOrCreate
   nodeAffinity:
     required:
       nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
-
+        - matchExpressions:
+            - key: master
+              operator: In
+              values:
+                - "true"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -134,12 +134,54 @@ spec:
   selector:
     matchLabels:
       storage: keycloak-storage1
-  storageClassName: k8s-local-storage
+  storageClassName: {{ .Values.storageClasses.local }}
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
       storage: {{ .Values.keycloak.storage.storage1.data_size }}
+  {{- else }}
+---
+# managed cluster: only PVCs on CephFS
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-db-claim0
+  namespace: {{ .Values.namespace }}
+spec:
+  storageClassName: {{ .Values.storageClasses.managed }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.keycloak_db.storage.storage0.data_size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-claim0
+  namespace: {{ .Values.namespace }}
+spec:
+  storageClassName: {{ .Values.storageClasses.managed }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.keycloak.storage.storage0.data_size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-claim1
+  namespace: {{ .Values.namespace }}
+spec:
+  storageClassName: {{ .Values.storageClasses.managed }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.keycloak.storage.storage1.data_size }}
+  {{- end }}
 
 ---
 apiVersion: apps/v1
@@ -161,8 +203,10 @@ spec:
       labels:
         app: keycloak
     spec:
+      {{ if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
+      {{ end }}
       hostname: keycloak
       volumes:
       - name: keycloak-db-claim0
