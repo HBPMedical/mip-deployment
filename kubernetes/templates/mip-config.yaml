@@ -25,7 +25,7 @@ data:
   gateway.CACHE_MAX_ITEMS: "{{ .Values.gateway.CACHE_MAX_ITEMS }}"
 
   frontend.ERROR_LOG_LEVEL: {{ .Values.frontend.ERROR_LOG_LEVEL }}
-  frontend.DATACATALOGUE_SERVER: {{ tpl .Values.frontend.DATACATALOGUE_PROTOCOL . }}://{{ tpl .Values.frontend.DATACATALOGUE_HOST . }}
+  frontend.DATACATALOG_SERVER: {{ tpl .Values.frontend.DATACATALOG_PROTOCOL . }}://{{ tpl .Values.frontend.DATACATALOG_HOST . }}
   frontend.MATOMO_ENABLED: "{{ .Values.frontend.MATOMO_ENABLED }}"
   frontend.MATOMO_URL: {{ .Values.frontend.MATOMO_URL }}
   frontend.MATOMO_SITE_ID: "{{ .Values.frontend.MATOMO_SITE_ID }}"
@@ -35,6 +35,5 @@ data:
   keycloak.AUTH_URL: {{ .Values.keycloak.PROTOCOL }}://{{ .Values.keycloak.URL }}/auth/
   keycloak.REALM: {{ .Values.keycloak.REALM }}
   keycloak.CLIENT_ID: {{ .Values.keycloak.CLIENT_ID }}
-  keycloak.CLIENT_SECRET: {{ .Values.keycloak.CLIENT_SECRET }}
   keycloak.SSL_REQUIRED: {{ .Values.keycloak.SSL_REQUIRED }}
   keycloak.PROXY_ADDRESS_FORWARDING: "{{ .Values.keycloak.PROXY_ADDRESS_FORWARDING }}"

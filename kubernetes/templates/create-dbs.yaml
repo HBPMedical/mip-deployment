@@ -13,8 +13,10 @@ spec:
   #ttlSecondsAfterFinished: 30
   template:
     spec:
+      {{ if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
+      {{ end }}
       restartPolicy: OnFailure
       containers:
       - name: create-dbs

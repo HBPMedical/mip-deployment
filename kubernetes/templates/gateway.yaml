@@ -1,3 +1,6 @@
+{{- if not .Values.managed_cluster }}
+---
+# gateway DB on hostPath
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -10,21 +13,20 @@ spec:
     storage: {{ .Values.gateway_db.storage.storage0.data_size }}
   volumeMode: Filesystem
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: k8s-local-storage
+  storageClassName: {{ .Values.storageClasses.local }}
   hostPath:
     path: {{ .Values.gateway_db.storage.storage0.data_path }}
     type: DirectoryOrCreate
   nodeAffinity:
     required:
       nodeSelectorTerms:
-      - matchExpressions:
-        - key: master
-          operator: In
-          values:
-          - "true"
-
+        - matchExpressions:
+            - key: master
+              operator: In
+              values:
+                - "true"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -37,13 +39,34 @@ spec:
   selector:
     matchLabels:
       storage: gateway-db-storage0
-  storageClassName: k8s-local-storage
+  storageClassName: {{ .Values.storageClasses.local }}
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
       storage: {{ .Values.gateway_db.storage.storage0.data_size }}
+{{- else }}
+---
+# managed cluster: only PVC on CephFS
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gateway-db-claim0
+  namespace: {{ .Values.namespace }}
+  annotations:
+    # tells Argo CD: do not prune (delete) this resource
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
+spec:
+  storageClassName: {{ .Values.storageClasses.managed }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.gateway_db.storage.storage0.data_size }}
+{{- end }}
 
+---
+# Deployment and Service remain unchanged
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -64,8 +87,10 @@ spec:
       labels:
         app: gateway
     spec:
+      {{ if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
+      {{ end }}
       hostname: gateway
       volumes:
       - name: gateway-db-claim0
@@ -159,7 +184,6 @@ spec:
             configMapKeyRef:
               name: mip-config
               key: gateway.CACHE_MAX_ITEMS
-
 ---
 apiVersion: v1
 kind: Service

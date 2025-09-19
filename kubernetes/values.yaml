@@ -1,6 +1,11 @@
 namespace: default
+managed_cluster: false
 
 EXTERNAL_IP: ""
+
+storageClasses:
+  local: k8s-local-storage
+  managed: ceph-corbo-cephfs-retain
 
 engines:
   exareme2:
@@ -17,7 +22,7 @@ mip:
   NAME: "MIP {{ .Values.mip.version }}"
   VERSION_STRING: "Frontend: {{ .Values.frontend.image.version }}, Gateway: {{ .Values.gateway.image.version }}, Backend: {{ .Values.portalbackend.image.version }}, Exareme: {{ .Values.engines.exareme2.image.version }}"
 
-datacatalogue:
+datacatalog:
   PROTOCOL: https
   HOST: ""
 
@@ -73,22 +78,20 @@ gateway:
 
 frontend:
   ERROR_LOG_LEVEL: info
-  DATACATALOGUE_PROTOCOL: "{{ .Values.datacatalogue.PROTOCOL }}"
-  DATACATALOGUE_HOST: "{{ .Values.datacatalogue.HOST }}"
+  DATACATALOG_PROTOCOL: "{{ .Values.datacatalog.PROTOCOL }}"
+  DATACATALOG_HOST: "{{ .Values.datacatalog.HOST }}"
   MATOMO_ENABLED: false
   MATOMO_URL: https://stats.humanbrainproject.eu/
   MATOMO_SITE_ID: 29
   EXTERNAL_IP: "{{ .Values.EXTERNAL_IP }}"
+  ingress: nginx-public
+  cert_manager: letsencrypt-public
   image:
     name: hbpmip/portal-frontend
-    version: 9.4.0
+    version: stroke_cand
   storage:
-    storage0:
-      data_path: /opt/mip-deployment/config/caddy
-      data_size: 100Mi
-    storage1:
-      data_path: /opt/mip-deployment/.stored_data/caddy/caddy_data
-      data_size: 100Mi
+    data_path: /opt/mip-deployment/.stored_data/caddy/caddy_data
+    data_size: 100Mi
 
 keycloak_db:
   image:
@@ -119,7 +122,3 @@ keycloak:
       data_path: /opt/mip-deployment/config/keycloak/HBPTheme
       data_size: 100Mi
 
-elk:
-  enabled: false
-  logstash_host: 127.0.0.1
-  logstash_port: 30510
