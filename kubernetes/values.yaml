@@ -88,7 +88,7 @@ frontend:
   cert_manager: letsencrypt-public
   image:
     name: hbpmip/portal-frontend
-    version: stroke_cand
+    version: stroke_cand4
   storage:
     data_path: /opt/mip-deployment/.stored_data/caddy/caddy_data
     data_size: 100Mi
