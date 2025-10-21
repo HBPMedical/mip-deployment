@@ -208,6 +208,7 @@ services:
       ### Exareme2 ###
       ALGORITHM_UPDATE_INTERVAL: 30     # seconds
       EXAREME2_URL: http://172.17.0.1:5000
+      FRONTEND_BASE_URL: http://localhost:4200
       ### Keycloak ###
       AUTHENTICATION: 0
 #      AUTHENTICATION: 1     # Should be enabled for keycloak
