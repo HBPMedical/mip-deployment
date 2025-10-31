@@ -11,7 +11,7 @@ engines:
   exareme2:
     URL: ""
     image:
-      version: 0.23.1
+      version: 0.28.0
 
 mip:
   version: 8.0.0
@@ -46,7 +46,7 @@ portalbackend:
   ALGORITHM_UPDATE_INTERVAL: 60   # seconds
   image:
     name: hbpmip/portal-backend
-    version: 8.1.1
+    version: 8.2.0
   storage:
     storage0:
       data_path: /opt/mip-deployment/config
@@ -74,7 +74,7 @@ gateway:
   CACHE_MAX_ITEMS: 100
   image:
     name: hbpmip/gateway
-    version: 1.7.0
+    version: 1.8.0
 
 frontend:
   ERROR_LOG_LEVEL: info
@@ -88,7 +88,7 @@ frontend:
   cert_manager: letsencrypt-public
   image:
     name: hbpmip/portal-frontend
-    version: stroke_cand4
+    version: 10.0.0
   storage:
     data_path: /opt/mip-deployment/.stored_data/caddy/caddy_data
     data_size: 100Mi

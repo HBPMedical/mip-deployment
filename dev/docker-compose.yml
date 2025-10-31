@@ -54,6 +54,7 @@ services:
     environment:
       - DB_IP=172.17.0.1
       - DB_PORT=50001
+      - MONETDB_ENABLED=true
       - DATA_PATH=/opt/data
       - SQLITE_DB_NAME=local
     volumes:
@@ -64,6 +65,7 @@ services:
     environment:
       - DB_IP=172.17.0.1
       - DB_PORT=50001
+      - MONETDB_ENABLED=true
       - DATA_PATH=/opt/data
       - SQLITE_DB_NAME=global
     volumes:
@@ -86,6 +88,7 @@ services:
       - CELERY_RUN_UDF_TASK_TIMEOUT=120
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5673
+      - MONETDB_ENABLED=true
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50001
       - SQLITE_DB_NAME=local
@@ -117,6 +120,7 @@ services:
       - CELERY_RUN_UDF_TASK_TIMEOUT=120
       - RABBITMQ_IP=172.17.0.1
       - RABBITMQ_PORT=5672
+      - MONETDB_ENABLED=true
       - MONETDB_IP=172.17.0.1
       - MONETDB_PORT=50000
       - SQLITE_DB_NAME=global
@@ -141,6 +145,7 @@ services:
       - LOG_LEVEL=INFO
       - FRAMEWORK_LOG_LEVEL=WARNING
       - DEPLOYMENT_TYPE=LOCAL
+      - MONETDB_ENABLED=true
       - FLOWER_EXECUTION_TIMEOUT=30
       - WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL=500
       - CLEANUP_FOLDER=/tmp/exareme2
