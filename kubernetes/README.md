@@ -37,10 +37,10 @@ Now, with the Kubernetes (K8s) deployment, we have 2 main component packs, that 
 * [gateway](https://github.com/HBPMedical/gateway): "Middleware" layer between the MIP Frontend and a federated analytic engine
 * [gateway_db](https://github.com/docker-library/postgres): The gateway's database
 * [portalbackend](https://github.com/HBPMedical/portal-backend): The "Backend API" which supports the Web App
+    * Its database bootstrap script lives next to the application code (`config/scripts/bootstrap-portal-db.sh`) and the same script is vendored in this chart under `files/portalbackend-db-init.sh` so the deployment can mount it via ConfigMap without embedding a large shell block inside the template. Keeping both copies in sync lets the container image and the Helm release evolve together.
 * [portalbackend_db](https://github.com/docker-library/postgres): The portal backend's database
 * [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some details, which you can find [documentation of users configuration](documentation/UsersConfiguration.md)
 * [keycloak_db](https://github.com/docker-library/postgres): The KeyCloak's database, required only if the *keycloak* component needs to be used
-* [create_dbs](https://github.com/HBPMedical/docker-create-databases): The *one shot* container which creates and populates the DBs when required
 
 
 ## Taking care of the medical data
