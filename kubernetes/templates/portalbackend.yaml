@@ -193,6 +193,112 @@ spec:
 
 ---
 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portalbackend-db-init
+  namespace: {{ .Values.namespace }}
+data:
+  10-bootstrap-portal-db.sh: |
+    #!/bin/sh
+    set -eu
+
+    PORTAL_DB_NAME="${PORTAL_DB_NAME:-portal}"
+    ADMIN_DB="${POSTGRES_DB:-postgres}"
+
+    if [ -z "${PORTAL_DB_USER:-}" ] || [ -z "${PORTAL_DB_PASSWORD:-}" ]; then
+      echo "portal DB credentials missing; skipping bootstrap" >&2
+      exit 0
+    fi
+
+    PORTAL_DB_NAME_ESC=$(printf "%s" "${PORTAL_DB_NAME}" | sed "s/'/''/g")
+    PORTAL_DB_USER_ESC=$(printf "%s" "${PORTAL_DB_USER}" | sed "s/'/''/g")
+    PORTAL_DB_PASSWORD_ESC=$(printf "%s" "${PORTAL_DB_PASSWORD}" | sed "s/'/''/g")
+
+    export PGPASSWORD="${POSTGRES_PASSWORD:-}"
+
+    echo "Waiting for PostgreSQL to accept connections..."
+    until pg_isready -h 127.0.0.1 -p "${POSTGRES_PORT:-5432}" -U "${POSTGRES_USER}" >/dev/null 2>&1; do
+      sleep 2
+    done
+
+    DB_EXISTS=$(psql --username "${POSTGRES_USER}" --dbname "${ADMIN_DB}" -tAc "SELECT 1 FROM pg_database WHERE datname='${PORTAL_DB_NAME_ESC}'" || true)
+
+    if [ "${DB_EXISTS}" != "1" ]; then
+      echo "Creating database ${PORTAL_DB_NAME}"
+      createdb --username "${POSTGRES_USER}" --host 127.0.0.1 --port "${POSTGRES_PORT:-5432}" "${PORTAL_DB_NAME}"
+    else
+      echo "Database ${PORTAL_DB_NAME} already exists"
+    fi
+
+    echo "Ensuring role ${PORTAL_DB_USER} exists (with SUPERUSER)"
+    psql -v ON_ERROR_STOP=1 \
+      --username "${POSTGRES_USER}" \
+      --dbname "${ADMIN_DB}" \
+      --host 127.0.0.1 \
+      --port "${POSTGRES_PORT:-5432}" <<EOFSQL
+    DO \$\$
+    DECLARE
+      portal_user text := '${PORTAL_DB_USER_ESC}';
+      portal_password text := '${PORTAL_DB_PASSWORD_ESC}';
+    BEGIN
+      IF portal_user IS NULL OR portal_user = '' THEN
+        RAISE NOTICE 'PORTAL_DB_USER empty, skipping portal bootstrap';
+        RETURN;
+      END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = portal_user) THEN
+        EXECUTE format('CREATE ROLE %I SUPERUSER LOGIN PASSWORD %L', portal_user, portal_password);
+      ELSE
+        EXECUTE format('ALTER ROLE %I WITH SUPERUSER LOGIN PASSWORD %L', portal_user, portal_password);
+      END IF;
+    END;
+    \$\$;
+    EOFSQL
+
+    psql -v ON_ERROR_STOP=1 \
+      --username "${POSTGRES_USER}" \
+      --dbname "${ADMIN_DB}" \
+      --host 127.0.0.1 \
+      --port "${POSTGRES_PORT:-5432}" <<EOFSQL
+    DO \$\$
+    DECLARE
+      portal_db text := '${PORTAL_DB_NAME_ESC}';
+      portal_user text := '${PORTAL_DB_USER_ESC}';
+    BEGIN
+      IF portal_user IS NULL OR portal_user = '' THEN
+        RETURN;
+      END IF;
+
+      EXECUTE format('ALTER DATABASE %I OWNER TO %I', portal_db, portal_user);
+      EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC', portal_db);
+      EXECUTE format('GRANT ALL PRIVILEGES ON DATABASE %I TO %I', portal_db, portal_user);
+    END;
+    \$\$;
+    EOFSQL
+
+    psql -v ON_ERROR_STOP=1 \
+      --username "${POSTGRES_USER}" \
+      --dbname "${PORTAL_DB_NAME}" \
+      --host 127.0.0.1 \
+      --port "${POSTGRES_PORT:-5432}" <<EOFSQL
+    DO \$\$
+    DECLARE
+      portal_user text := '${PORTAL_DB_USER_ESC}';
+    BEGIN
+      IF portal_user IS NULL OR portal_user = '' THEN
+        RETURN;
+      END IF;
+
+      EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO %I', portal_user);
+      EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO %I', portal_user);
+      EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO %I', portal_user);
+    END;
+    \$\$;
+    EOFSQL
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -227,6 +333,10 @@ spec:
       - name: portalbackend-logs-claim0
         persistentVolumeClaim:
           claimName: portalbackend-logs-claim0
+      - name: portalbackend-db-init
+        configMap:
+          name: portalbackend-db-init
+          defaultMode: 0755
       containers:
       - name: portalbackend-db
         image: {{ .Values.portalbackend_db.image.name }}:{{ .Values.portalbackend_db.image.version }}
@@ -235,15 +345,44 @@ spec:
         volumeMounts:
         - name: portalbackend-db-claim0
           mountPath: /var/lib/postgresql/data
+        - name: portalbackend-db-init
+          mountPath: /opt/portalbackend-db-init
+          readOnly: true
         args:
         - -p
         - "5432"
         env:
+        - name: POSTGRES_DB
+          value: postgres
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.DB_ADMIN_USER
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: mip-secret
               key: portalbackend-db.DB_ADMIN_PASSWORD
+        - name: PORTAL_DB_NAME
+          value: portal
+        - name: PORTAL_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.PORTAL_DB_USER
+        - name: PORTAL_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mip-secret
+              key: portalbackend-db.PORTAL_DB_PASSWORD
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - /opt/portalbackend-db-init/10-bootstrap-portal-db.sh
 
       - name: portalbackend
         image: {{ .Values.portalbackend.image.name }}:{{ .Values.portalbackend.image.version }}
@@ -344,4 +483,3 @@ spec:
   externalIPs:
   - {{ tpl .Values.frontend.EXTERNAL_IP . }}
   {{- end }}
-
