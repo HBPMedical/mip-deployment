@@ -208,8 +208,8 @@ services:
       ### Exareme2 ###
       ALGORITHM_UPDATE_INTERVAL: 30     # seconds
       EXAREME2_URL: http://172.17.0.1:5000
-      FRONTEND_BASE_URL: http://localhost:4200
-      ### Keycloak ###
+      FRONTEND_BASE_URL: http://localhost
+       ### Keycloak ###
       AUTHENTICATION: 0
 #      AUTHENTICATION: 1     # Should be enabled for keycloak
       KEYCLOAK_AUTH_URL: http://172.17.0.1/auth/
@@ -222,53 +222,11 @@ services:
     volumes:
       - ./config:/opt/portal/api
     restart: unless-stopped
-#    logging:   # Used for sending logs to ELK
-#      driver: "syslog"
-#      options:
-#        syslog-address: "tcp://192.168.38.128:30520"
 
-  gateway-db:
-    image: postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: pass123
-    volumes:
-      - ./.stored_data/gatewaydb:/var/lib/postgres
-    expose:
-      - 5432
-
-#  keycloak_db:
-#    image: postgres:12.2
-#    volumes:
-#      - ./.stored_data/keycloak:/var/lib/postgresql/data
-#    environment:
-#      POSTGRES_DB: keycloak
-#      POSTGRES_USER: keycloak
-#      POSTGRES_PASSWORD: password
-#    restart: unless-stopped
-#
-#  keycloak:
-#    image: jboss/keycloak:15.0.2
-#    command: -Djboss.http.port=8095
-#    volumes:
-#      - ../config/keycloak/keycloak.json:/tmp/mip.json
-#      - ../config/keycloak/HBPTheme:/opt/jboss/keycloak/themes/HBPTheme
-#    environment:
-#      DB_VENDOR: POSTGRES
-#      DB_ADDR: keycloak_db
-#      DB_PORT: 5432
-#      DB_DATABASE: keycloak
-#      DB_USER: keycloak
-#      DB_SCHEMA: public
-#      DB_PASSWORD: password
-#      KEYCLOAK_USER: admin
-#      KEYCLOAK_PASSWORD: Pa55w0rd
-#      KEYCLOAK_IMPORT: /tmp/mip.json
-#      KEYCLOAK_HOSTNAME: 172.17.0.1
-#      PROXY_ADDRESS_FORWARDING: 'true'  #important for reverse proxy
-#    ports:
-#      - '8095:8095'
-#      - '8443:8443'
-#    depends_on:
-#      - keycloak_db
-#    restart: unless-stopped
+  frontend:
+    image: madgik/frontend:${FRONTEND}
+    container_name: frontend
+    ports:
+      - "80:80" # Expose the frontend on port 80
+    depends_on:
+      - portalbackend

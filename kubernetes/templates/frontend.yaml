@@ -1,217 +1,57 @@
-{{- if not .Values.managed_cluster }}
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: frontend-vol
-  namespace: {{ .Values.namespace }}
-  labels:
-    storage: frontend-storage
-spec:
-  capacity:
-    storage: {{ .Values.frontend.storage.data_size }}
-  volumeMode: Filesystem
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Delete
-  storageClassName: {{ .Values.storageClasses.local }}
-  hostPath:
-    path: {{ .Values.frontend.storage.data_path }}
-    type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: master
-              operator: In
-              values:
-                - "true"
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: frontend-claim
-  namespace: {{ .Values.namespace }}
-  labels:
-    storage: frontend-storage
-spec:
-  selector:
-    matchLabels:
-      storage: frontend-storage
-  storageClassName: {{ .Values.storageClasses.local }}
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ .Values.frontend.storage.data_size }}
-
-{{- else }}
-
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: frontend-claim
-  namespace: {{ .Values.Namespace }}
-  annotations:
-    # tells Argo CD: do not prune (delete) this resource
-    argocd.argoproj.io/sync-options: Delete=false,Prune=false
-spec:
-  storageClassName: {{ .Values.storageClasses.managed }}
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ .Values.frontend.storage.data_size }}
-
-{{- end }}
-
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
   namespace: {{ .Values.namespace }}
-  labels:
-    app: frontend
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: frontend
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
         app: frontend
     spec:
-      volumes:
-      - name: frontend-claim
-        persistentVolumeClaim:
-          claimName: frontend-claim
       containers:
       - name: frontend
-        image: {{ .Values.frontend.image.name }}:{{ .Values.frontend.image.version }}
+        image: "{{ .Values.frontend.image.name }}:{{ .Values.frontend.image.version }}"
         ports:
         - containerPort: 80
-        - containerPort: 443
-        volumeMounts:
-        - name: frontend-claim
-          mountPath: /data
-        env:
-        - name: ERROR_LOG_LEVEL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.ERROR_LOG_LEVEL
-        - name: GATEWAY_SERVER
-          value: gateway-service:8081
-        - name: PORTAL_BACKEND_SERVER
-          value: portalbackend-service:8080
-        - name: PORTAL_BACKEND_CONTEXT
-          value: services
-        - name: INSTANCE_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.INSTANCE_NAME
-        - name: VERSION
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.INSTANCE_VERSION
-        - name: EXTERNAL_MIP_PROTOCOL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.EXTERNAL_PROTOCOL
-        - name: PUBLIC_MIP_PROTOCOL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.PUBLIC_PROTOCOL
-        - name: PUBLIC_MIP_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.PUBLIC_HOST
-        - name: KEYCLOAK_HOST                           # Only used with internal Keycloak auth
-          value: http://keycloak-service:8095
-        - name: KEYCLOAK_AUTH_PATH                      # Only used with internal Keycloak auth
-          value: /auth
-        - name: MIP_LINK
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.LINK
-        - name: DATACATALOG_SERVER                    # Only used in federated installation
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.DATACATALOG_SERVER
-        - name: MATOMO_ENABLED
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.MATOMO_ENABLED
-        - name: MATOMO_URL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.MATOMO_URL
-        - name: MATOMO_SITE_ID
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.MATOMO_SITE_ID
-
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend-service
+  name: frontend
   namespace: {{ .Values.namespace }}
-  labels:
-    app: frontend
 spec:
   selector:
     app: frontend
-  {{- if not .Values.managed_cluster }}
-  type: LoadBalancer
-  {{- end }}
   ports:
-  - name: "80"
-    port: 80
-    targetPort: 80
-    {{- if not .Values.managed_cluster }}
-    nodePort: 30080
-    {{- end }}
+    - protocol: TCP
+      port: 80
+      targetPort: 80
   {{- if not .Values.managed_cluster }}
-  - name: "443"
-    port: 443
-    targetPort: 443
-    nodePort: 30443
-  externalIPs:
-  - {{ tpl .Values.frontend.EXTERNAL_IP . }}
+      nodePort: 30080  # Static NodePort for frontend
+  type: NodePort
   {{- end }}
-
-
 {{- if .Values.managed_cluster }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
 
-  name: mip-frontend-ingress
+  name: datacatalog-ingress
   annotations:
     kubernetes.io/ingress.class: {{ .Values.frontend.ingress }}
     cert-manager.io/cluster-issuer: {{ .Values.frontend.cert_manager }}
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: {{ .Values.frontend.ingress }}
+  ingressClassName:  {{ .Values.frontend.ingress }}
   tls:
     - hosts:
       - {{ .Values.mip.PUBLIC_HOST }}
-      secretName: mip-frontend-tls
+      secretName: datacatalog-tls
   rules:
     - host: {{ .Values.mip.PUBLIC_HOST }}
       http:
@@ -220,7 +60,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: frontend-service
+                name: frontend
                 port:
                   number: 80
 {{- end }}

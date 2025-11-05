@@ -5,7 +5,7 @@ EXTERNAL_IP: ""
 
 storageClasses:
   local: k8s-local-storage
-  managed: ceph-corbo-cephfs-retain
+  managed: ceph-corbo-cephfs
 
 engines:
   exareme2:
@@ -14,7 +14,7 @@ engines:
       version: 0.28.0
 
 mip:
-  PUBLIC_HOST: federation-a.mip-tds.chuv.cscs.ch
+  PUBLIC_HOST: federation-b.mip-tds.chuv.cscs.ch
   version: 8.0.0
   LINK: ""
   EXTERNAL_PROTOCOL: ""
@@ -51,42 +51,13 @@ portalbackend:
       data_path: /opt/mip-deployment/logs
       data_size: 1Gi
 
-gateway_db:
-  image:
-    name: postgres
-    version: 14-alpine
-  storage:
-    storage0:
-      data_path: /opt/mip-deployment/.stored_data/gatewaydb
-      data_size: 100Mi
-
-gateway:
-  ENGINE_TYPE: EXAREME
-  NODE_ENV: production                  # development/production
-  LOG_LEVEL: 4
-  CACHE_ENABLED: true
-  CACHE_TTL: 30
-  CACHE_MAX_ITEMS: 100
-  image:
-    name: hbpmip/gateway
-    version: 1.8.0
-
 frontend:
-  ERROR_LOG_LEVEL: info
-  DATACATALOG_PROTOCOL: "{{ .Values.datacatalog.PROTOCOL }}"
-  DATACATALOG_HOST: "{{ .Values.datacatalog.HOST }}"
-  MATOMO_ENABLED: false
-  MATOMO_URL: https://stats.humanbrainproject.eu/
-  MATOMO_SITE_ID: 29
   EXTERNAL_IP: "{{ .Values.EXTERNAL_IP }}"
-  ingress: nginx-public
-  cert_manager: letsencrypt-public
+  ingress: nginx
+  cert_manager: letsencrypt
   image:
-    name: hbpmip/portal-frontend
-    version: 10.0.1
-  storage:
-    data_path: /opt/mip-deployment/.stored_data/caddy/caddy_data
-    data_size: 100Mi
+    name: madgik/frontend
+    version: cand
 
 keycloak_db:
   image:
