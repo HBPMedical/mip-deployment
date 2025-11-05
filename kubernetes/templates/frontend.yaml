@@ -1,8 +1,9 @@
+{{- $namespace := include "mip.namespace" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
 spec:
   replicas: 1
   selector:
@@ -15,15 +16,20 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: "{{ .Values.frontend.image.name }}:{{ .Values.frontend.image.version }}"
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
         ports:
         - containerPort: 80
+        env:
+          - name: PORTAL_BACKEND_SERVER
+            value: portalbackend-service:8080
+          - name: PORTAL_BACKEND_CONTEXT
+            value: services
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
 spec:
   selector:
     app: frontend
@@ -31,29 +37,36 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
-  {{- if not .Values.managed_cluster }}
-      nodePort: 30080  # Static NodePort for frontend
+  {{- if not .Values.cluster.managed }}
   type: NodePort
+  {{- if .Values.frontend.service.nodePort }}
+  nodePort: {{ .Values.frontend.service.nodePort }}
   {{- end }}
-{{- if .Values.managed_cluster }}
+  {{- end }}
+{{- $ingressEnabled := and (default true .Values.network.ingress.enabled) (default true .Values.frontend.ingress.enabled) -}}
+{{- if and $ingressEnabled (not (empty .Values.network.publicHost)) }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
 
-  name: datacatalog-ingress
+  name: frontend-ingress
   annotations:
-    kubernetes.io/ingress.class: {{ .Values.frontend.ingress }}
-    cert-manager.io/cluster-issuer: {{ .Values.frontend.cert_manager }}
+    kubernetes.io/ingress.class: {{ .Values.frontend.ingress.className | default "nginx" }}
+    {{- if .Values.frontend.ingress.certManagerClusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.frontend.ingress.certManagerClusterIssuer }}
+    {{- end }}
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName:  {{ .Values.frontend.ingress }}
+  ingressClassName: {{ .Values.frontend.ingress.className | default "nginx" }}
+  {{- if and .Values.network.ingress.tlsSecretName (not (empty .Values.network.publicHost)) }}
   tls:
     - hosts:
-      - {{ .Values.mip.PUBLIC_HOST }}
-      secretName: datacatalog-tls
+      - {{ .Values.network.publicHost }}
+      secretName: {{ .Values.network.ingress.tlsSecretName }}
+  {{- end }}
   rules:
-    - host: {{ .Values.mip.PUBLIC_HOST }}
+    - host: {{ .Values.network.publicHost }}
       http:
         paths:
           - path: /

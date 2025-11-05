@@ -1,11 +1,10 @@
-{{- if not .Values.managed_cluster }}
+{{- if not .Values.cluster.managed }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: {{ .Values.storageClasses.local }}
-  namespace: {{ .Values.namespace }}
+  name: {{ .Values.cluster.storageClasses.local }}
   labels:
-    app: {{ .Values.storageClasses.local }}
+    app: {{ .Values.cluster.storageClasses.local }}
 provisioner: k8s.io/microk8s-hostpath
 volumeBindingMode: Immediate
 {{- end }}

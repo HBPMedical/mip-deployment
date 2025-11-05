@@ -34,13 +34,10 @@ Now, with the Kubernetes (K8s) deployment, we have 2 main component packs, that 
 
 ### The web app stack:
 * [frontend](https://github.com/HBPMedical/portal-frontend): The "Web App" UI
-* [gateway](https://github.com/HBPMedical/gateway): "Middleware" layer between the MIP Frontend and a federated analytic engine
-* [gateway_db](https://github.com/docker-library/postgres): The gateway's database
 * [portalbackend](https://github.com/HBPMedical/portal-backend): The "Backend API" which supports the Web App
     * Its database bootstrap script lives next to the application code (`config/scripts/bootstrap-portal-db.sh`) and the same script is vendored in this chart under `files/portalbackend-db-init.sh` so the deployment can mount it via ConfigMap without embedding a large shell block inside the template. Keeping both copies in sync lets the container image and the Helm release evolve together.
 * [portalbackend_db](https://github.com/docker-library/postgres): The portal backend's database
-* [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some details, which you can find [documentation of users configuration](documentation/UsersConfiguration.md)
-* [keycloak_db](https://github.com/docker-library/postgres): The KeyCloak's database, required only if the *keycloak* component needs to be used
+* **External Keycloak**: Authentication is provided by an existing Keycloak realm; this chart only wires the configuration values so the UI stack can reach it.
 
 
 ## Taking care of the medical data
@@ -51,32 +48,35 @@ Afterward, The dataset CSV files should be placed in their proper pathology fold
 
 
 ## Configuration
-Prior to deploying it (on a microk8s K8s cluster of one or more nodes), there's some adjustments to do in the *values.yaml* file.  
-There are sections which correspond to the different components. In each section, you can adjust the container image name and version, local storage paths if needed, and some other settings as well.  
-Also, in addition to the main *values.yaml* file, there are some "profile" configuration files. These are made mostly to simplify the MIP reachability.  
-We recommend that you fill all those profile configuration files. Then, whenever you want, you can easily switch between the different profiles, just by reinstalling the Helm chart with another profile.
+Prior to deploying it (on a microk8s K8s cluster of one or more nodes), there are a few adjustments to make in `values.yaml`. Each top-level section controls a part of the stack:
 
-There are still two main ways of reaching the MIP UI:
-* Direct
-* Proxied
+* `cluster`: namespace, storage classes and whether the cluster provisions persistent volumes dynamically (`managed: true`).
+* `network`: ingress/tls configuration, public hostname and whether the UI is exposed directly or through a reverse proxy (`link`).
+* `frontend`, `portalbackend`, `portalbackendDatabase`: container images, storage locations (for local deployments) and component specific options.
+* `keycloak`: toggles the connection parameters to the external Keycloak instance (`enabled`, `host`, `protocol`, `realm`, `clientId`).
 
-For each of them, you have four different profiles:
-* "Standard", with external KeyCloak authentication
-    * **.direct**
-    * **.proxied**
-* With internal, embedded KeyCloak authentication
-    * **.direct.internal_auth**
-    * **.proxied.internal_auth**
-* With unsecure embedded KeyCloak authentication
-    * **.direct.internal_auth.http**
-    * **.proxied.internal_auth.http**
-* Without authentication
-    * **.direct.no_auth**
-    * **.proxied.no_auth**
+Copy `values.yaml` to a new file (for example `my-values.yaml`) and edit it in-place. A few important knobs:
 
-In each of these profile configuration files, there are different settings already filled (which you may want to change) to cover most of the use cases, and others (between **<>**), which are required to be filled.
+```yaml
+network:
+  link: proxied            # use "direct" when exposing the UI publicly
+  publicHost: mip.example.org
+  publicProtocol: https
 
-The following picture describes the different ways of reaching the MIP, and these specific required fields are present on it.
+keycloak:
+  enabled: true
+  host: iam.example.org
+  protocol: https
+  realm: MIP
+  clientId: mipfed
+
+portalbackend:
+  service:
+    exposeDebug:
+      enabled: false       # switch to true to publish debugging ports through a LoadBalancer
+```
+
+The reachability diagram from the legacy profiles is still valid as a reference for deciding the correct `network.*` settings:
 ![MIP Reachability Scheme](../doc/MIP_Configuration.png)
 
 ### MACHINE_MAIN_IP
@@ -93,12 +93,11 @@ This is the public, fully qualified domain name of the MIP, the main URL on whic
 This is **ONLY** used in a **proxied** use case situation.  
 It's actually the internal IP or address from which the reverse-proxy server "sees" (reaches) the MIP machine.
 
-Normally, these tree settings (repeated in several profile files) are the main things you have to know to set all these profiles.
+These three settings map directly to the `network` section in `values.yaml` (`publicHost`, `link`, `publicProtocol`). When running behind a reverse proxy also set `externalProtocol` to describe the protocol used between the proxy and the MIP pods.
 
 **WARNING!**: In **ANY** case, when you use an **EXTERNAL** KeyCloak service (i.e. iam.ebrains.eu), make sure that you use the correct *CLIENT_ID* and *CLIENT_SECRET* to match the MIP instance you're deploying!
 
-**ONLY** after you have prepared all the profiles you may want to use, you can easily deploy the UI Helm chart.  
-Also, we recommend that you deploy the engine Helm charts, prior to run the UI.
+After tailoring `values.yaml` you can deploy the UI Helm chart. We still recommend deploying the engine Helm charts first, before installing the UI components.
 
 
 ### Microk8s installation
@@ -174,10 +173,12 @@ For a more in-depth guide on deploying Exareme2, please refer to the documentati
   ```
   sudo chown -R mipadmin.mipadmin /opt/mip-deployment
   ```
-* Set the different profiles in `/opt/mip-deployment/kubernetes` as explained before
-* Deploy the Helm chart with a specific profile
+* Copy `values.yaml` to `/opt/mip-deployment/kubernetes/my-values.yaml` and tailor it to your environment.
+* Deploy (or upgrade) the Helm release with your customised values
   ```
-  microk8s helm3 install mip -f /opt/mip-deployment/kubernetes/<PROFILE_CONFIGURATION_FILE> /opt/mip-deployment/kubernetes
+  microk8s helm3 upgrade --install mip \
+    -f /opt/mip-deployment/kubernetes/my-values.yaml \
+    /opt/mip-deployment/kubernetes
   ```
 
 # MicroK8s Automatic Recoverability
