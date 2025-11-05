@@ -427,6 +427,11 @@ spec:
             configMapKeyRef:
               name: mip-config
               key: engines.exareme2.URL
+        - name: FRONTEND_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: mip.PUBLIC_HOST
         - name: KEYCLOAK_AUTH_URL
           valueFrom:
             configMapKeyRef:

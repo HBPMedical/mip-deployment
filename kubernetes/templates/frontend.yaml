@@ -19,11 +19,14 @@ spec:
         image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
         ports:
         - containerPort: 80
+        {{- $backendHost := default "" .Values.frontend.backend.host -}}
+        {{- if $backendHost }}
         env:
-          - name: PORTAL_BACKEND_SERVER
-            value: portalbackend-service:8080
-          - name: PORTAL_BACKEND_CONTEXT
-            value: services
+        - name: PORTAL_BACKEND_SERVER
+          value: {{ printf "%s:%v" $backendHost (default 8080 .Values.frontend.backend.port) | quote }}
+        - name: PORTAL_BACKEND_CONTEXT
+          value: {{ default "services" .Values.frontend.backend.context | quote }}
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service
@@ -57,6 +60,13 @@ metadata:
     cert-manager.io/cluster-issuer: {{ .Values.frontend.ingress.certManagerClusterIssuer }}
     {{- end }}
     nginx.ingress.kubernetes.io/rewrite-target: /
+    {{- $redirect := .Values.frontend.ingress.redirectRootTo | default "" }}
+    {{- if $redirect }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($request_uri = "/") {
+        return 302 {{ $redirect }};
+      }
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.frontend.ingress.className | default "nginx" }}
   {{- if and .Values.network.ingress.tlsSecretName (not (empty .Values.network.publicHost)) }}

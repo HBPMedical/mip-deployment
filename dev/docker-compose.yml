@@ -225,8 +225,10 @@ services:
 
   frontend:
     image: madgik/frontend:${FRONTEND}
-    container_name: frontend
     ports:
       - "80:80" # Expose the frontend on port 80
     depends_on:
       - portalbackend
+    environment:
+      PORTAL_BACKEND_SERVER: 172.17.0.1:8080
+      PORTAL_BACKEND_CONTEXT: services

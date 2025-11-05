@@ -16,10 +16,11 @@ network:
     className: nginx
     certManagerClusterIssuer: letsencrypt
     tlsSecretName: frontend-tls
+    redirectRootTo: /home
 
 engines:
   exareme2:
-    url: "exareme2-controller-service:5000"
+    url: "http://exareme2-controller-service:5000"
     image:
       repository: madgik/exareme2
       tag: 0.28.0
@@ -35,7 +36,7 @@ datacatalog:
 frontend:
   image:
     repository: madgik/frontend
-    tag: cand1
+    tag: cand3
   service:
     nodePort: 30080
   ingress:
@@ -43,6 +44,10 @@ frontend:
     className: nginx
     certManagerClusterIssuer: letsencrypt
     tlsSecretName: frontend-tls
+  backend:
+    host: portalbackend-service
+    port: 8080
+    context: services
   config:
     errorLogLevel: ERROR
     datacatalog:
@@ -56,7 +61,7 @@ frontend:
 portalbackend:
   image:
     repository: hbpmip/portal-backend
-    tag: 8.2.0
+    tag: new_frontend_3
   config:
     logLevel: INFO
     logLevelFramework: INFO

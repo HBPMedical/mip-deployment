@@ -63,6 +63,15 @@ network:
   publicHost: mip.example.org
   publicProtocol: https
 
+frontend:
+  backend:
+    host: portalbackend-service
+    port: 8080
+    context: services
+  ingress:
+    redirectRootTo: /home       # optional 302 redirect for the landing page
+    tlsSecretName: frontend-tls
+
 keycloak:
   enabled: true
   host: iam.example.org
