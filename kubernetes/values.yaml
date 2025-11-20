@@ -1,5 +1,5 @@
 cluster:
-  namespace: federation-b
+  namespace: federation-handson
   managed: true
   storageClasses:
     local: k8s-local-storage
@@ -10,11 +10,11 @@ network:
   link: proxied
   externalProtocol: https
   publicProtocol: https
-  publicHost: federation-b.mip-tds.chuv.cscs.ch
+  publicHost: handson.hbpmip.link
   ingress:
     enabled: true
-    className: nginx
-    certManagerClusterIssuer: letsencrypt
+    className: nginx-public
+    certManagerClusterIssuer: letsencrypt-public
     tlsSecretName: frontend-tls
     redirectRootTo: /home
 
@@ -36,13 +36,13 @@ datacatalog:
 frontend:
   image:
     repository: madgik/frontend
-    tag: cand3
+    tag: 0.0.0cand
   service:
     nodePort: 30080
   ingress:
     enabled: true
-    className: nginx
-    certManagerClusterIssuer: letsencrypt
+    className: nginx-public
+    certManagerClusterIssuer: letsencrypt-public
     tlsSecretName: frontend-tls
   backend:
     host: portalbackend-service
