@@ -1,7 +1,7 @@
 #!/bin/env bash
 
-docker compose --env-file ../.versions_env down
-docker compose --env-file ../.versions_env up -d
+docker compose --env-file .versions_env down
+docker compose --env-file .versions_env up -d
 
 echo -n "Waiting for containers to start ..."
 sleep 10

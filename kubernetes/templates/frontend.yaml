@@ -52,8 +52,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-
   name: frontend-ingress
+  namespace: {{ $namespace }}
   annotations:
     kubernetes.io/ingress.class: {{ .Values.frontend.ingress.className | default "nginx" }}
     {{- if .Values.frontend.ingress.certManagerClusterIssuer }}
