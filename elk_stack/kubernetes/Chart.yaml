@@ -1,5 +1,0 @@
-apiVersion: v2
-name: elk
-description: A helm chart for Kubernetes deployment of the ELK stack
-version: 0.0.1
-type: application

@@ -1,5 +1,13 @@
 # Kubernetes Deployment
 
+## Infrastructure Setups
+MIP now supports two Kubernetes infrastructure options:
+
+1. **VM-based / microk8s clusters** – the remainder of this document (starting in the Requirements section) walks through preparing Ubuntu virtual machines and installing the stack on top of microk8s.
+2. **Managed clusters** – for cloud-managed Kubernetes (AKS/EKS/GKE, etc.) follow the [mip-infra getting started guide](https://github.com/Medical-Informatics-Platform/mip-infra?tab=readme-ov-file#-getting-started) to provision the cluster and its base services. Once the cluster is available, return here for component configuration details as needed.
+
+Choose between these modes via the Helm values: set `managed_cluster: true` (managed) or `false` (microk8s/VM). The templates react to this flag to deploy the components with the right assumptions for networking, storage, and access.
+
 ## Requirements
 ### Hardware
 #### Master node
@@ -48,58 +56,6 @@ Now, with the Kubernetes (K8s) deployment, we have 2 main component packs, that 
 On each **worker** node, a folder should be created `/data/<MIP_INSTANCE_OR_FEDERATION_NAME>/<PATHOLOGY_NAME>` for
 every pathology for which we will have at least one dataset.
 Afterward, The dataset CSV files should be placed in their proper pathology folder.
-
-
-## Configuration
-Prior to deploying it (on a microk8s K8s cluster of one or more nodes), there's some adjustments to do in the *values.yaml* file.  
-There are sections which correspond to the different components. In each section, you can adjust the container image name and version, local storage paths if needed, and some other settings as well.  
-Also, in addition to the main *values.yaml* file, there are some "profile" configuration files. These are made mostly to simplify the MIP reachability.  
-We recommend that you fill all those profile configuration files. Then, whenever you want, you can easily switch between the different profiles, just by reinstalling the Helm chart with another profile.
-
-There are still two main ways of reaching the MIP UI:
-* Direct
-* Proxied
-
-For each of them, you have four different profiles:
-* "Standard", with external KeyCloak authentication
-    * **.direct**
-    * **.proxied**
-* With internal, embedded KeyCloak authentication
-    * **.direct.internal_auth**
-    * **.proxied.internal_auth**
-* With unsecure embedded KeyCloak authentication
-    * **.direct.internal_auth.http**
-    * **.proxied.internal_auth.http**
-* Without authentication
-    * **.direct.no_auth**
-    * **.proxied.no_auth**
-
-In each of these profile configuration files, there are different settings already filled (which you may want to change) to cover most of the use cases, and others (between **<>**), which are required to be filled.
-
-The following picture describes the different ways of reaching the MIP, and these specific required fields are present on it.
-![MIP Reachability Scheme](../doc/MIP_Configuration.png)
-
-### MACHINE_MAIN_IP
-This is the machine's main IP address. Generally, it's the IP address of the first NIC after the local one.  
-If the MIP is running on top of a VPN, you may want to put the VPN interface's IP address.  
-If you reach the machine through a public IP, if this IP is **NOT** directly assigned on the machine, but is using static NAT, you still **MUST** set the **INTERNAL** IP of the machine itself!
-
-### MACHINE_PUBLIC_FQDN
-This is the public, fully qualified domain name of the MIP, the main URL on which you want to reach the MIP from the Internet. This may point:
-* Directly on the public IP of the MIP, for a **direct** use case. It may be assigned on the machine or used in front as a static NAT
-* On the public IP of the reverse-proxy server, for a **proxied** use case
-
-### MACHINE_PRIVATE_FQDN_OR_IP
-This is **ONLY** used in a **proxied** use case situation.  
-It's actually the internal IP or address from which the reverse-proxy server "sees" (reaches) the MIP machine.
-
-Normally, these tree settings (repeated in several profile files) are the main things you have to know to set all these profiles.
-
-**WARNING!**: In **ANY** case, when you use an **EXTERNAL** KeyCloak service (i.e. iam.ebrains.eu), make sure that you use the correct *CLIENT_ID* and *CLIENT_SECRET* to match the MIP instance you're deploying!
-
-**ONLY** after you have prepared all the profiles you may want to use, you can easily deploy the UI Helm chart.  
-Also, we recommend that you deploy the engine Helm charts, prior to run the UI.
-
 
 ### Microk8s installation
 On a running Ubuntu (we recommend 22.04) distribution, install microk8s (we **HIGHLY** recommend to **NOT** install Docker on your Kubernetes cluster!):

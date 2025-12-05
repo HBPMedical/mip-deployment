@@ -15,7 +15,7 @@ engines:
 
 mip:
   PUBLIC_HOST: federation-a.mip-tds.chuv.cscs.ch
-  version: 8.0.0
+  version: 8.5.0
   LINK: ""
   EXTERNAL_PROTOCOL: ""
   PUBLIC_PROTOCOL: ""

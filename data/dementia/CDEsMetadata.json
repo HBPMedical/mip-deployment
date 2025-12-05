@@ -18,10 +18,6 @@
                 {
                     "code": "desd-synthdata",
                     "label": "DESD-synthdata"
-                },
-                {
-                    "code": "fake_longitudinal",
-                    "label": "Longitudinal"
                 }
             ],
             "label": "Dataset",
