@@ -1,0 +1,27 @@
+{{- if .Values.elasticsearch.enabled }}
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: {{ .Values.elasticsearch.name }}
+  namespace: {{ .Values.elasticsearch.namespace | default (include "eck-stack.operatorNamespace" .) }}
+{{- with .Values.elasticsearch.labels }}
+  labels:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.elasticsearch.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  version: {{ .Values.elasticsearch.version | quote }}
+{{- with .Values.elasticsearch.http }}
+  http:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.elasticsearch.service }}
+  service:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  nodeSets:
+{{ toYaml .Values.elasticsearch.nodeSets | indent 4 }}
+{{- end }}

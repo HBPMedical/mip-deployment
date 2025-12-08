@@ -1,0 +1,32 @@
+{{- if .Values.kibana.enabled }}
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: {{ .Values.kibana.name }}
+  namespace: {{ .Values.kibana.namespace | default (include "eck-stack.operatorNamespace" .) }}
+{{- with .Values.kibana.labels }}
+  labels:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.kibana.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  version: {{ .Values.kibana.version | quote }}
+  count: {{ .Values.kibana.count }}
+  elasticsearchRef:
+{{ toYaml .Values.kibana.elasticsearchRef | indent 4 }}
+{{- with .Values.kibana.config }}
+  config:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.kibana.http }}
+  http:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.kibana.podTemplate }}
+  podTemplate:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- end }}

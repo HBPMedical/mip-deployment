@@ -1,0 +1,44 @@
+{{- if and .Values.kibana.enabled .Values.kibana.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.kibana.name }}
+  namespace: {{ .Values.kibana.namespace | default (include "eck-stack.operatorNamespace" .) }}
+{{- with .Values.kibana.labels }}
+  labels:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- $annotations := deepCopy (.Values.kibana.ingress.annotations | default (dict)) }}
+{{- if not (hasKey $annotations "nginx.ingress.kubernetes.io/backend-protocol") }}
+  {{- if .Values.kibana.http.tls.selfSignedCertificate.disabled }}
+    {{- $_ := set $annotations "nginx.ingress.kubernetes.io/backend-protocol" "HTTP" }}
+  {{- else }}
+    {{- $_ := set $annotations "nginx.ingress.kubernetes.io/backend-protocol" "HTTPS" }}
+  {{- end }}
+{{- end }}
+{{- if $annotations }}
+  annotations:
+{{ toYaml $annotations | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.kibana.ingress.className }}
+  ingressClassName: {{ .Values.kibana.ingress.className }}
+{{- end }}
+  rules:
+{{- range .Values.kibana.ingress.hosts }}
+  - host: {{ .host }}
+    http:
+      paths:
+      - path: {{ .path | default "/" }}
+        pathType: {{ .pathType | default "Prefix" }}
+        backend:
+          service:
+            name: {{ $.Values.kibana.name }}-kb-http
+            port:
+              number: 5601
+{{- end }}
+{{- with .Values.kibana.ingress.tls }}
+  tls:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- end }}

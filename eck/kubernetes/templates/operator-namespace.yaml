@@ -1,0 +1,8 @@
+{{- if .Values.operator.createNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "eck-stack.operatorNamespace" . }}
+  labels:
+    name: {{ include "eck-stack.operatorNamespace" . }}
+{{- end }}

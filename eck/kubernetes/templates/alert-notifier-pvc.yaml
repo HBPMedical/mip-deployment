@@ -1,0 +1,24 @@
+{{- $persistence := .Values.alertNotifier.state.persistence -}}
+{{- if and .Values.alertNotifier.enabled ($persistence.enabled | default false) (not $persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "eck-stack.alertNotifier.pvcName" . }}
+  labels:
+    {{- include "eck-stack.alertNotifier.labels" . | nindent 4 }}
+  {{- with $persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- range $persistence.accessModes }}
+    - {{ . }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ $persistence.size | default "1Gi" }}
+  {{- if $persistence.storageClassName }}
+  storageClassName: {{ $persistence.storageClassName }}
+  {{- end }}
+{{- end }}

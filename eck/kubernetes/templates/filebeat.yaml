@@ -1,0 +1,103 @@
+{{- if .Values.observability.filebeat.enabled }}
+apiVersion: beat.k8s.elastic.co/v1beta1
+kind: Beat
+metadata:
+  name: {{ .Release.Name }}-filebeat
+  namespace: {{ include "eck-stack.operatorNamespace" . }}
+  labels:
+    app.kubernetes.io/name: filebeat
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Values.observability.filebeat.version | quote }}
+spec:
+  type: filebeat
+  version: {{ .Values.observability.filebeat.version | quote }}
+  elasticsearchRef:
+    name: {{ .Values.elasticsearch.name }}
+    namespace: {{ .Values.elasticsearch.namespace | default (include "eck-stack.operatorNamespace" .) }}
+  daemonSet:
+    podTemplate:
+      metadata:
+        labels:
+          app.kubernetes.io/name: filebeat
+      spec:
+        automountServiceAccountToken: true
+        serviceAccountName: {{ .Release.Name }}-filebeat
+        hostNetwork: true
+        dnsPolicy: ClusterFirstWithHostNet
+        tolerations:
+          - effect: NoSchedule
+            operator: Exists
+        containers:
+          - name: filebeat
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: ELASTICSEARCH_HOSTS
+                value: https://{{ .Values.elasticsearch.name }}-es-http.{{ .Values.elasticsearch.namespace | default (include "eck-stack.operatorNamespace" .) }}.svc:9200
+              - name: ELASTICSEARCH_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ printf "%s-%s-beat-user" (include "eck-stack.operatorNamespace" .) (printf "%s-filebeat" .Release.Name) }}
+                    key: name
+              - name: ELASTICSEARCH_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Release.Name }}-filebeat-beat-user
+                    key: {{ printf "%s-%s-beat-user" (include "eck-stack.operatorNamespace" .) (printf "%s-filebeat" .Release.Name) }}
+            volumeMounts:
+              - name: varlog
+                mountPath: /var/log
+              - name: varlibdockercontainers
+                mountPath: /var/lib/docker/containers
+                readOnly: true
+              - name: data
+                mountPath: /usr/share/filebeat/data
+            {{- with .Values.observability.filebeat.resources }}
+            resources:
+{{ toYaml . | indent 14 }}
+            {{- end }}
+        volumes:
+          - name: data
+            emptyDir: {}
+          - name: varlog
+            hostPath:
+              path: /var/log
+          - name: varlibdockercontainers
+            hostPath:
+              path: /var/lib/docker/containers
+  config:
+{{ toYaml .Values.observability.filebeat.config | indent 4 }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-filebeat
+  namespace: {{ include "eck-stack.operatorNamespace" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-filebeat
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces", "nodes", "endpoints", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-filebeat
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}-filebeat
+    namespace: {{ include "eck-stack.operatorNamespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Release.Name }}-filebeat
+{{- end }}

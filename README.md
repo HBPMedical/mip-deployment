@@ -11,6 +11,7 @@
 1. [Configuring new users](doc/keycloak/UsersConfiguration.md)
 1. [Authorization for new user](doc/keycloak/UserAuthorizations.md)
 1. [Backup and Recovery](doc/BackupAndRecovery.md)
+1. [Elastic (ECK) observability stack for RKE2](eck/README.md)
 
 ## Acknowledgement
 This project/research received funding from the European Union’s Horizon 2020 Framework Programme for Research and Innovation under the Framework Partnership Agreement No. 650003 (HBP FPA).

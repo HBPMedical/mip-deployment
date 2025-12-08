@@ -1,0 +1,160 @@
+{{- if .Values.alertNotifier.enabled }}
+{{- $secretName := include "eck-stack.alertNotifier.secretName" . -}}
+{{- $persistence := .Values.alertNotifier.state.persistence | default (dict) -}}
+{{- $stateDir := include "eck-stack.alertNotifier.stateDir" . -}}
+{{- $stateFile := include "eck-stack.alertNotifier.stateFile" . -}}
+{{- $es := .Values.alertNotifier.es | default (dict) -}}
+{{- $teams := .Values.alertNotifier.teams | default (dict) -}}
+{{- $webex := .Values.alertNotifier.webex | default (dict) -}}
+{{- $webexTokenKey := $webex.tokenKey | default "webexBotToken" -}}
+{{- if not $secretName -}}
+{{- fail "alertNotifier.secret.name or alertNotifier.secret.existingSecret must be set" -}}
+{{- end -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "eck-stack.alertNotifier.fullname" . }}
+  labels:
+    {{- include "eck-stack.alertNotifier.labels" . | nindent 4 }}
+  {{- with .Values.alertNotifier.labels }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.alertNotifier.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  schedule: {{ quote (.Values.alertNotifier.schedule | default "*/5 * * * *") }}
+  concurrencyPolicy: {{ .Values.alertNotifier.concurrencyPolicy | default "Forbid" }}
+  successfulJobsHistoryLimit: {{ .Values.alertNotifier.successfulJobsHistoryLimit | default 1 }}
+  failedJobsHistoryLimit: {{ .Values.alertNotifier.failedJobsHistoryLimit | default 3 }}
+  {{- if .Values.alertNotifier.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ .Values.alertNotifier.startingDeadlineSeconds }}
+  {{- end }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.alertNotifier.backoffLimit | default 3 }}
+      template:
+        metadata:
+          labels:
+            {{- include "eck-stack.alertNotifier.labels" . | nindent 12 }}
+            {{- with .Values.alertNotifier.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.alertNotifier.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+          restartPolicy: OnFailure
+          {{- if .Values.alertNotifier.serviceAccountName }}
+          serviceAccountName: {{ .Values.alertNotifier.serviceAccountName }}
+          {{- end }}
+          {{- with .Values.alertNotifier.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.alertNotifier.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.alertNotifier.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.alertNotifier.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: alert-notifier
+              image: {{ include "eck-stack.alertNotifier.image" . }}
+              imagePullPolicy: {{ .Values.alertNotifier.image.pullPolicy | default "IfNotPresent" }}
+              args:
+                - --state
+                - {{ $stateFile | quote }}
+                - --es-index
+                - {{ ($es.index | default ".internal.alerts-observability.logs.alerts-default-*") | quote }}
+                - --es-query-size
+                - {{ default 200 $es.querySize | int | quote }}
+                {{- range $arg := .Values.alertNotifier.extraArgs }}
+                - {{ $arg | quote }}
+                {{- end }}
+              env:
+                - name: ALERT_STATE_FILE
+                  value: {{ $stateFile | quote }}
+                - name: ENABLE_TEAMS
+                  value: {{ ternary "true" "false" ($teams.enabled | default true) | quote }}
+                - name: ENABLE_WEBEX
+                  value: {{ ternary "true" "false" ($webex.enabled | default false) | quote }}
+                {{- if $secretName }}
+                - name: ES_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $secretName }}
+                      key: es-url
+                - name: ES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $secretName }}
+                      key: es-user
+                - name: ES_PASS
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $secretName }}
+                      key: es-pass
+                - name: TEAMS_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $secretName }}
+                      key: teams-webhook
+                {{- if $webexTokenKey }}
+                - name: WEBEX_BOT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $secretName }}
+                      key: {{ $webexTokenKey }}
+                {{- end }}
+                {{- end }}
+                - name: ES_INDEX
+                  value: {{ ($es.index | default ".internal.alerts-observability.logs.alerts-default-*") | quote }}
+                - name: ES_QUERY_SIZE
+                  value: {{ default 200 $es.querySize | int | quote }}
+                - name: ES_SKIP_VERIFY
+                  value: {{ ternary "true" "false" ($es.skipVerify | default false) | quote }}
+                {{- if $webex.roomId }}
+                - name: WEBEX_ROOM_ID
+                  value: {{ $webex.roomId | quote }}
+                {{- else if $webex.roomIdKey }}
+                - name: WEBEX_ROOM_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $secretName }}
+                      key: {{ $webex.roomIdKey }}
+                {{- end }}
+                {{- if $webex.personEmail }}
+                - name: WEBEX_PERSON_EMAIL
+                  value: {{ $webex.personEmail | quote }}
+                {{- end }}
+                {{- with .Values.alertNotifier.extraEnv }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+              volumeMounts:
+                - name: state
+                  mountPath: {{ $stateDir | quote }}
+              {{- with .Values.alertNotifier.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+          volumes:
+            - name: state
+              {{- if and ($persistence.enabled | default false) (not $persistence.existingClaim) }}
+              persistentVolumeClaim:
+                claimName: {{ include "eck-stack.alertNotifier.pvcName" . }}
+              {{- else if and ($persistence.enabled | default false) $persistence.existingClaim }}
+              persistentVolumeClaim:
+                claimName: {{ $persistence.existingClaim }}
+              {{- else }}
+              emptyDir: {}
+              {{- end }}
+{{- end }}

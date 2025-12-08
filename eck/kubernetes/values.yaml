@@ -1,0 +1,281 @@
+operator:
+  enabled: false
+  createNamespace: false
+  namespace: elastic-system
+  version: 2.13.0
+  image:
+    repository: docker.elastic.co/eck/eck-operator
+    tag: 2.13.0
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 150Mi
+  priorityClassName: ''
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+  webhook:
+    enabled: true
+    serviceName: elastic-webhook-server
+    servicePort: 443
+    port: 9443
+  extraArgs: []
+  env: []
+  config:
+    log-verbosity: 0
+    metrics-port: 0
+    container-registry: docker.elastic.co
+    max-concurrent-reconciles: 3
+    ca-cert-validity: 8760h
+    ca-cert-rotate-before: 24h
+    cert-validity: 8760h
+    cert-rotate-before: 24h
+    disable-config-watch: false
+    exposed-node-labels:
+    - topology.kubernetes.io/.*
+    - failure-domain.beta.kubernetes.io/.*
+    set-default-security-context: auto-detect
+    kube-client-timeout: 60s
+    elasticsearch-client-timeout: 180s
+    disable-telemetry: false
+    distribution-channel: all-in-one
+    validate-storage-class: true
+    enable-webhook: true
+    webhook-name: elastic-webhook.k8s.elastic.co
+    webhook-port: 9443
+    operator-namespace: ''
+    enable-leader-election: true
+    elasticsearch-observation-interval: 10s
+    ubi-only: false
+  managedNamespaces: []
+  webhookSecretName: elastic-webhook-server-cert
+elasticsearch:
+  enabled: true
+  namespace: elastic-system
+  name: elasticsearch-sample
+  version: 8.13.4
+  labels: {}
+  annotations: {}
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: false
+    service:
+      metadata:
+        annotations: {}
+  nodeSets:
+  - name: default
+    count: 1
+    config:
+      node.store.allow_mmap: false
+    podTemplate:
+      metadata:
+        labels: {}
+      spec:
+        containers:
+        - name: elasticsearch
+          resources:
+            requests:
+              cpu: 100m
+              memory: 1Gi
+            limits:
+              cpu: 1
+              memory: 1Gi
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: ceph-corbo-cephfs
+kibana:
+  enabled: true
+  namespace: elastic-system
+  name: kibana-sample
+  version: 8.13.4
+  count: 1
+  labels: {}
+  annotations: {}
+  http:
+    service:
+      metadata:
+        annotations: {}
+    tls:
+      selfSignedCertificate:
+        disabled: false
+  elasticsearchRef:
+    name: elasticsearch-sample
+  config: {}
+  podTemplate:
+    metadata:
+      labels: {}
+    spec:
+      containers:
+      - name: kibana
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            cpu: 1
+            memory: 1Gi
+  ingress:
+    enabled: false
+    className: public
+    annotations: {}
+    hosts:
+    - host: localhost
+      path: /
+      pathType: Prefix
+    tls: []
+observability:
+  filebeat:
+    enabled: true
+    version: 8.13.4
+    config:
+      filebeat:
+        autodiscover:
+          providers:
+          - type: kubernetes
+            node: ${NODE_NAME}
+            hints:
+              enabled: true
+              default_config:
+                type: container
+                paths:
+                - /var/log/containers/*${data.kubernetes.container.id}.log
+                processors:
+                - add_kubernetes_metadata: {}
+      processors:
+      - add_cloud_metadata: {}
+      - add_host_metadata: {}
+      - add_kubernetes_metadata: {}
+    resources:
+      requests:
+        cpu: 100m
+        memory: 400Mi
+      limits:
+        memory: 600Mi
+  output:
+    elasticsearch:
+      hosts:
+      - ${ELASTICSEARCH_HOSTS}
+      username: ${ELASTICSEARCH_USERNAME}
+      password: ${ELASTICSEARCH_PASSWORD}
+  metricbeat:
+    enabled: true
+    version: 8.13.4
+    config:
+      metricbeat:
+        data_stream:
+          enabled: true
+        modules:
+        - module: kubernetes
+          metricsets:
+          - node
+          - system
+          - pod
+          - container
+          - volume
+          period: 20s
+          host: ${NODE_NAME}
+          hosts:
+          - https://${NODE_IP}:10250
+          ssl.verification_mode: none
+          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          processors:
+          - add_kubernetes_metadata: {}
+        - module: kubernetes
+          metricsets:
+          - apiserver
+          hosts:
+          - https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}
+          ssl.certificate_authorities:
+          - /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          period: 30s
+        - module: system
+          period: 20s
+          hostfs: /hostfs
+          metricsets:
+          - cpu
+          - memory
+          - network
+          - diskio
+          - filesystem
+      processors:
+      - add_cloud_metadata: {}
+      - add_host_metadata: {}
+      - add_kubernetes_metadata: {}
+      output:
+        elasticsearch:
+          hosts:
+          - ${ELASTICSEARCH_HOSTS}
+          username: ${ELASTICSEARCH_USERNAME}
+          password: ${ELASTICSEARCH_PASSWORD}
+alertNotifier:
+  enabled: true
+  schedule: '*/5 * * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: null
+  backoffLimit: 3
+  image:
+    repository: madgik/alert-notifier
+    tag: 0.0.1
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  serviceAccountName: ''
+  labels: {}
+  annotations: {}
+  podLabels: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  extraArgs: []
+  extraEnv: []
+  teams:
+    enabled: true
+  webex:
+    enabled: true
+    roomId: ''
+    roomIdKey: webexRoomId
+    personEmail: ''
+    tokenKey: webexBotToken
+  state:
+    path: /var/lib/alert-notifier/state.json
+    persistence:
+      enabled: true
+      existingClaim: ''
+      storageClassName: ceph-corbo-cephfs
+      accessModes:
+      - ReadWriteOnce
+      size: 1Gi
+      annotations: {}
+  secret:
+    create: false
+    name: eck-alert-notifier-secrets
+    existingSecret: ''
+    data:
+      esUrl: ''
+      esUser: ''
+      esPass: ''
+      teamsWebhook: ''
+      webexBotToken: ''
+      webexRoomId: ''
+  es:
+    index: .internal.alerts-observability.logs.alerts-default-*
+    querySize: 200
+    skipVerify: true
