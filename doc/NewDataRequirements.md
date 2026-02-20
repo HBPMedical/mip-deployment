@@ -48,11 +48,3 @@ A csv file **must** follow these rules:
 If you want to add a new pathology on MIP then you need to create a new folder inside the `data` directory with the name of your pathology. Inside that folder you need to add:
 * The CDEsMetadata.json file
 * and the CSVs containing the data.
-
-# Local Validation of New Data
-
-For detailed instructions on validating the `CDEsMetadata.json` file and the CSV files you are working with, please refer to the comprehensive documentation available on the [MIPDB GitHub repository](https://github.com/madgik/mipdb/).
-
-# Loading data on Exareme2
-
-For detailed instructions on adding data to Exareme2, please consult the [Exareme2 documentation on importing node data](https://github.com/madgik/Exareme2/blob/master/kubernetes/docs/ImportNodeData.md).

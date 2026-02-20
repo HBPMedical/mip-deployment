@@ -1,39 +1,40 @@
+{{- $namespace := include "mip.namespace" . }}
+{{- $frontendDatacatalogProtocol := default .Values.datacatalog.protocol .Values.frontend.config.datacatalog.protocol -}}
+{{- $frontendDatacatalogHost := default .Values.datacatalog.host .Values.frontend.config.datacatalog.host -}}
+{{- $matomoEnabled := ternary "true" "false" (default false .Values.frontend.config.matomo.enabled) -}}
+{{- $proxyForwarding := ternary "true" "false" (default true .Values.keycloak.proxyAddressForwarding) -}}
+{{- $authEnabled := default true .Values.keycloak.enabled -}}
+{{- $authFlag := ternary "1" "0" $authEnabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mip-config
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
 data:
-  engines.exareme2.URL: {{ .Values.engines.exareme2.URL }}
+  engines.exaflow.URL: {{ default "" .Values.engines.exaflow.url | quote }}
 
-  mip.INSTANCE_NAME: "{{ tpl .Values.mip.NAME . }}"
-  mip.INSTANCE_VERSION: "{{ tpl .Values.mip.VERSION_STRING . }}"
-  mip.LINK: {{ .Values.mip.LINK }}
-  mip.EXTERNAL_PROTOCOL: {{ .Values.mip.EXTERNAL_PROTOCOL }}
-  mip.PUBLIC_PROTOCOL: {{ .Values.mip.PUBLIC_PROTOCOL }}
-  mip.PUBLIC_HOST: {{ .Values.mip.PUBLIC_HOST }}
+  mip.INSTANCE_NAME: {{ include "mip.instanceName" . | quote }}
+  mip.INSTANCE_VERSION: {{ include "mip.instanceVersion" . | quote }}
+  mip.LINK: {{ .Values.network.link | quote }}
+  mip.EXTERNAL_PROTOCOL: {{ .Values.network.externalProtocol | quote }}
+  mip.PUBLIC_PROTOCOL: {{ .Values.network.publicProtocol | quote }}
+  mip.PUBLIC_HOST: {{ .Values.network.publicHost | quote }}
+  mip.FRONTEND_URL: {{ printf "%s://%s" .Values.network.publicProtocol .Values.network.publicHost | quote }}
 
-  portalbackend.LOG_LEVEL: {{ .Values.portalbackend.LOG_LEVEL }}
-  portalbackend.LOG_LEVEL_FRAMEWORK: {{ .Values.portalbackend.LOG_LEVEL_FRAMEWORK }}
-  portalbackend.ALGORITHM_UPDATE_INTERVAL: "{{ .Values.portalbackend.ALGORITHM_UPDATE_INTERVAL}}"
+  portalbackend.LOG_LEVEL: {{ .Values.portalbackend.config.logLevel | quote }}
+  portalbackend.LOG_LEVEL_FRAMEWORK: {{ .Values.portalbackend.config.logLevelFramework | quote }}
+  portalbackend.ALGORITHM_UPDATE_INTERVAL: "{{ .Values.portalbackend.config.algorithmUpdateInterval }}"
 
-  gateway.ENGINE_TYPE: {{ .Values.gateway.ENGINE_TYPE }}
-  gateway.NODE_ENV: {{ .Values.gateway.NODE_ENV }}
-  gateway.LOG_LEVEL: "{{ .Values.gateway.LOG_LEVEL }}"
-  gateway.CACHE_ENABLED: "{{ .Values.gateway.CACHE_ENABLED }}"
-  gateway.CACHE_TTL: "{{ .Values.gateway.CACHE_TTL }}"
-  gateway.CACHE_MAX_ITEMS: "{{ .Values.gateway.CACHE_MAX_ITEMS }}"
+  frontend.ERROR_LOG_LEVEL: {{ .Values.frontend.config.errorLogLevel | quote }}
+  frontend.DATACATALOG_SERVER: {{ printf "%s://%s" $frontendDatacatalogProtocol $frontendDatacatalogHost | quote }}
+  frontend.MATOMO_ENABLED: "{{ $matomoEnabled }}"
+  frontend.MATOMO_URL: {{ default "" .Values.frontend.config.matomo.url | quote }}
+  frontend.MATOMO_SITE_ID: "{{ default "" .Values.frontend.config.matomo.siteId }}"
 
-  frontend.ERROR_LOG_LEVEL: {{ .Values.frontend.ERROR_LOG_LEVEL }}
-  frontend.DATACATALOG_SERVER: {{ tpl .Values.frontend.DATACATALOG_PROTOCOL . }}://{{ tpl .Values.frontend.DATACATALOG_HOST . }}
-  frontend.MATOMO_ENABLED: "{{ .Values.frontend.MATOMO_ENABLED }}"
-  frontend.MATOMO_URL: {{ .Values.frontend.MATOMO_URL }}
-  frontend.MATOMO_SITE_ID: "{{ .Values.frontend.MATOMO_SITE_ID }}"
-
-  keycloak.AUTHENTICATION: "{{ .Values.keycloak.AUTHENTICATION }}"
-  keycloak.HOSTNAME: {{ .Values.keycloak.URL }} # Only used with internal Keycloak auth
-  keycloak.AUTH_URL: {{ .Values.keycloak.PROTOCOL }}://{{ .Values.keycloak.URL }}/auth/
-  keycloak.REALM: {{ .Values.keycloak.REALM }}
-  keycloak.CLIENT_ID: {{ .Values.keycloak.CLIENT_ID }}
-  keycloak.SSL_REQUIRED: {{ .Values.keycloak.SSL_REQUIRED }}
-  keycloak.PROXY_ADDRESS_FORWARDING: "{{ .Values.keycloak.PROXY_ADDRESS_FORWARDING }}"
+  keycloak.AUTHENTICATION: "{{ $authFlag }}"
+  keycloak.HOSTNAME: {{ include "mip.keycloak.host" . | quote }}
+  keycloak.AUTH_URL: {{ include "mip.keycloak.authUrl" . | quote }}
+  keycloak.REALM: {{ include "mip.keycloak.realm" . | quote }}
+  keycloak.CLIENT_ID: {{ include "mip.keycloak.clientId" . | quote }}
+  keycloak.SSL_REQUIRED: {{ include "mip.keycloak.sslRequired" . | quote }}
+  keycloak.PROXY_ADDRESS_FORWARDING: "{{ $proxyForwarding }}"

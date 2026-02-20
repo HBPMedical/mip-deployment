@@ -424,11 +424,16 @@ spec:
             secretKeyRef:
               name: mip-secret
               key: portalbackend-db.PORTAL_DB_PASSWORD
-        - name: EXAREME2_URL
+        - name: EXAFLOW_URL
           valueFrom:
             configMapKeyRef:
               name: mip-config
-              key: engines.exareme2.URL
+              key: engines.exaflow.URL
+        - name: FRONTEND_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mip-config
+              key: mip.FRONTEND_URL
         - name: KEYCLOAK_AUTH_URL
           valueFrom:
             configMapKeyRef:

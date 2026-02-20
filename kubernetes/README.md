@@ -18,29 +18,22 @@ From now on, most of our deployments will be done with Ubuntu Server 22.04, but 
 ## Components:
 Now, with the Kubernetes (K8s) deployment, we have 2 main component packs, that need to be deployed, which come as Helm charts:
 
-### The engine: [Exareme2](https://github.com/madgik/Exareme2/tree/master/kubernetes)
-* [controller](https://github.com/madgik/Exareme2/tree/master/exareme2/controller)
-
-* [monetdb](https://github.com/madgik/Exareme2/tree/master/monetdb)
-* [rabbitmq](https://github.com/madgik/Exareme2/tree/master/rabbitmq)
-* [node](https://github.com/madgik/Exareme2/tree/master/exareme2/node)
-* [db-importer](https://github.com/madgik/Exareme2/tree/master/mipdb)
+### The engine: [Exaflow](https://github.com/madgik/Exaflow/tree/master/kubernetes)
+* [controller](https://github.com/madgik/Exaflow/tree/master/exaflow/controller)
+* [node](https://github.com/madgik/Exaflow/tree/master/exaflow/node)
 
 * [smpc-db](https://github.com/docker-library/mongo)
 * [smpc-queue](https://github.com/docker-library/redis)
-* [smpc-coordinator](https://github.com/Exareme2/tree/master/exareme2)
-* [smpc_player](https://github.com/Exareme2/tree/master/exareme2)
-* [smpc-client](https://github.com/madgik/Exareme2/tree/master/exareme2)
+* [smpc-coordinator](https://github.com/Exaflow/tree/master/exaflow)
+* [smpc_player](https://github.com/Exaflow/tree/master/exaflow)
+* [smpc-client](https://github.com/madgik/Exaflow/tree/master/exaflow)
 
 ### The web app stack:
 * [frontend](https://github.com/HBPMedical/portal-frontend): The "Web App" UI
-* [gateway](https://github.com/HBPMedical/gateway): "Middleware" layer between the MIP Frontend and a federated analytic engine
-* [gateway_db](https://github.com/docker-library/postgres): The gateway's database
 * [portalbackend](https://github.com/HBPMedical/portal-backend): The "Backend API" which supports the Web App
     * Its database bootstrap script lives next to the application code (`config/scripts/bootstrap-portal-db.sh`) and the same script is vendored in this chart under `files/portalbackend-db-init.sh` so the deployment can mount it via ConfigMap without embedding a large shell block inside the template. Keeping both copies in sync lets the container image and the Helm release evolve together.
 * [portalbackend_db](https://github.com/docker-library/postgres): The portal backend's database
-* [keycloak](https://github.com/keycloak/keycloak-containers): The "AuthN/AuthZ" system, based on KeyCloak (this component usually doesn't run in a *federated* MIP, as an "external" KeyCloak service does the job). In case this *local* "embedded" component is used, you may need to know some details, which you can find [documentation of users configuration](documentation/UsersConfiguration.md)
-* [keycloak_db](https://github.com/docker-library/postgres): The KeyCloak's database, required only if the *keycloak* component needs to be used
+**External Keycloak**: Authentication is provided by an existing Keycloak realm; this chart only wires the configuration values so the UI stack can reach it.
 
 
 ## Taking care of the medical data
@@ -129,20 +122,20 @@ sudo chown -R mipadmin.mipadmin /data
 
 For a "federated" deployment, you may want to add nodes to your cluster. "microk8s add-node" will give you a **one-time usage** token, which you can use on a worker node to actually "join" the cluster. This process must be repeated on all the worker nodes.
 
-### Exareme2 Deployment
+### Exaflow Deployment
 * Install the repository content
   ```
-  sudo git clone https://github.com/madgik/Exareme2 /opt/exareme2
+  sudo git clone https://github.com/madgik/Exaflow /opt/exaflow
   ```
   ```
-  sudo chown -R mipadmin.mipadmin /opt/exareme2
+  sudo chown -R mipadmin.mipadmin /opt/exaflow
   ```
-* Set the variables in /opt/exareme2/kubernetes/values.yaml
+* Set the variables in /opt/exaflow/kubernetes/values.yaml
     * localnodes: 1 for a "local" deployment (yes, even if it's the same machine for master and worker), or more (the number of workers, not counting the master node) for a "federated" deployment
-    * credentials_location: /opt/exareme2/credentials
-    * db.storage_location: /opt/exareme2/.stored_data/db
+    * credentials_location: /opt/exaflow/credentials
+    * db.storage_location: /opt/exaflow/.stored_data/db
     * db.csvs_location: /data/<MIP_INSTANCE_OR_FEDERATION_NAME>
-    * controller.cleanup_file_folder: /opt/exareme2/.stored_data/cleanup
+    * controller.cleanup_file_folder: /opt/exaflow/.stored_data/cleanup
     * smpc.enabled: true (if you want, and **ONLY** in case of a federated deployment, and also **ONLY** if you have at least 3 worker nodes!)
 * Label the nodes
 
@@ -159,10 +152,10 @@ For a "federated" deployment, you may want to add nodes to your cluster. "microk
   ```
 * Deploy the Helm chart
   ```
-  microk8s helm3 install exareme2 /opt/exareme2/kubernetes
+  microk8s helm3 install exaflow /opt/exaflow/kubernetes
   ```
 
-For a more in-depth guide on deploying Exareme2, please refer to the documentation available on the [Exareme2 Kubernetes repository](https://github.com/madgik/Exareme2/blob/master/kubernetes).
+For a more in-depth guide on deploying Exaflow, please refer to the documentation available on the [Exaflow Kubernetes repository](https://github.com/madgik/Exaflow/blob/master/kubernetes).
 
 
 
@@ -174,10 +167,32 @@ For a more in-depth guide on deploying Exareme2, please refer to the documentati
   ```
   sudo chown -R mipadmin.mipadmin /opt/mip-deployment
   ```
-* Set the different profiles in `/opt/mip-deployment/kubernetes` as explained before
-* Deploy the Helm chart with a specific profile
+* Install JupyterHub in the same namespace (hub-only notebook mode)
   ```
-  microk8s helm3 install mip -f /opt/mip-deployment/kubernetes/<PROFILE_CONFIGURATION_FILE> /opt/mip-deployment/kubernetes
+  microk8s helm3 repo add jupyterhub https://jupyterhub.github.io/helm-chart
+  microk8s helm3 repo update
+  microk8s helm3 upgrade --install jupyterhub jupyterhub/jupyterhub \
+    -n <NAMESPACE> \
+    --create-namespace \
+    -f /opt/mip-deployment/kubernetes/jupyterhub.values.yaml
+  ```
+  In your `/opt/mip-deployment/kubernetes/my-values.yaml`, enable notebook integration:
+  ```
+  notebook:
+    enabled: true
+    server:
+      host: jupyterhub-proxy-public
+      port: 80
+      context: notebook
+      landingPath: /hub/spawn
+  ```
+  If you use a release name other than `jupyterhub`, adjust `notebook.server.host` to `<RELEASE_NAME>-proxy-public`.
+* Copy `values.yaml` to `/opt/mip-deployment/kubernetes/my-values.yaml` and tailor it to your environment.
+* Deploy (or upgrade) the Helm release with your customised values
+  ```
+  microk8s helm3 upgrade --install mip \
+    -f /opt/mip-deployment/kubernetes/my-values.yaml \
+    /opt/mip-deployment/kubernetes
   ```
 
 # MicroK8s Automatic Recoverability

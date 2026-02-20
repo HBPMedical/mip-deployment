@@ -26,7 +26,7 @@ jobs:
       - name: Docker compose version
         run: docker compose version
 
-      - name: Deploy portalbackend and exareme2
+      - name: Deploy portalbackend and exaflow
         working-directory: ./dev/
         run: bash start.sh
 
