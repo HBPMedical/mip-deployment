@@ -1,2 +1,0 @@
-http.host: "0.0.0.0"  # Limit access to localhost or use a specific interface
-xpack.monitoring.enabled: false # Enable monitoring to track performance in production
