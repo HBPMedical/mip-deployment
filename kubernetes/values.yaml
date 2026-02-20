@@ -21,17 +21,17 @@ engines:
     url: "http://exaflow-controller-service:5000"
     image:
       repository: madgik/exaflow
-      tag: 0.28.0
+      tag: 1.0.0
 mip:
   displayName: MIP
-  version: 8.0.0
+  version: 9.0.0
 datacatalog:
   protocol: https
   host: ""
 frontend:
   image:
     repository: madgik/frontend
-    tag: 0.0.1cand14
+    tag: 0.0.1
   service:
     nodePort: 30080
   ingress:
@@ -55,7 +55,7 @@ frontend:
 portalbackend:
   image:
     repository: hbpmip/portal-backend
-    tag: new_frontend20
+    tag: 9.0.0
   config:
     logLevel: INFO
     logLevelFramework: INFO

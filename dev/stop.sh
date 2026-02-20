@@ -1,5 +1,7 @@
 #!/bin/env bash
+set -a
+source ./.versions_env
+source ./.env
+set +a
 
-docker compose --env-file ../.versions_env down
-rm ../data/local.db
-rm ../data/global.db
+docker compose down -v

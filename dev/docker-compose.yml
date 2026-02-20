@@ -1,168 +1,118 @@
 services:
-  exareme2_local_rabbitmq:
-    image: madgik/exareme2_rabbitmq:${EXAREME2}
+  exaflow_aggregation_server:
+    image: madgik/exaflow_aggregation_server:${EXAFLOW}
     ports:
-      - "5673:5672"
+      - "50051:50051"
     environment:
-      - RABBITMQ_ADMIN_USER=user
-      - RABBITMQ_ADMIN_PASSWORD=password
-      - RABBITMQ_ADMIN_VHOST=user_vhost
-      - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 30s
-      timeout: 30s
-      retries: 3
+      PORT: 50051
+      MAX_GRPC_CONNECTIONS: 10
+      MAX_WAIT_FOR_AGGREGATION_INPUTS: 30
+      LOG_LEVEL: INFO
+    restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: 172.28.0.13
 
-  exareme2_global_rabbitmq:
-    image: madgik/exareme2_rabbitmq:${EXAREME2}
+  exaflow_controller:
+    image: madgik/exaflow_controller:${EXAFLOW}
     ports:
-      - "5672:5672"
+      - "5000:5000"
     environment:
-      - RABBITMQ_ADMIN_USER=user
-      - RABBITMQ_ADMIN_PASSWORD=password
-      - RABBITMQ_ADMIN_VHOST=user_vhost
-      - RABBITMQ_SLEEP_BEFORE_CONFIGURATION=30
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 30s
-      timeout: 30s
-      retries: 3
-
-  exareme2_local_monetdb:
-    image: madgik/exareme2_db:${EXAREME2}
-    ports:
-      - "50001:50000"
-    environment:
-      - SOFT_RESTART_MEMORY_LIMIT=1000
-      - HARD_RESTART_MEMORY_LIMIT=1000
-    volumes:
-      - ../data:/opt/data
-
-  exareme2_global_monetdb:
-    image: madgik/exareme2_db:${EXAREME2}
-    ports:
-      - "50000:50000"
-    environment:
-      - SOFT_RESTART_MEMORY_LIMIT=1000
-      - HARD_RESTART_MEMORY_LIMIT=1000
-    volumes:
-      - ../data:/opt/data
-
-  exareme2_local_mipdb:
-    image: madgik/exareme2_mipdb:${EXAREME2}
-    environment:
-      - DB_IP=172.17.0.1
-      - DB_PORT=50001
-      - MONETDB_ENABLED=true
-      - DATA_PATH=/opt/data
-      - SQLITE_DB_NAME=local
-    volumes:
-      - ../data:/opt/data
-
-  exareme2_global_mipdb:
-    image: madgik/exareme2_mipdb:${EXAREME2}
-    environment:
-      - DB_IP=172.17.0.1
-      - DB_PORT=50001
-      - MONETDB_ENABLED=true
-      - DATA_PATH=/opt/data
-      - SQLITE_DB_NAME=global
-    volumes:
-      - ../data:/opt/data
-
-  exareme2_local:
-    image: madgik/exareme2_worker:${EXAREME2}
-    volumes:
-      - ../data:/opt/data
-    environment:
-      - FEDERATION=dementia
-      - WORKER_IDENTIFIER=local
-      - WORKER_ROLE=LOCALWORKER
-      - DATA_PATH=/opt/data
-      - LOG_LEVEL=INFO
-      - FRAMEWORK_LOG_LEVEL=WARNING
-      - CONTROLLER_IP=172.17.0.1
-      - CONTROLLER_PORT=5000
-      - CELERY_TASKS_TIMEOUT=20
-      - CELERY_RUN_UDF_TASK_TIMEOUT=120
-      - RABBITMQ_IP=172.17.0.1
-      - RABBITMQ_PORT=5673
-      - MONETDB_ENABLED=true
-      - MONETDB_IP=172.17.0.1
-      - MONETDB_PORT=50001
-      - SQLITE_DB_NAME=local
-      - SMPC_ENABLED=false
-      - SMPC_OPTIONAL=false
+      NODE_IDENTIFIER: controller
+      FEDERATION: dementia
+      LOG_LEVEL: INFO
+      FRAMEWORK_LOG_LEVEL: INFO
+      DEPLOYMENT_TYPE: LOCAL
+      WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL: 30
+      WORKER_TASKS_TIMEOUT: 30
+      FLOWER_ENABLED: false
+      FLOWER_EXECUTION_TIMEOUT: 30
+      FLOWER_SERVER_PORT: 8080
+      LOCALWORKERS_CONFIG_FILE: /opt/config/localworkers_config.json
+      LOCALWORKERS_DNS: ""
+      LOCALWORKERS_PORT: ""
+      AGGREGATION_SERVER_ENABLED: true
+      AGGREGATION_SERVER_DNS: 172.28.0.13:50051
+      SMPC_ENABLED: false
+      SMPC_OPTIONAL: false
+      SMPC_COORDINATOR_ADDRESS: ""
+      SMPC_GET_RESULT_INTERVAL: 10
+      SMPC_GET_RESULT_MAX_RETRIES: 100
+      DP_ENABLED: false
+      DP_SENSITIVITY: ""
+      DP_PRIVACY_BUDGET: ""
     depends_on:
-      - exareme2_local_monetdb
-      - exareme2_local_rabbitmq
+      - exaflow_aggregation_server
+    volumes:
+      - ./config:/opt/config
     restart: unless-stopped
-#    logging:   # Used for sending logs to ELK
-#      driver: "syslog"
-#      options:
-#        syslog-address: "tcp://192.168.38.128:30520"
+    networks:
+      default:
+        ipv4_address: 172.28.0.10
 
-  exareme2_global:
-    image: madgik/exareme2_worker:${EXAREME2}
+  exaflow_global_worker:
+    image: madgik/exaflow_worker:${EXAFLOW}
+    environment:
+      WORKER_IDENTIFIER: globalworker
+      WORKER_ROLE: GLOBALWORKER
+      FEDERATION: dementia
+      LOG_LEVEL: INFO
+      FRAMEWORK_LOG_LEVEL: INFO
+      DUCKDB_PATH: /tmp/globalworker.duckdb
+      DATA_PATH: /opt/data
+      CONTROLLER_IP: 172.28.0.10
+      CONTROLLER_PORT: 5000
+      WORKER_TASKS_TIMEOUT: 30
+      PROTECT_LOCAL_DATA: false
+      GRPC_IP: 172.28.0.11
+      GRPC_PORT: 5670
+      AGGREGATION_SERVER_ENABLED: true
+      AGGREGATION_SERVER_DNS: 172.28.0.13:50051
+      SMPC_ENABLED: false
+      SMPC_OPTIONAL: false
+      SMPC_CLIENT_ID: ""
+      SMPC_CLIENT_ADDRESS: ""
+      SMPC_COORDINATOR_ADDRESS: ""
+    depends_on:
+      - exaflow_controller
+      - exaflow_aggregation_server
+    restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: 172.28.0.11
+
+  exaflow_local_worker1:
+    image: madgik/exaflow_worker:${EXAFLOW}
+    environment:
+      WORKER_IDENTIFIER: localworker1
+      WORKER_ROLE: LOCALWORKER
+      FEDERATION: dementia
+      LOG_LEVEL: INFO
+      FRAMEWORK_LOG_LEVEL: INFO
+      DUCKDB_PATH: /tmp/localworker1.duckdb
+      DATA_PATH: /opt/data
+      CONTROLLER_IP: 172.28.0.10
+      CONTROLLER_PORT: 5000
+      WORKER_TASKS_TIMEOUT: 30
+      PROTECT_LOCAL_DATA: false
+      GRPC_IP: 172.28.0.12
+      GRPC_PORT: 5671
+      AGGREGATION_SERVER_ENABLED: true
+      AGGREGATION_SERVER_DNS: 172.28.0.13:50051
+      SMPC_ENABLED: false
+      SMPC_OPTIONAL: false
+      SMPC_CLIENT_ID: ""
+      SMPC_CLIENT_ADDRESS: ""
+      SMPC_COORDINATOR_ADDRESS: ""
+    depends_on:
+      - exaflow_controller
+      - exaflow_aggregation_server
     volumes:
       - ../data:/opt/data
-    environment:
-      - FEDERATION=dementia
-      - WORKER_IDENTIFIER=global
-      - WORKER_ROLE=GLOBALWORKER
-      - DATA_PATH=/opt/data
-      - LOG_LEVEL=INFO
-      - FRAMEWORK_LOG_LEVEL=WARNING
-      - CONTROLLER_IP=172.17.0.1
-      - CONTROLLER_PORT=5000
-      - CELERY_TASKS_TIMEOUT=20
-      - CELERY_RUN_UDF_TASK_TIMEOUT=120
-      - RABBITMQ_IP=172.17.0.1
-      - RABBITMQ_PORT=5672
-      - MONETDB_ENABLED=true
-      - MONETDB_IP=172.17.0.1
-      - MONETDB_PORT=50000
-      - SQLITE_DB_NAME=global
-      - SMPC_ENABLED=false
-      - SMPC_OPTIONAL=false
-    depends_on:
-      - exareme2_global_monetdb
-      - exareme2_global_rabbitmq
     restart: unless-stopped
-#    logging:   # Used for sending logs to ELK
-#      driver: "syslog"
-#      options:
-#        syslog-address: "tcp://192.168.38.128:30520"
-
-  exareme2_controller:
-    image: madgik/exareme2_controller:${EXAREME2}
-    ports:
-      - '5000:5000'
-    environment:
-      - FEDERATION=dementia
-      - NODE_IDENTIFIER=controller
-      - LOG_LEVEL=INFO
-      - FRAMEWORK_LOG_LEVEL=WARNING
-      - DEPLOYMENT_TYPE=LOCAL
-      - MONETDB_ENABLED=true
-      - FLOWER_EXECUTION_TIMEOUT=30
-      - WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL=500
-      - CLEANUP_FOLDER=/tmp/exareme2
-      - WORKERS_CLEANUP_INTERVAL=60
-      - WORKERS_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT=3600
-      - LOCALWORKERS_CONFIG_FILE=/opt/config/localworkers_config.json
-      - CELERY_TASKS_TIMEOUT=20
-      - CELERY_RUN_UDF_TASK_TIMEOUT=120
-      - SMPC_ENABLED=false
-      - SMPC_OPTIONAL=false
-    volumes:
-      - ./config/:/opt/config/
-    restart: unless-stopped
-#    logging:   # Used for sending logs to ELK
-#      driver: "syslog"
-#      options:
-#        syslog-address: "tcp://192.168.38.128:30520"
+    networks:
+      default:
+        ipv4_address: 172.28.0.12
 
   portalbackend_db:
     image: postgres:11.20-alpine
@@ -195,6 +145,9 @@ services:
     ports:
       - '8080:8080'
       - '8089:8089'
+    depends_on:
+      - create_dbs
+      - exaflow_controller
     environment:
       ### LOGGER ###
       LOG_LEVEL: INFO
@@ -205,117 +158,39 @@ services:
       PORTAL_DB_SERVER: portalbackend_db:5433
       PORTAL_DB_USER: portal
       PORTAL_DB_PASSWORD: portalpwd
-      ### Exareme2 ###
+      ### Exaflow ###
       ALGORITHM_UPDATE_INTERVAL: 30     # seconds
-      EXAREME2_URL: http://172.17.0.1:5000
-      ### Keycloak ###
-      AUTHENTICATION: 0
-#      AUTHENTICATION: 1     # Should be enabled for keycloak
-      KEYCLOAK_AUTH_URL: http://172.17.0.1/auth/
-      KEYCLOAK_REALM: MIP
-      KEYCLOAK_CLIENT_ID: MIP
-      KEYCLOAK_CLIENT_SECRET: dae83a6b-c769-4186-8383-f0984c6edf05
-      KEYCLOAK_SSL_REQUIRED: none
-    depends_on:
-      - create_dbs
+      EXAFLOW_URL: http://exaflow_controller:5000
+      FRONTEND_BASE_URL: "${FRONTEND_BASE_URL}"
+      ### Keycloak (external) ###
+      AUTHENTICATION: "${AUTHENTICATION}"
+      KEYCLOAK_AUTH_URL: "${KEYCLOAK_AUTH_URL}"
+      KEYCLOAK_REALM: "${KEYCLOAK_REALM}"
+      KEYCLOAK_CLIENT_ID: "${KEYCLOAK_CLIENT_ID}"
+      KEYCLOAK_CLIENT_SECRET: "${KEYCLOAK_CLIENT_SECRET}"
+      KEYCLOAK_SSL_REQUIRED: "${KEYCLOAK_SSL_REQUIRED}"
     volumes:
       - ./config:/opt/portal/api
     restart: unless-stopped
-#    logging:   # Used for sending logs to ELK
-#      driver: "syslog"
-#      options:
-#        syslog-address: "tcp://192.168.38.128:30520"
 
-  gateway-db:
-    image: postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: pass123
-    volumes:
-      - ./.stored_data/gatewaydb:/var/lib/postgres
-    expose:
-      - 5432
-
-  gateway:
-    image: hbpmip/gateway:${GATEWAY}
-    environment:
-      - DB_HOST=gateway-db
-      - ENGINE_TYPE=exareme
-      - ENGINE_BASE_URL=http://172.17.0.1:8080/services/
-      - AUTH_SKIP=true
-      - AUTH_ENABLE_SSO=false
-      #      - AUTH_ENABLE_SSO=true         # Should be enabled for Keycloak
-      - BASE_URL_CONTEXT=services
-      - GATEWAY_PORT=8081
-      - CACHE_ENABLED=false
-      - NODE_ENV=development
-    links:
-      - gateway-db
-    depends_on:
-      - gateway-db
-    expose:
-      - '8081'
-    restart: unless-stopped
-
-  frontend:
-    image: hbpmip/portal-frontend:${FRONTEND}
-    depends_on:
-      - gateway
+  platform_ui:
+    image: madgik/portal-frontend:${FRONTEND}
     ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ../config/caddy/Caddyfile:/etc/caddy/Caddyfile
-      - ./.stored_data/caddy/caddy_data:/data
+      - "80:80"
     environment:
-      INSTANCE_NAME: 'MIP ${MIP}'
-      VERSION: 'Frontend: ${FRONTEND}, Gateway: ${GATEWAY}, Backend: ${PORTALBACKEND}, Exareme: ${EXAREME2}'
-      ERROR_LOG_LEVEL: info
-      PORTAL_BACKEND_SERVER: 172.17.0.1:8080
+      PORTAL_BACKEND_SERVER: portalbackend:8080
       PORTAL_BACKEND_CONTEXT: services
-      GATEWAY_SERVER: gateway:8081
-      PUBLIC_MIP_HOST: 172.17.0.1
-      PUBLIC_MIP_PROTOCOL: http
-      EXTERNAL_MIP_PROTOCOL: http
-      KEYCLOAK_HOST: http://keycloak:8095
-      KEYCLOAK_AUTH_PATH: /auth
-      PORTALBACKEND_AUTH_URL: /oauth2/authorization/keycloak
-      MIP_LINK: direct
+      NOTEBOOK_ENABLED: 0
+      FRONTEND_VERSION: "${FRONTEND}"
+      BACKEND_VERSION: "${PORTALBACKEND}"
+      EXAFLOW_VERSION: "${EXAFLOW}"
+      MIP_VERSION: "${MIP}"
+    depends_on:
+      - portalbackend
     restart: unless-stopped
 
-#  keycloak_db:
-#    image: postgres:12.2
-#    volumes:
-#      - ./.stored_data/keycloak:/var/lib/postgresql/data
-#    environment:
-#      POSTGRES_DB: keycloak
-#      POSTGRES_USER: keycloak
-#      POSTGRES_PASSWORD: password
-#    restart: unless-stopped
-#
-#  keycloak:
-#    image: jboss/keycloak:15.0.2
-#    command: -Djboss.http.port=8095
-#    volumes:
-#      - ../config/keycloak/keycloak.json:/tmp/mip.json
-#      - ../config/keycloak/HBPTheme:/opt/jboss/keycloak/themes/HBPTheme
-#    environment:
-#      DB_VENDOR: POSTGRES
-#      DB_ADDR: keycloak_db
-#      DB_PORT: 5432
-#      DB_DATABASE: keycloak
-#      DB_USER: keycloak
-#      DB_SCHEMA: public
-#      DB_PASSWORD: password
-#      KEYCLOAK_USER: admin
-#      KEYCLOAK_PASSWORD: Pa55w0rd
-#      KEYCLOAK_IMPORT: /tmp/mip.json
-#      KEYCLOAK_HOSTNAME: 172.17.0.1
-#      PROXY_ADDRESS_FORWARDING: 'true'  #important for reverse proxy
-#    ports:
-#      - '8095:8095'
-#      - '8443:8443'
-#    depends_on:
-#      - keycloak_db
-#    restart: unless-stopped
-
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24

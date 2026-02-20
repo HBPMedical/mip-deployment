@@ -19,6 +19,10 @@
 
 3. Install docker-compose
 
+4. Create Keycloak env file:
+   ```
+   cp .env.example .env
+   ```
 
 ## Instructions to deploy:
 
