@@ -1,23 +1,23 @@
-{{- if not .Values.managed_cluster }}
+{{- $namespace := include "mip.namespace" . }}
+{{- if not .Values.cluster.managed }}
 ---
 # 1) portalbackend DB data on hostPath
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: portalbackend-db-vol0
-  namespace: {{ .Values.namespace }}
   labels:
     storage: portalbackend-db-storage0
 spec:
   capacity:
-    storage: {{ .Values.portalbackend_db.storage.storage0.data_size }}
+    storage: {{ .Values.portalbackendDatabase.persistence.size }}
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: {{ .Values.storageClasses.local }}
+  storageClassName: {{ .Values.cluster.storageClasses.local }}
   hostPath:
-    path: {{ .Values.portalbackend_db.storage.storage0.data_path }}
+    path: {{ .Values.portalbackendDatabase.persistence.localPath }}
     type: DirectoryOrCreate
   nodeAffinity:
     required:
@@ -32,19 +32,19 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: portalbackend-db-claim0
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
   labels:
     storage: portalbackend-db-storage0
 spec:
   selector:
     matchLabels:
       storage: portalbackend-db-storage0
-  storageClassName: {{ .Values.storageClasses.local }}
+  storageClassName: {{ .Values.cluster.storageClasses.local }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.portalbackend_db.storage.storage0.data_size }}
+      storage: {{ .Values.portalbackendDatabase.persistence.size }}
 
 ---
 # 2) portalbackend config/storage on hostPath
@@ -52,19 +52,18 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: portalbackend-storage-vol0
-  namespace: {{ .Values.namespace }}
   labels:
     storage: portalbackend-storage0
 spec:
   capacity:
-    storage: {{ .Values.portalbackend.storage.storage0.data_size }}
+    storage: {{ .Values.portalbackend.persistence.data.size }}
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: {{ .Values.storageClasses.local }}
+  storageClassName: {{ .Values.cluster.storageClasses.local }}
   hostPath:
-    path: {{ .Values.portalbackend.storage.storage0.data_path }}
+    path: {{ .Values.portalbackend.persistence.data.localPath }}
     type: DirectoryOrCreate
   nodeAffinity:
     required:
@@ -79,19 +78,19 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: portalbackend-claim0
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
   labels:
     storage: portalbackend-storage0
 spec:
   selector:
     matchLabels:
       storage: portalbackend-storage0
-  storageClassName: {{ .Values.storageClasses.local }}
+  storageClassName: {{ .Values.cluster.storageClasses.local }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.portalbackend.storage.storage0.data_size }}
+      storage: {{ .Values.portalbackend.persistence.data.size }}
 
 ---
 # 3) portalbackend logs on hostPath
@@ -99,19 +98,18 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: portalbackend-logs-vol0
-  namespace: {{ .Values.namespace }}
   labels:
     storage: portalbackend-logs-storage0
 spec:
   capacity:
-    storage: {{ .Values.portalbackend.logs.storage0.data_size }}
+    storage: {{ .Values.portalbackend.persistence.logs.size }}
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: {{ .Values.storageClasses.local }}
+  storageClassName: {{ .Values.cluster.storageClasses.local }}
   hostPath:
-    path: {{ .Values.portalbackend.logs.storage0.data_path }}
+    path: {{ .Values.portalbackend.persistence.logs.localPath }}
     type: DirectoryOrCreate
   nodeAffinity:
     required:
@@ -126,19 +124,19 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: portalbackend-logs-claim0
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
   labels:
     storage: portalbackend-logs-storage0
 spec:
   selector:
     matchLabels:
       storage: portalbackend-logs-storage0
-  storageClassName: {{ .Values.storageClasses.local }}
+  storageClassName: {{ .Values.cluster.storageClasses.local }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.portalbackend.logs.storage0.data_size }}
+      storage: {{ .Values.portalbackend.persistence.logs.size }}
 {{- else }}
 ---
 # managed cluster: only dynamic PVCs on CephFS
@@ -146,49 +144,49 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: portalbackend-db-claim0
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
   annotations:
     # tells Argo CD: do not prune (delete) this resource
     argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
-  storageClassName: {{ .Values.storageClasses.managed }}
+  storageClassName: {{ .Values.cluster.storageClasses.managed }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.portalbackend_db.storage.storage0.data_size }}
+      storage: {{ .Values.portalbackendDatabase.persistence.size }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: portalbackend-claim0
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
   annotations:
     # tells Argo CD: do not prune (delete) this resource
     argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
-  storageClassName: {{ .Values.storageClasses.managed }}
+  storageClassName: {{ .Values.cluster.storageClasses.managed }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.portalbackend.storage.storage0.data_size }}
+      storage: {{ .Values.portalbackend.persistence.data.size }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: portalbackend-logs-claim0
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
   annotations:
     # tells Argo CD: do not prune (delete) this resource
     argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
-  storageClassName: {{ .Values.storageClasses.managed }}
+  storageClassName: {{ .Values.cluster.storageClasses.managed }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.portalbackend.logs.storage0.data_size }}
+      storage: {{ .Values.portalbackend.persistence.logs.size }}
 {{- end }}
 
 ---
@@ -197,7 +195,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: portalbackend-db-init
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
 data:
   10-bootstrap-portal-db.sh: |
     #!/bin/sh
@@ -303,7 +301,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: portalbackend
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
   labels:
     app: portalbackend
 spec:
@@ -318,7 +316,7 @@ spec:
       labels:
         app: portalbackend
     spec:
-      {{ if not .Values.managed_cluster }}
+      {{ if not .Values.cluster.managed }}
       nodeSelector:
         master: "true"
       {{ end }}
@@ -339,7 +337,7 @@ spec:
           defaultMode: 0755
       containers:
       - name: portalbackend-db
-        image: {{ .Values.portalbackend_db.image.name }}:{{ .Values.portalbackend_db.image.version }}
+        image: {{ .Values.portalbackendDatabase.image.repository }}:{{ .Values.portalbackendDatabase.image.tag }}
         ports:
         - containerPort: 5432
         volumeMounts:
@@ -385,7 +383,7 @@ spec:
               - /opt/portalbackend-db-init/10-bootstrap-portal-db.sh
 
       - name: portalbackend
-        image: {{ .Values.portalbackend.image.name }}:{{ .Values.portalbackend.image.version }}
+        image: {{ .Values.portalbackend.image.repository }}:{{ .Values.portalbackend.image.tag }}
         ports:
         - containerPort: 8080
         - containerPort: 8089
@@ -470,7 +468,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: portalbackend-service
-  namespace: {{ .Values.namespace }}
+  namespace: {{ $namespace }}
   labels:
     app: portalbackend
 spec:
@@ -483,8 +481,11 @@ spec:
   - name: "8080"
     port: 8080
     targetPort: 8080
-  {{- if eq .Values.portalbackend.LOG_LEVEL "DEBUG" }}
+  {{- if .Values.portalbackend.service.exposeDebug.enabled }}
   type: LoadBalancer
+  {{- $debugIP := default .Values.network.externalIP .Values.portalbackend.service.exposeDebug.externalIP }}
+  {{- if $debugIP }}
   externalIPs:
-  - {{ tpl .Values.frontend.EXTERNAL_IP . }}
+  - {{ $debugIP }}
+  {{- end }}
   {{- end }}

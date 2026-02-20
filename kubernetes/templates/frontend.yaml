@@ -1,226 +1,89 @@
-{{- if not .Values.managed_cluster }}
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: frontend-vol
-  namespace: {{ .Values.namespace }}
-  labels:
-    storage: frontend-storage
-spec:
-  capacity:
-    storage: {{ .Values.frontend.storage.data_size }}
-  volumeMode: Filesystem
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Delete
-  storageClassName: {{ .Values.storageClasses.local }}
-  hostPath:
-    path: {{ .Values.frontend.storage.data_path }}
-    type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: master
-              operator: In
-              values:
-                - "true"
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: frontend-claim
-  namespace: {{ .Values.namespace }}
-  labels:
-    storage: frontend-storage
-spec:
-  selector:
-    matchLabels:
-      storage: frontend-storage
-  storageClassName: {{ .Values.storageClasses.local }}
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ .Values.frontend.storage.data_size }}
-
-{{- else }}
-
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: frontend-claim
-  namespace: {{ .Values.Namespace }}
-  annotations:
-    # tells Argo CD: do not prune (delete) this resource
-    argocd.argoproj.io/sync-options: Delete=false,Prune=false
-spec:
-  storageClassName: {{ .Values.storageClasses.managed }}
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ .Values.frontend.storage.data_size }}
-
-{{- end }}
-
----
+{{- $namespace := include "mip.namespace" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: {{ .Values.namespace }}
-  labels:
-    app: frontend
+  namespace: {{ $namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: frontend
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
         app: frontend
     spec:
-      volumes:
-      - name: frontend-claim
-        persistentVolumeClaim:
-          claimName: frontend-claim
       containers:
       - name: frontend
-        image: {{ .Values.frontend.image.name }}:{{ .Values.frontend.image.version }}
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
         ports:
         - containerPort: 80
-        - containerPort: 443
-        volumeMounts:
-        - name: frontend-claim
-          mountPath: /data
-        env:
-        - name: ERROR_LOG_LEVEL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.ERROR_LOG_LEVEL
-        - name: GATEWAY_SERVER
-          value: gateway-service:8081
+        {{- $backendHost := default "" .Values.frontend.backend.host -}}
+        {{- if $backendHost }}
         - name: PORTAL_BACKEND_SERVER
-          value: portalbackend-service:8080
+          value: {{ printf "%s:%v" $backendHost (default 8080 .Values.frontend.backend.port) | quote }}
         - name: PORTAL_BACKEND_CONTEXT
-          value: services
-        - name: INSTANCE_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.INSTANCE_NAME
-        - name: VERSION
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.INSTANCE_VERSION
-        - name: EXTERNAL_MIP_PROTOCOL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.EXTERNAL_PROTOCOL
-        - name: PUBLIC_MIP_PROTOCOL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.PUBLIC_PROTOCOL
-        - name: PUBLIC_MIP_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.PUBLIC_HOST
-        - name: KEYCLOAK_HOST                           # Only used with internal Keycloak auth
-          value: http://keycloak-service:8095
-        - name: KEYCLOAK_AUTH_PATH                      # Only used with internal Keycloak auth
-          value: /auth
-        - name: MIP_LINK
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: mip.LINK
-        - name: DATACATALOG_SERVER                    # Only used in federated installation
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.DATACATALOG_SERVER
-        - name: MATOMO_ENABLED
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.MATOMO_ENABLED
-        - name: MATOMO_URL
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.MATOMO_URL
-        - name: MATOMO_SITE_ID
-          valueFrom:
-            configMapKeyRef:
-              name: mip-config
-              key: frontend.MATOMO_SITE_ID
-
+          value: {{ default "services" .Values.frontend.backend.context | quote }}
+        {{- end }}
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend-service
-  namespace: {{ .Values.namespace }}
-  labels:
-    app: frontend
+  name: frontend
+  namespace: {{ $namespace }}
 spec:
   selector:
     app: frontend
-  {{- if not .Values.managed_cluster }}
-  type: LoadBalancer
-  {{- end }}
   ports:
-  - name: "80"
-    port: 80
-    targetPort: 80
-    {{- if not .Values.managed_cluster }}
-    nodePort: 30080
-    {{- end }}
-  {{- if not .Values.managed_cluster }}
-  - name: "443"
-    port: 443
-    targetPort: 443
-    nodePort: 30443
-  externalIPs:
-  - {{ tpl .Values.frontend.EXTERNAL_IP . }}
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  {{- if not .Values.cluster.managed }}
+  type: NodePort
+  {{- if .Values.frontend.service.nodePort }}
+  nodePort: {{ .Values.frontend.service.nodePort }}
   {{- end }}
-
-
-{{- if .Values.managed_cluster }}
+  {{- end }}
+{{- $ingressEnabled := and (default true .Values.network.ingress.enabled) (default true .Values.frontend.ingress.enabled) -}}
+{{- if and $ingressEnabled (not (empty .Values.network.publicHost)) }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-
-  name: mip-frontend-ingress
+  name: frontend-ingress
+  namespace: {{ $namespace }}
   annotations:
-    kubernetes.io/ingress.class: {{ .Values.frontend.ingress }}
-    cert-manager.io/cluster-issuer: {{ .Values.frontend.cert_manager }}
+    kubernetes.io/ingress.class: {{ .Values.frontend.ingress.className | default "nginx" }}
+    {{- if .Values.frontend.ingress.certManagerClusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.frontend.ingress.certManagerClusterIssuer }}
+    {{- end }}
     nginx.ingress.kubernetes.io/rewrite-target: /
+    {{- $redirect := .Values.frontend.ingress.redirectRootTo | default "" }}
+    {{- if $redirect }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($request_uri = "/") {
+        return 302 {{ $redirect }};
+      }
+    {{- end }}
 spec:
-  ingressClassName: {{ .Values.frontend.ingress }}
+  ingressClassName: {{ .Values.frontend.ingress.className | default "nginx" }}
+  {{- if and .Values.network.ingress.tlsSecretName (not (empty .Values.network.publicHost)) }}
   tls:
     - hosts:
-      - {{ .Values.mip.PUBLIC_HOST }}
-      secretName: mip-frontend-tls
+      - {{ .Values.network.publicHost }}
+      secretName: {{ .Values.network.ingress.tlsSecretName }}
+  {{- end }}
   rules:
-    - host: {{ .Values.mip.PUBLIC_HOST }}
+    - host: {{ .Values.network.publicHost }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: frontend-service
+                name: frontend
                 port:
                   number: 80
 {{- end }}
